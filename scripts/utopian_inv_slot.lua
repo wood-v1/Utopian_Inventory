@@ -19,6 +19,7 @@ maintask UtopianInventorySlot do
   local dragging: bool
   local selected: bool
   local highlighted: bool
+  local loadedItemID: int
 
   function init() -> void
     item = null
@@ -27,6 +28,7 @@ maintask UtopianInventorySlot do
     dragging = false
     selected = false
     highlighted = false
+    loadedItemID = -1
     native.SetBackground("default")
     native.SetOwnerDraw(true)
     native.ProcessEvents()
@@ -154,6 +156,7 @@ maintask UtopianInventorySlot do
 
     if message >= c_iSlotEmpty then
       item = null
+      loadedItemID = -1
       selected = false
       UpdateBackground()
       native.SetTooltip(c_iTooltipNone, "")
@@ -171,15 +174,19 @@ maintask UtopianInventorySlot do
     if item then
       local itemID: int
       item->GetItemID(itemID)
-      native.GetInvItemSprite(image, itemID)
-      native.LoadImage(image)
-      native.GetInvItemMaxStackSize(maxStackSize, itemID)
+      if itemID != loadedItemID then
+        loadedItemID = itemID
+        native.GetInvItemSprite(image, itemID)
+        native.LoadImage(image)
+        native.GetInvItemMaxStackSize(maxStackSize, itemID)
+      end
       if disabled then
         native.SetTooltip(c_iTooltipNone, "")
       else
         native.SetTooltip(c_iTooltipInvObject, "", item)
       end
     else
+      loadedItemID = -1
       native.SetTooltip(c_iTooltipNone, "")
     end
   end

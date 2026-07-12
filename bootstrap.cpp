@@ -6,6 +6,40 @@ namespace
 {
 constexpr const char* DEBUG_CHANNEL = "UtopianInventory";
 constexpr const char* CUSTOM_INVENTORY_XML = "utopian_inventory.xml";
+constexpr const char* CUSTOM_INVENTORY_XML_1920 = "utopian_inventory_1920x1080.xml";
+
+bool GetGameClientSize(int& width, int& height)
+{
+    HWND window = ::GetForegroundWindow();
+    DWORD processId = 0;
+    if (window) {
+        ::GetWindowThreadProcessId(window, &processId);
+    }
+
+    RECT client = {};
+    if (window && processId == ::GetCurrentProcessId() && ::GetClientRect(window, &client)) {
+        width = client.right - client.left;
+        height = client.bottom - client.top;
+        if (width > 0 && height > 0) {
+            return true;
+        }
+    }
+
+    width = ::GetSystemMetrics(SM_CXSCREEN);
+    height = ::GetSystemMetrics(SM_CYSCREEN);
+    return width > 0 && height > 0;
+}
+
+const char* ResolveInventoryXml()
+{
+    int width = 0;
+    int height = 0;
+    GetGameClientSize(width, height);
+    if (width == 1920 && height == 1080) {
+        return CUSTOM_INVENTORY_XML_1920;
+    }
+    return CUSTOM_INVENTORY_XML;
+}
 
 void Log(const char* line)
 {
@@ -31,9 +65,12 @@ DWORD WINAPI MainThread(LPVOID)
         return 0;
     }
 
-    OynonUIInventorySetRedirect(CUSTOM_INVENTORY_XML);
+    const char* inventoryXml = ResolveInventoryXml();
+    OynonUIInventorySetRedirect(inventoryXml);
     OynonRegisterInventoryStateCallback(&OnInventoryStateChanged, nullptr);
-    Log("UtopianInventory initialized (safe UI events, cursor polling disabled)");
+    Log(inventoryXml == CUSTOM_INVENTORY_XML_1920
+        ? "UtopianInventory initialized (centered 1920x1080 layout)"
+        : "UtopianInventory initialized (standard layout)");
 
     while (true) {
         OynonUIInventoryPoll();

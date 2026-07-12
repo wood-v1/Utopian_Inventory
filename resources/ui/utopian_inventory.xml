@@ -1,224 +1,212 @@
 <form name="utopian_inventory" x="0" y="0" w="800" h="600" script="utopian_inventory.bin">
-  <form name="panel_background" x="28" y="45" w="744" h="510">
-    <image name="default" x="0.00390625" y="0.828125" w="0.0625" h="0.125">ui/ui_group_7_1.tex</image>
+  <form name="panel_background" x="25" y="50" w="750" h="500" script="utopian_inventory_background.bin">
   </form>
-  <form name="frame_top" x="28" y="45" w="744" h="2">
-    <image name="default" x="0.71875" y="0.25" w="0.03125" h="0.5">ui/ui_group_3_1.tex</image>
+  <form name="time" x="294" y="54" w="213" h="24" script="ui_inventory_time.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <font name="default" size="14" face="fritz_quadrata" />
   </form>
-  <form name="frame_bottom" x="28" y="553" w="744" h="2">
-    <image name="default" x="0.71875" y="0.25" w="0.03125" h="0.5">ui/ui_group_3_1.tex</image>
+  <form name="character_doll" x="65" y="157" w="235" h="371" script="utopian_character_doll.bin">
   </form>
-  <form name="frame_left" x="28" y="45" w="2" h="510">
-    <image name="default" x="0.59375" y="0.25" w="0.0625" h="0.25">ui/ui_group_3_1.tex</image>
-  </form>
-  <form name="frame_right" x="770" y="45" w="2" h="510">
-    <image name="default" x="0.59375" y="0.25" w="0.0625" h="0.25">ui/ui_group_3_1.tex</image>
-  </form>
-  <form name="character_doll" x="79" y="105" w="221" h="350" script="utopian_character_doll.bin">
-    <image name="bachelor" x="0" y="0" w="0.80078125" h="0.634765625">ui/utopian_doll_bachelor.png</image>
-    <image name="haruspex" x="0" y="0" w="0.80078125" h="0.634765625">ui/utopian_doll_haruspex.png</image>
-    <image name="clara" x="0" y="0" w="0.80078125" h="0.634765625">ui/utopian_doll_clara.png</image>
-  </form>
-  <form name="equip_head" x="167" y="110" w="52" h="52" script="utopian_equip_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="equip_head" x="156" y="159" w="52" h="52" script="utopian_equip_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="equip_body" x="167" y="235" w="52" h="52" script="utopian_equip_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="equip_body" x="156" y="284" w="52" h="52" script="utopian_equip_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="equip_hands" x="66" y="260" w="52" h="52" script="utopian_equip_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="equip_hands" x="68" y="311" w="52" h="52" script="utopian_equip_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="equip_feet" x="167" y="405" w="52" h="52" script="utopian_equip_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="equip_feet" x="156" y="429" w="52" h="52" script="utopian_equip_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="equip_weapon" x="270" y="315" w="52" h="52" script="utopian_equip_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="equip_weapon" x="234" y="337" w="52" h="52" script="utopian_equip_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="money" x="674" y="82" w="52" h="52" script="utopian_money_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
+  <form name="money" x="680" y="465" w="52" h="52" script="utopian_money_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot01" x="384" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot01" x="384" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot02" x="442" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot02" x="442" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot03" x="500" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot03" x="500" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot04" x="558" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot04" x="558" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot05" x="616" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot05" x="616" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot06" x="674" y="150" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot06" x="674" y="225" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot07" x="384" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot07" x="384" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot08" x="442" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot08" x="442" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot09" x="500" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot09" x="500" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot10" x="558" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot10" x="558" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot11" x="616" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot11" x="616" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot12" x="674" y="208" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot12" x="674" y="283" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot13" x="384" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot13" x="384" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot14" x="442" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot14" x="442" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot15" x="500" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot15" x="500" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot16" x="558" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot16" x="558" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot17" x="616" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot17" x="616" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot18" x="674" y="266" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot18" x="674" y="341" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot19" x="384" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot19" x="384" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot20" x="442" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot20" x="442" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot21" x="500" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot21" x="500" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot22" x="558" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot22" x="558" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot23" x="616" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot23" x="616" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot24" x="674" y="324" w="52" h="52" script="utopian_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="selected" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="slot24" x="674" y="399" w="52" h="52" script="utopian_inv_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="drop_slot" x="526" y="410" w="52" h="52" script="utopian_drop_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-    <image name="target" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/ui_group_1_3.tex</image>
+  <form name="drop_slot" x="526" y="455" w="52" h="52" script="utopian_drop_slot.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
+    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
   <cursor name="default" script="ui_tooltip_cursor.bin" w="32" h="32">

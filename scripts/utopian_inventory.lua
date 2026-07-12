@@ -8,6 +8,14 @@ maintask UtopianInventoryUI do
   local const c_iHoverMessageBase: int = 100000
   local const c_iReleaseMessageBase: int = 200000
   local const c_iDragEndMessageBase: int = 300000
+  local const c_iPanelPointerMoveBase: int = 1000000
+  local const c_iPanelPointerDownBase: int = 4000000
+  local const c_iPanelPointerUpBase: int = 7000000
+  local const c_iPanelPointerRightBase: int = 10000000
+  local const c_iPanelPointerDragBeginBase: int = 13000000
+  local const c_iPanelPointerDragEndBase: int = 16000000
+  local const c_iPanelPointerLeaveBase: int = 19000000
+  local const c_iPanelPointerStride: int = 2000
   local const c_iSlotHotZone: int = 52
   local const c_iSlotDropInset: int = 1
   local const c_iTargetWeapon: int = 100
@@ -39,9 +47,10 @@ maintask UtopianInventoryUI do
   local lastLayoutWidth: int
   local lastLayoutHeight: int
   local lastLayoutSlots: int
+  local panelTooltipTarget: int
 
   function init() -> void
-    native.Trace("utopian_inventory script init diagnostics=6 aligned-drag-icon")
+    native.Trace("utopian_inventory script init diagnostics=17 clock-contrast")
     page = 0
     resolvedCategory = -1
     resolvedIndex = -1
@@ -63,6 +72,7 @@ maintask UtopianInventoryUI do
     lastLayoutWidth = -1
     lastLayoutHeight = -1
     lastLayoutSlots = -1
+    panelTooltipTarget = -999
     InitSlotOrder()
     UpdateLayout()
     LoadLayoutVariables()
@@ -189,10 +199,7 @@ maintask UtopianInventoryUI do
     dragItemIndex = -1
     dragItemGroup = -1
     dragItemIsWeapon = false
-    if slot < 0 || slot >= visibleSlots then
-      return
-    end
-    if !ResolveVisibleSlot(slot) then
+    if !ResolveDragSource(slot) then
       return
     end
 
@@ -252,6 +259,9 @@ maintask UtopianInventoryUI do
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight || visibleSlots != lastLayoutSlots then
       native.Trace("utopian_inventory layout window=" + windowWidth + "x" + windowHeight + " slots=" + visibleSlots)
       native.SendMessage(windowWidth, "character_doll")
+      native.SendMessage(5000 + windowHeight, "character_doll")
+      native.SendMessage(windowWidth, "panel_background")
+      native.SendMessage(5000 + windowHeight, "panel_background")
       lastLayoutWidth = windowWidth
       lastLayoutHeight = windowHeight
       lastLayoutSlots = visibleSlots
@@ -267,6 +277,9 @@ maintask UtopianInventoryUI do
   end
 
   function GetGridStartX() -> int
+    if windowWidth >= 1900 then
+      return 960
+    end
     if windowWidth >= 1200 then
       return 640
     end
@@ -285,13 +298,16 @@ maintask UtopianInventoryUI do
   end
 
   function GetGridStartY() -> int
+    if windowWidth >= 1900 then
+      return 370
+    end
     if windowWidth >= 1200 then
-      return 190
+      return 310
     end
     if windowWidth >= 1000 then
-      return 170
+      return 266
     end
-    return 150
+    return 225
   end
 
   function GetGridStep() -> int
@@ -397,57 +413,75 @@ maintask UtopianInventoryUI do
   end
 
   function GetSpecialTargetLeft(target: int) -> int
+    if windowWidth >= 1900 then
+      if target == c_iTargetWeapon then return 715 end
+      if target == c_iTargetClothesBase + 1 then return 590 end
+      if target == c_iTargetClothesBase + 2 then return 590 end
+      if target == c_iTargetClothesBase + 3 then return 590 end
+      if target == c_iTargetClothesBase + 4 then return 445 end
+      if target == c_iTargetDrop then return 1166 end
+    else
     if windowWidth >= 1200 then
-      if target == c_iTargetWeapon then return 470 end
-      if target == c_iTargetClothesBase + 1 then return 294 end
-      if target == c_iTargetClothesBase + 2 then return 294 end
-      if target == c_iTargetClothesBase + 3 then return 294 end
+      if target == c_iTargetWeapon then return 395 end
+      if target == c_iTargetClothesBase + 1 then return 270 end
+      if target == c_iTargetClothesBase + 2 then return 270 end
+      if target == c_iTargetClothesBase + 3 then return 270 end
       if target == c_iTargetClothesBase + 4 then return 125 end
       if target == c_iTargetDrop then return 846 end
     else
       if windowWidth >= 1000 then
-        if target == c_iTargetWeapon then return 360 end
-        if target == c_iTargetClothesBase + 1 then return 218 end
-        if target == c_iTargetClothesBase + 2 then return 218 end
-        if target == c_iTargetClothesBase + 3 then return 218 end
-        if target == c_iTargetClothesBase + 4 then return 85 end
+        if target == c_iTargetWeapon then return 315 end
+        if target == c_iTargetClothesBase + 1 then return 207 end
+        if target == c_iTargetClothesBase + 2 then return 207 end
+        if target == c_iTargetClothesBase + 3 then return 207 end
+        if target == c_iTargetClothesBase + 4 then return 86 end
         if target == c_iTargetDrop then return 682 end
       else
-        if target == c_iTargetWeapon then return 270 end
-        if target == c_iTargetClothesBase + 1 then return 167 end
-        if target == c_iTargetClothesBase + 2 then return 167 end
-        if target == c_iTargetClothesBase + 3 then return 167 end
-        if target == c_iTargetClothesBase + 4 then return 66 end
+        if target == c_iTargetWeapon then return 234 end
+        if target == c_iTargetClothesBase + 1 then return 156 end
+        if target == c_iTargetClothesBase + 2 then return 156 end
+        if target == c_iTargetClothesBase + 3 then return 156 end
+        if target == c_iTargetClothesBase + 4 then return 68 end
         if target == c_iTargetDrop then return 526 end
       end
+    end
     end
     return -1000
   end
 
   function GetSpecialTargetTop(target: int) -> int
+    if windowWidth >= 1900 then
+      if target == c_iTargetWeapon then return 610 end
+      if target == c_iTargetClothesBase + 1 then return 800 end
+      if target == c_iTargetClothesBase + 2 then return 300 end
+      if target == c_iTargetClothesBase + 3 then return 508 end
+      if target == c_iTargetClothesBase + 4 then return 560 end
+      if target == c_iTargetDrop then return 745 end
+    else
     if windowWidth >= 1200 then
-      if target == c_iTargetWeapon then return 520 end
-      if target == c_iTargetClothesBase + 1 then return 720 end
-      if target == c_iTargetClothesBase + 2 then return 165 end
-      if target == c_iTargetClothesBase + 3 then return 360 end
-      if target == c_iTargetClothesBase + 4 then return 415 end
-      if target == c_iTargetDrop then return 555 end
+      if target == c_iTargetWeapon then return 550 end
+      if target == c_iTargetClothesBase + 1 then return 740 end
+      if target == c_iTargetClothesBase + 2 then return 240 end
+      if target == c_iTargetClothesBase + 3 then return 448 end
+      if target == c_iTargetClothesBase + 4 then return 500 end
+      if target == c_iTargetDrop then return 685 end
     else
       if windowWidth >= 1000 then
-        if target == c_iTargetWeapon then return 410 end
-        if target == c_iTargetClothesBase + 1 then return 540 end
-        if target == c_iTargetClothesBase + 2 then return 138 end
-        if target == c_iTargetClothesBase + 3 then return 300 end
-        if target == c_iTargetClothesBase + 4 then return 335 end
-        if target == c_iTargetDrop then return 500 end
+        if target == c_iTargetWeapon then return 438 end
+        if target == c_iTargetClothesBase + 1 then return 569 end
+        if target == c_iTargetClothesBase + 2 then return 188 end
+        if target == c_iTargetClothesBase + 3 then return 362 end
+        if target == c_iTargetClothesBase + 4 then return 399 end
+        if target == c_iTargetDrop then return 596 end
       else
-        if target == c_iTargetWeapon then return 315 end
-        if target == c_iTargetClothesBase + 1 then return 405 end
-        if target == c_iTargetClothesBase + 2 then return 110 end
-        if target == c_iTargetClothesBase + 3 then return 235 end
-        if target == c_iTargetClothesBase + 4 then return 260 end
-        if target == c_iTargetDrop then return 410 end
+        if target == c_iTargetWeapon then return 337 end
+        if target == c_iTargetClothesBase + 1 then return 429 end
+        if target == c_iTargetClothesBase + 2 then return 159 end
+        if target == c_iTargetClothesBase + 3 then return 284 end
+        if target == c_iTargetClothesBase + 4 then return 311 end
+        if target == c_iTargetDrop then return 455 end
       end
+    end
     end
     return -1000
   end
@@ -474,6 +508,15 @@ maintask UtopianInventoryUI do
 
     if IsInsideSpecialTarget(c_iTargetDrop, x, y) then
       return c_iTargetDrop
+    end
+    return -1
+  end
+
+  function FindEquipmentTargetAt(x: int, y: int) -> int
+    if IsInsideSpecialTarget(c_iTargetWeapon, x, y) then return c_iTargetWeapon end
+    for group = 1, 4 do
+      local target: int = c_iTargetClothesBase + group
+      if IsInsideSpecialTarget(target, x, y) then return target end
     end
     return -1
   end
@@ -513,7 +556,11 @@ maintask UtopianInventoryUI do
     for category = 0, c_iCategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
-      total = total + count
+      for index = 0, count - 1 do
+        if !IsEquippedItem(category, index) then
+          total = total + 1
+        end
+      end
     end
 
     return total
@@ -546,12 +593,14 @@ maintask UtopianInventoryUI do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if current == target then
-          resolvedCategory = category
-          resolvedIndex = index
-          return true
+        if !IsEquippedItem(category, index) then
+          if current == target then
+            resolvedCategory = category
+            resolvedIndex = index
+            return true
+          end
+          current = current + 1
         end
-        current = current + 1
       end
     end
 
@@ -574,16 +623,9 @@ maintask UtopianInventoryUI do
       if ResolveVisibleSlot(slot) then
         local item: object
         local amount: int
-        local selected: bool
         container->GetItem(item, resolvedIndex, resolvedCategory)
         container->GetItemAmount(amount, resolvedIndex, resolvedCategory)
-        container->IsItemSelected(selected, resolvedIndex, resolvedCategory)
-
-        if selected then
-          native.SendMessage(c_iSlotSelected, wndName, item)
-        else
-          native.SendMessage(0, wndName, item)
-        end
+        native.SendMessage(0, wndName, item)
         native.SendMessage(amount + c_iSlotNumber, wndName)
       else
         native.SendMessage(c_iSlotEmpty, wndName)
@@ -592,39 +634,58 @@ maintask UtopianInventoryUI do
     UpdateEquipmentSlots()
   end
 
-  function ClearEquipmentSlots() -> void
-    native.SendMessage(c_iSlotEmpty, "equip_weapon")
-    native.SendMessage(c_iSlotEmpty, "equip_feet")
-    native.SendMessage(c_iSlotEmpty, "equip_head")
-    native.SendMessage(c_iSlotEmpty, "equip_body")
-    native.SendMessage(c_iSlotEmpty, "equip_hands")
-    native.SendMessage(-30, "equip_weapon")
-    native.SendMessage(-31, "equip_feet")
-    native.SendMessage(-32, "equip_head")
-    native.SendMessage(-33, "equip_body")
-    native.SendMessage(-34, "equip_hands")
+  function UpdateEquipmentSlot(target: int) -> void
+    local wndName: string = GetTargetWndName(target)
+    if ResolveEquipmentTarget(target) then
+      local container: object = GetPlayerContainer()
+      local item: object
+      container->GetItem(item, resolvedIndex, resolvedCategory)
+      native.SendMessage(0, wndName, item)
+    else
+      native.SendMessage(c_iSlotEmpty, wndName)
+    end
+    native.SendMessage(-30 - (target - c_iTargetWeapon), wndName)
   end
 
   function UpdateEquipmentSlots() -> void
-    ClearEquipmentSlots()
+    for target = c_iTargetWeapon, c_iTargetClothesBase + 4 do
+      UpdateEquipmentSlot(target)
+    end
+  end
+
+  function ResolveEquipmentTarget(target: int) -> bool
+    resolvedCategory = -1
+    resolvedIndex = -1
     local container: object = GetPlayerContainer()
 
-    local weaponCount: int
-    container->GetItemCount(weaponCount, c_iCWeapon)
-    for index = 0, weaponCount - 1 do
-      local selected: bool
-      container->IsItemSelected(selected, index, c_iCWeapon)
-      if selected then
-        local item: object
-        container->GetItem(item, index, c_iCWeapon)
-        local itemID: int
-        item->GetItemID(itemID)
-        local hasWeapon: bool
-        native.HasInvItemProperty(hasWeapon, itemID, "Weapon")
-        if hasWeapon then native.SendMessage(0, "equip_weapon", item) end
+    if target == c_iTargetWeapon then
+      local weaponCount: int
+      container->GetItemCount(weaponCount, c_iCWeapon)
+      for index = 0, weaponCount - 1 do
+        local selected: bool
+        container->IsItemSelected(selected, index, c_iCWeapon)
+        if selected then
+          local item: object
+          container->GetItem(item, index, c_iCWeapon)
+          local itemID: int
+          item->GetItemID(itemID)
+          local hasWeapon: bool
+          native.HasInvItemProperty(hasWeapon, itemID, "Weapon")
+          if hasWeapon then
+            resolvedCategory = c_iCWeapon
+            resolvedIndex = index
+            return true
+          end
+        end
       end
+      return false
     end
 
+    if target <= c_iTargetClothesBase || target > c_iTargetClothesBase + 4 then
+      return false
+    end
+
+    local requiredGroup: int = target - c_iTargetClothesBase
     local clothesCount: int
     container->GetItemCount(clothesCount, c_iCClothes)
     for index = 0, clothesCount - 1 do
@@ -640,12 +701,35 @@ maintask UtopianInventoryUI do
         if hasGroup then
           local group: int
           native.GetInvItemProperty(group, itemID, "Group")
-          if group >= 1 && group <= 4 then
-            native.SendMessage(0, GetTargetWndName(c_iTargetClothesBase + group), item)
+          if group == requiredGroup then
+            resolvedCategory = c_iCClothes
+            resolvedIndex = index
+            return true
           end
         end
       end
     end
+    return false
+  end
+
+  function ResolveDragSource(source: int) -> bool
+    if source >= 0 && source < visibleSlots then
+      return ResolveVisibleSlot(source)
+    end
+    return ResolveEquipmentTarget(source)
+  end
+
+  function UnequipItem(category: int, index: int) -> bool
+    if category != c_iCWeapon && category != c_iCClothes then return false end
+    local container: object = GetPlayerContainer()
+    local selected: bool
+    container->IsItemSelected(selected, index, category)
+    if !selected then return false end
+    container->SelectItem(index, false, category)
+    if category == c_iCWeapon then
+      native.SetPlayerHandsItem(-1)
+    end
+    return true
   end
 
   function EquipDraggedItem(target: int, category: int, index: int) -> bool
@@ -847,6 +931,12 @@ maintask UtopianInventoryUI do
     return -1
   end
 
+  function GetDragSourceBySender(sender: string) -> int
+    local backpackSource: int = GetSlotBySender(sender)
+    if backpackSource >= 0 then return backpackSource end
+    return GetSpecialTargetBySender(sender)
+  end
+
   function GetSpecialTargetBySender(sender: string) -> int
     if sender == "equip_weapon" then return c_iTargetWeapon end
     if sender == "equip_feet" then return c_iTargetClothesBase + 1 end
@@ -866,6 +956,13 @@ maintask UtopianInventoryUI do
     return -1
   end
 
+  function GetSpecialTargetByDollSourceMessage(message: int, base: int) -> int
+    local offset: int = base - message
+    if offset == 0 then return c_iTargetWeapon end
+    if offset >= 1 && offset <= 4 then return c_iTargetClothesBase + offset end
+    return -1
+  end
+
   function IsSpecialTargetCompatible(target: int) -> bool
     if target == c_iTargetDrop then return true end
     if target == c_iTargetWeapon then
@@ -875,6 +972,37 @@ maintask UtopianInventoryUI do
       return dragItemCategory == c_iCClothes && target == c_iTargetClothesBase + dragItemGroup
     end
     return false
+  end
+
+  function StartDragAction(source: int, sender: string) -> void
+    dragSourceSlot = source
+    hoverSlot = dragSourceSlot
+    lastPointerSlot = dragSourceSlot
+    dragDebugLastPointerSlot = -999
+    dragDebugLastAppliedTarget = -999
+    dragMoved = false
+    lastValidDropTarget = -1
+    invalidDropTargetFrames = 0
+    SetHighlightedSlot(-1)
+    BeginDragCursor(dragSourceSlot)
+    native.Trace("utopian_inventory press " + sender + " " + dragSourceSlot)
+  end
+
+  function UnequipTarget(target: int, reason: string) -> void
+    if ResolveEquipmentTarget(target) then
+      local beforeCount: int = GetBackpackItemCount()
+      if beforeCount >= visibleSlots then
+        native.Trace("utopian_inventory unequip refused: backpack full target=" + target)
+        return
+      end
+      local category: int = resolvedCategory
+      local index: int = resolvedIndex
+      if UnequipItem(category, index) then
+        InsertOrderOrdinal(GetBackpackOrdinal(category, index), beforeCount)
+        native.Trace("utopian_inventory unequipped by " + reason + " target=" + target)
+      end
+      UpdateSlots()
+    end
   end
 
   function SwapSlotOrder(sourceSlot: int, targetSlot: int) -> void
@@ -913,6 +1041,53 @@ maintask UtopianInventoryUI do
     SaveLayoutVariables()
   end
 
+  function FindFirstFreeVisualSlot(itemCount: int) -> int
+    for slot = 0, visibleSlots - 1 do
+      if GetOrderValue(slot) >= itemCount then
+        return slot
+      end
+    end
+    return -1
+  end
+
+  function GetBackpackOrdinal(category: int, index: int) -> int
+    local container: object = GetPlayerContainer()
+    local ordinal: int = 0
+    for currentCategory = 0, c_iCategoryCount - 1 do
+      local count: int
+      container->GetItemCount(count, currentCategory)
+      for currentIndex = 0, count - 1 do
+        if !IsEquippedItem(currentCategory, currentIndex) then
+          if currentCategory == category && currentIndex == index then
+            return ordinal
+          end
+          ordinal = ordinal + 1
+        end
+      end
+    end
+    return -1
+  end
+
+  function InsertOrderOrdinal(insertedOrder: int, beforeCount: int) -> bool
+    if insertedOrder < 0 then return false end
+    local freeSlot: int = FindFirstFreeVisualSlot(beforeCount)
+    if freeSlot < 0 then return false end
+
+    for slot = 0, 39 do
+      if slot != freeSlot then
+        local order: int = GetOrderValue(slot)
+        if order >= insertedOrder && order < beforeCount then
+          SetOrderValue(slot, order + 1)
+        end
+      end
+    end
+    SetOrderValue(freeSlot, insertedOrder)
+    NormalizeSlotOrder()
+    SaveLayoutVariables()
+    native.Trace("utopian_inventory inserted ordinal=" + insertedOrder + " visualSlot=" + freeSlot)
+    return true
+  end
+
   function SetHighlightedSlot(slot: int) -> void
     if highlightedSlot == slot then
       return
@@ -942,32 +1117,58 @@ maintask UtopianInventoryUI do
 
     native.Trace("utopian_inventory finish source=" + sourceSlot + " target=" + targetSlot + " moved=" + dragMoved)
 
-    if targetSlot >= 0 && targetSlot < visibleSlots && targetSlot != sourceSlot then
-      native.Trace("utopian_inventory swap " + sourceSlot + " " + targetSlot)
-      SwapSlotOrder(sourceSlot, targetSlot)
-    else
-      if targetSlot >= c_iTargetWeapon && targetSlot <= c_iTargetClothesBase + 4 then
-        if ResolveVisibleSlot(sourceSlot) then
-          local equipped: bool = EquipDraggedItem(targetSlot, resolvedCategory, resolvedIndex)
-          if equipped then
-            native.Trace("utopian_inventory equipped target=" + targetSlot)
-          else
-            native.Trace("utopian_inventory incompatible target=" + targetSlot)
+    if sourceSlot >= c_iTargetWeapon && sourceSlot <= c_iTargetClothesBase + 4 then
+      if targetSlot >= 0 && targetSlot < visibleSlots then
+        local beforeCount: int = GetBackpackItemCount()
+        if beforeCount < visibleSlots then
+          if UnequipItem(dragItemCategory, dragItemIndex) then
+            InsertOrderOrdinal(GetBackpackOrdinal(dragItemCategory, dragItemIndex), beforeCount)
+            native.Trace("utopian_inventory unequipped by drag source=" + sourceSlot + " target=" + targetSlot)
           end
-          UpdateSlots()
+        else
+          native.Trace("utopian_inventory unequip drag refused: backpack full source=" + sourceSlot)
         end
+        UpdateSlots()
       else
         if targetSlot == c_iTargetDrop then
+          DropSlot(dragItemCategory, dragItemIndex)
+          UpdateSlots()
+        else
+          native.Trace("utopian_inventory equipped source release ignored source=" + sourceSlot + " target=" + targetSlot)
+        end
+      end
+    else
+      if targetSlot >= 0 && targetSlot < visibleSlots && targetSlot != sourceSlot then
+        native.Trace("utopian_inventory swap " + sourceSlot + " " + targetSlot)
+        SwapSlotOrder(sourceSlot, targetSlot)
+      else
+        if targetSlot >= c_iTargetWeapon && targetSlot <= c_iTargetClothesBase + 4 then
           if ResolveVisibleSlot(sourceSlot) then
             local beforeCount: int = GetBackpackItemCount()
             local usedOrder: int = page * visibleSlots + GetOrderValue(sourceSlot)
-            DropSlot(resolvedCategory, resolvedIndex)
-            local afterCount: int = GetBackpackItemCount()
-            if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
+            local equipped: bool = EquipDraggedItem(targetSlot, resolvedCategory, resolvedIndex)
+            if equipped then
+              local afterCount: int = GetBackpackItemCount()
+              if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
+              native.Trace("utopian_inventory equipped target=" + targetSlot)
+            else
+              native.Trace("utopian_inventory incompatible target=" + targetSlot)
+            end
             UpdateSlots()
           end
         else
-          native.Trace("utopian_inventory left release " + sourceSlot)
+          if targetSlot == c_iTargetDrop then
+            if ResolveVisibleSlot(sourceSlot) then
+              local beforeCount: int = GetBackpackItemCount()
+              local usedOrder: int = page * visibleSlots + GetOrderValue(sourceSlot)
+              DropSlot(resolvedCategory, resolvedIndex)
+              local afterCount: int = GetBackpackItemCount()
+              if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
+              UpdateSlots()
+            end
+          else
+            native.Trace("utopian_inventory left release " + sourceSlot)
+          end
         end
       end
     end
@@ -1125,14 +1326,172 @@ maintask UtopianInventoryUI do
   end
 
   function OnUpdate(delta: float) -> void
-    UpdateSlots()
+    UpdateLayout()
     UpdateMoney()
     if dragSourceSlot >= 0 && IsCursorPollingReady() then
       ApplyPointerSlot(UpdatePointerSlotFromCursorVariables())
     end
   end
 
+  function GetPanelPointerX(message: int, base: int) -> int
+    local encoded: int = message - base
+    return encoded / c_iPanelPointerStride
+  end
+
+  function GetPanelPointerY(message: int, base: int) -> int
+    local encoded: int = message - base
+    local x: int = encoded / c_iPanelPointerStride
+    return encoded - x * c_iPanelPointerStride
+  end
+
+  function StartPanelPointerDrag(x: int, y: int) -> void
+    if dragSourceSlot >= 0 then return end
+
+    local equipmentTarget: int = FindEquipmentTargetAt(x, y)
+    if equipmentTarget >= 0 && ResolveEquipmentTarget(equipmentTarget) then
+      StartDragAction(equipmentTarget, "panel_background")
+      return
+    end
+
+    local backpackSlot: int = FindBackpackSlotAt(x, y)
+    if backpackSlot >= 0 && ResolveVisibleSlot(backpackSlot) then
+      StartDragAction(backpackSlot, "panel_background")
+    end
+  end
+
+  function ClearPanelTooltip() -> void
+    if panelTooltipTarget != -1 then
+      panelTooltipTarget = -1
+      native.SendMessage(-1, "panel_background")
+    end
+  end
+
+  function UpdatePanelTooltip(x: int, y: int) -> void
+    if dragSourceSlot >= 0 then
+      ClearPanelTooltip()
+      return
+    end
+
+    local target: int = FindBackpackSlotAt(x, y)
+    local found: bool = false
+    if target >= 0 then
+      found = ResolveVisibleSlot(target)
+    else
+      target = FindEquipmentTargetAt(x, y)
+      if target >= 0 then found = ResolveEquipmentTarget(target) end
+    end
+
+    if !found then
+      ClearPanelTooltip()
+      return
+    end
+    if panelTooltipTarget == target then return end
+
+    local container: object = GetPlayerContainer()
+    local item: object
+    container->GetItem(item, resolvedIndex, resolvedCategory)
+    if item then
+      panelTooltipTarget = target
+      native.SendMessage(1, "panel_background", item)
+    else
+      ClearPanelTooltip()
+    end
+  end
+
+  function HandlePanelPointer(message: int) -> void
+    local base: int = c_iPanelPointerMoveBase
+    local action: int = 0
+
+    if message >= c_iPanelPointerLeaveBase then
+      ClearPanelTooltip()
+      return
+    end
+
+    if message >= c_iPanelPointerDragEndBase then
+      base = c_iPanelPointerDragEndBase
+      action = 3
+    else
+      if message >= c_iPanelPointerDragBeginBase then
+        base = c_iPanelPointerDragBeginBase
+        action = 1
+      else
+        if message >= c_iPanelPointerRightBase then
+          base = c_iPanelPointerRightBase
+          action = 2
+        else
+          if message >= c_iPanelPointerUpBase then
+            base = c_iPanelPointerUpBase
+            action = 3
+          else
+            if message >= c_iPanelPointerDownBase then
+              base = c_iPanelPointerDownBase
+              action = 1
+            end
+          end
+        end
+      end
+    end
+
+    local x: int = GetPanelPointerX(message, base)
+    local y: int = GetPanelPointerY(message, base)
+
+    if action == 0 then UpdatePanelTooltip(x, y) end
+
+    if action == 1 then
+      ClearPanelTooltip()
+      StartPanelPointerDrag(x, y)
+      return
+    end
+
+    if action == 2 then
+      local equipmentTarget: int = FindEquipmentTargetAt(x, y)
+      if equipmentTarget >= 0 then
+        UnequipTarget(equipmentTarget, "panel right click")
+        return
+      end
+      local backpackSlot: int = FindBackpackSlotAt(x, y)
+      if backpackSlot >= 0 then HandleSlotMessage(1, GetSlotWndName(backpackSlot)) end
+      return
+    end
+
+    local targetSlot: int = FindSlotAt(x, y)
+    if action == 3 then
+      if dragSourceSlot >= 0 then
+        ApplyPointerSlot(targetSlot)
+        FinishLeftAction(targetSlot)
+      end
+      return
+    end
+
+    if dragSourceSlot >= 0 then ApplyPointerSlot(targetSlot) end
+  end
+
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if sender == "panel_background" && message >= c_iPanelPointerMoveBase then
+      HandlePanelPointer(message)
+      return
+    end
+
+    if message == -43 then
+      local unequipTarget: int = GetSpecialTargetBySender(sender)
+      UnequipTarget(unequipTarget, "right click")
+      return
+    end
+
+    if message <= -60 && message >= -64 then
+      local dollSource: int = GetSpecialTargetByDollSourceMessage(message, -60)
+      if ResolveEquipmentTarget(dollSource) then
+        StartDragAction(dollSource, "character_doll")
+      end
+      return
+    end
+
+    if message <= -70 && message >= -74 then
+      local dollTarget: int = GetSpecialTargetByDollSourceMessage(message, -70)
+      UnequipTarget(dollTarget, "doll right click")
+      return
+    end
+
     if message == -40 then
       if dragSourceSlot >= 0 then
         local specialTarget: int = GetSpecialTargetBySender(sender)
@@ -1222,17 +1581,7 @@ maintask UtopianInventoryUI do
     end
 
     if message == 2 || message == 3 then
-      dragSourceSlot = GetSlotBySender(sender)
-      hoverSlot = dragSourceSlot
-      lastPointerSlot = dragSourceSlot
-      dragDebugLastPointerSlot = -999
-      dragDebugLastAppliedTarget = -999
-      dragMoved = false
-      lastValidDropTarget = -1
-      invalidDropTargetFrames = 0
-      SetHighlightedSlot(-1)
-      BeginDragCursor(dragSourceSlot)
-      native.Trace("utopian_inventory press " + sender + " " + dragSourceSlot)
+      StartDragAction(GetDragSourceBySender(sender), sender)
       return
     end
 
@@ -1287,6 +1636,11 @@ maintask UtopianInventoryUI do
   end
   function OnLButtonDown(x: int, y: int) -> void
     native.Trace("utopian_inventory OnLButtonDown")
+    local equipmentTarget: int = FindEquipmentTargetAt(x, y)
+    if equipmentTarget >= 0 && ResolveEquipmentTarget(equipmentTarget) then
+      StartDragAction(equipmentTarget, "root")
+      return
+    end
     if y > windowHeight - 48 then
       if x < 96 then
         ChangePage(-1)
@@ -1295,6 +1649,14 @@ maintask UtopianInventoryUI do
           ChangePage(1)
         end
       end
+    end
+  end
+
+
+  function OnRButtonDown(x: int, y: int) -> void
+    local equipmentTarget: int = FindEquipmentTargetAt(x, y)
+    if equipmentTarget >= 0 then
+      UnequipTarget(equipmentTarget, "root right click")
     end
   end
 

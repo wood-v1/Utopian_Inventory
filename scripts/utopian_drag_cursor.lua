@@ -24,7 +24,7 @@ maintask UtopianDragCursor do
       loadedItemID = itemID
     end
 
-    native.StretchBlit(sprite, 8, 8, 50, 50, 0.85)
+    native.StretchBlit(sprite, 0, 0, 52, 52, 0.85)
     native.Blit("default", 0, 0)
   end
 end

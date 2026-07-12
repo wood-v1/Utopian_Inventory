@@ -10,6 +10,9 @@ maintask UtopianInventoryUI do
   local const c_iDragEndMessageBase: int = 300000
   local const c_iSlotHotZone: int = 52
   local const c_iSlotDropInset: int = 1
+  local const c_iTargetWeapon: int = 100
+  local const c_iTargetClothesBase: int = 100
+  local const c_iTargetDrop: int = 200
 
   local windowWidth: int
   local windowHeight: int
@@ -25,12 +28,20 @@ maintask UtopianInventoryUI do
   local dragDebugLastTargetSlot: int
   local lastPointerSlot: int
   local dragDebugLastPointerSlot: int
+  local lastValidDropTarget: int
+  local invalidDropTargetFrames: int
+  local dragDebugLastAppliedTarget: int
+  local dragItemID: int
+  local dragItemCategory: int
+  local dragItemIndex: int
+  local dragItemGroup: int
+  local dragItemIsWeapon: bool
   local lastLayoutWidth: int
   local lastLayoutHeight: int
   local lastLayoutSlots: int
 
   function init() -> void
-    native.Trace("utopian_inventory script init")
+    native.Trace("utopian_inventory script init diagnostics=6 aligned-drag-icon")
     page = 0
     resolvedCategory = -1
     resolvedIndex = -1
@@ -41,6 +52,14 @@ maintask UtopianInventoryUI do
     dragDebugLastTargetSlot = -999
     lastPointerSlot = -1
     dragDebugLastPointerSlot = -999
+    lastValidDropTarget = -1
+    invalidDropTargetFrames = 0
+    dragDebugLastAppliedTarget = -999
+    dragItemID = -1
+    dragItemCategory = -1
+    dragItemIndex = -1
+    dragItemGroup = -1
+    dragItemIsWeapon = false
     lastLayoutWidth = -1
     lastLayoutHeight = -1
     lastLayoutSlots = -1
@@ -165,6 +184,11 @@ maintask UtopianInventoryUI do
 
   function BeginDragCursor(slot: int) -> void
     native.SetVariable("utopian_inventory_drag_item", -1)
+    dragItemID = -1
+    dragItemCategory = -1
+    dragItemIndex = -1
+    dragItemGroup = -1
+    dragItemIsWeapon = false
     if slot < 0 || slot >= visibleSlots then
       return
     end
@@ -181,13 +205,34 @@ maintask UtopianInventoryUI do
 
     local itemID: int
     item->GetItemID(itemID)
+    dragItemID = itemID
+    dragItemCategory = resolvedCategory
+    dragItemIndex = resolvedIndex
+    if dragItemCategory == c_iCWeapon then
+      native.HasInvItemProperty(dragItemIsWeapon, dragItemID, "Weapon")
+    end
+    if dragItemCategory == c_iCClothes then
+      local hasGroup: bool
+      native.HasInvItemProperty(hasGroup, dragItemID, "Group")
+      if hasGroup then
+        native.GetInvItemProperty(dragItemGroup, dragItemID, "Group")
+      end
+    end
     native.SetVariable("utopian_inventory_drag_item", itemID)
     native.SetCursor("drag_item")
+    native.Trace("utopian_inventory diagnostic drag-start slot=" + slot + " item=" + dragItemID +
+      " category=" + dragItemCategory + " index=" + dragItemIndex + " group=" + dragItemGroup +
+      " weapon=" + dragItemIsWeapon)
   end
 
   function EndDragCursor() -> void
     native.SetVariable("utopian_inventory_drag_item", -1)
     native.SetCursor("default")
+    dragItemID = -1
+    dragItemCategory = -1
+    dragItemIndex = -1
+    dragItemGroup = -1
+    dragItemIsWeapon = false
   end
 
   function UpdateLayout() -> void
@@ -206,6 +251,7 @@ maintask UtopianInventoryUI do
     end
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight || visibleSlots != lastLayoutSlots then
       native.Trace("utopian_inventory layout window=" + windowWidth + "x" + windowHeight + " slots=" + visibleSlots)
+      native.SendMessage(windowWidth, "character_doll")
       lastLayoutWidth = windowWidth
       lastLayoutHeight = windowHeight
       lastLayoutSlots = visibleSlots
@@ -222,12 +268,12 @@ maintask UtopianInventoryUI do
 
   function GetGridStartX() -> int
     if windowWidth >= 1200 then
-      return 288
+      return 640
     end
     if windowWidth >= 1000 then
-      return 200
+      return 500
     end
-    return 128
+    return 384
   end
 
   function GetRootLeft() -> int
@@ -240,12 +286,12 @@ maintask UtopianInventoryUI do
 
   function GetGridStartY() -> int
     if windowWidth >= 1200 then
-      return 324
+      return 190
     end
     if windowWidth >= 1000 then
-      return 226
+      return 170
     end
-    return 177
+    return 150
   end
 
   function GetGridStep() -> int
@@ -277,6 +323,159 @@ maintask UtopianInventoryUI do
   function GetSlotTop(slot: int) -> int
     local columns: int = GetGridColumns()
     return GetGridStartY() + (slot / columns) * GetGridStep()
+  end
+
+  function GetTargetWndName(target: int) -> string
+    if target >= 0 && target < visibleSlots then
+      return GetSlotWndName(target)
+    end
+    if target == c_iTargetWeapon then
+      return "equip_weapon"
+    end
+    if target == c_iTargetClothesBase + 1 then
+      return "equip_feet"
+    end
+    if target == c_iTargetClothesBase + 2 then
+      return "equip_head"
+    end
+    if target == c_iTargetClothesBase + 3 then
+      return "equip_body"
+    end
+    if target == c_iTargetClothesBase + 4 then
+      return "equip_hands"
+    end
+    if target == c_iTargetDrop then
+      return "drop_slot"
+    end
+    return ""
+  end
+
+  function GetTargetDebugName(target: int) -> string
+    if target >= 0 && target < visibleSlots then
+      return "BACKPACK_" + target
+    end
+    if target == c_iTargetWeapon then return "WEAPON" end
+    if target == c_iTargetClothesBase + 1 then return "FEET" end
+    if target == c_iTargetClothesBase + 2 then return "HEAD" end
+    if target == c_iTargetClothesBase + 3 then return "BODY" end
+    if target == c_iTargetClothesBase + 4 then return "HANDS" end
+    if target == c_iTargetDrop then return "DROP" end
+    return "OUTSIDE"
+  end
+
+  function TraceDragTarget(target: int) -> void
+    if target == dragDebugLastAppliedTarget then
+      return
+    end
+    dragDebugLastAppliedTarget = target
+
+    if dragSourceSlot < 0 || dragItemID < 0 then
+      native.Trace("utopian_inventory diagnostic target=" + GetTargetDebugName(target) + " cache=empty")
+      return
+    end
+    local compatible: bool = false
+
+    if target >= 0 && target < visibleSlots then
+      compatible = true
+    else
+      if target == c_iTargetDrop then
+        compatible = true
+      else
+        if target == c_iTargetWeapon && dragItemCategory == c_iCWeapon then
+          compatible = dragItemIsWeapon
+        else
+          if target > c_iTargetClothesBase && target <= c_iTargetClothesBase + 4 && dragItemCategory == c_iCClothes then
+            compatible = target == c_iTargetClothesBase + dragItemGroup
+          end
+        end
+      end
+    end
+
+    native.Trace("utopian_inventory diagnostic target=" + GetTargetDebugName(target) +
+      " item=" + dragItemID + " category=" + dragItemCategory + " group=" + dragItemGroup +
+      " compatible=" + compatible)
+  end
+
+  function GetSpecialTargetLeft(target: int) -> int
+    if windowWidth >= 1200 then
+      if target == c_iTargetWeapon then return 470 end
+      if target == c_iTargetClothesBase + 1 then return 294 end
+      if target == c_iTargetClothesBase + 2 then return 294 end
+      if target == c_iTargetClothesBase + 3 then return 294 end
+      if target == c_iTargetClothesBase + 4 then return 125 end
+      if target == c_iTargetDrop then return 846 end
+    else
+      if windowWidth >= 1000 then
+        if target == c_iTargetWeapon then return 360 end
+        if target == c_iTargetClothesBase + 1 then return 218 end
+        if target == c_iTargetClothesBase + 2 then return 218 end
+        if target == c_iTargetClothesBase + 3 then return 218 end
+        if target == c_iTargetClothesBase + 4 then return 85 end
+        if target == c_iTargetDrop then return 682 end
+      else
+        if target == c_iTargetWeapon then return 270 end
+        if target == c_iTargetClothesBase + 1 then return 167 end
+        if target == c_iTargetClothesBase + 2 then return 167 end
+        if target == c_iTargetClothesBase + 3 then return 167 end
+        if target == c_iTargetClothesBase + 4 then return 66 end
+        if target == c_iTargetDrop then return 526 end
+      end
+    end
+    return -1000
+  end
+
+  function GetSpecialTargetTop(target: int) -> int
+    if windowWidth >= 1200 then
+      if target == c_iTargetWeapon then return 520 end
+      if target == c_iTargetClothesBase + 1 then return 720 end
+      if target == c_iTargetClothesBase + 2 then return 165 end
+      if target == c_iTargetClothesBase + 3 then return 360 end
+      if target == c_iTargetClothesBase + 4 then return 415 end
+      if target == c_iTargetDrop then return 555 end
+    else
+      if windowWidth >= 1000 then
+        if target == c_iTargetWeapon then return 410 end
+        if target == c_iTargetClothesBase + 1 then return 540 end
+        if target == c_iTargetClothesBase + 2 then return 138 end
+        if target == c_iTargetClothesBase + 3 then return 300 end
+        if target == c_iTargetClothesBase + 4 then return 335 end
+        if target == c_iTargetDrop then return 500 end
+      else
+        if target == c_iTargetWeapon then return 315 end
+        if target == c_iTargetClothesBase + 1 then return 405 end
+        if target == c_iTargetClothesBase + 2 then return 110 end
+        if target == c_iTargetClothesBase + 3 then return 235 end
+        if target == c_iTargetClothesBase + 4 then return 260 end
+        if target == c_iTargetDrop then return 410 end
+      end
+    end
+    return -1000
+  end
+
+  function IsInsideSpecialTarget(target: int, x: int, y: int) -> bool
+    local left: int = GetSpecialTargetLeft(target)
+    local top: int = GetSpecialTargetTop(target)
+    return x >= left && y >= top && x < left + c_iSlotHotZone && y < top + c_iSlotHotZone
+  end
+
+  function FindSpecialTargetAt(x: int, y: int) -> int
+    if dragItemCategory == c_iCWeapon && dragItemIsWeapon then
+      if IsInsideSpecialTarget(c_iTargetWeapon, x, y) then
+        return c_iTargetWeapon
+      end
+    end
+
+    if dragItemCategory == c_iCClothes && dragItemGroup >= 1 && dragItemGroup <= 4 then
+      local clothesTarget: int = c_iTargetClothesBase + dragItemGroup
+      if IsInsideSpecialTarget(clothesTarget, x, y) then
+        return clothesTarget
+      end
+    end
+
+    if IsInsideSpecialTarget(c_iTargetDrop, x, y) then
+      return c_iTargetDrop
+    end
+    return -1
   end
 
   function IsEquippedItem(category: int, index: int) -> bool
@@ -390,6 +589,113 @@ maintask UtopianInventoryUI do
         native.SendMessage(c_iSlotEmpty, wndName)
       end
     end
+    UpdateEquipmentSlots()
+  end
+
+  function ClearEquipmentSlots() -> void
+    native.SendMessage(c_iSlotEmpty, "equip_weapon")
+    native.SendMessage(c_iSlotEmpty, "equip_feet")
+    native.SendMessage(c_iSlotEmpty, "equip_head")
+    native.SendMessage(c_iSlotEmpty, "equip_body")
+    native.SendMessage(c_iSlotEmpty, "equip_hands")
+    native.SendMessage(-30, "equip_weapon")
+    native.SendMessage(-31, "equip_feet")
+    native.SendMessage(-32, "equip_head")
+    native.SendMessage(-33, "equip_body")
+    native.SendMessage(-34, "equip_hands")
+  end
+
+  function UpdateEquipmentSlots() -> void
+    ClearEquipmentSlots()
+    local container: object = GetPlayerContainer()
+
+    local weaponCount: int
+    container->GetItemCount(weaponCount, c_iCWeapon)
+    for index = 0, weaponCount - 1 do
+      local selected: bool
+      container->IsItemSelected(selected, index, c_iCWeapon)
+      if selected then
+        local item: object
+        container->GetItem(item, index, c_iCWeapon)
+        local itemID: int
+        item->GetItemID(itemID)
+        local hasWeapon: bool
+        native.HasInvItemProperty(hasWeapon, itemID, "Weapon")
+        if hasWeapon then native.SendMessage(0, "equip_weapon", item) end
+      end
+    end
+
+    local clothesCount: int
+    container->GetItemCount(clothesCount, c_iCClothes)
+    for index = 0, clothesCount - 1 do
+      local selected: bool
+      container->IsItemSelected(selected, index, c_iCClothes)
+      if selected then
+        local item: object
+        container->GetItem(item, index, c_iCClothes)
+        local itemID: int
+        item->GetItemID(itemID)
+        local hasGroup: bool
+        native.HasInvItemProperty(hasGroup, itemID, "Group")
+        if hasGroup then
+          local group: int
+          native.GetInvItemProperty(group, itemID, "Group")
+          if group >= 1 && group <= 4 then
+            native.SendMessage(0, GetTargetWndName(c_iTargetClothesBase + group), item)
+          end
+        end
+      end
+    end
+  end
+
+  function EquipDraggedItem(target: int, category: int, index: int) -> bool
+    local container: object = GetPlayerContainer()
+    local item: object
+    container->GetItem(item, index, category)
+    if !item then return false end
+
+    local itemID: int
+    item->GetItemID(itemID)
+    if target == c_iTargetWeapon then
+      if category != c_iCWeapon then return false end
+      local hasWeapon: bool
+      native.HasInvItemProperty(hasWeapon, itemID, "Weapon")
+      if !hasWeapon then return false end
+
+      native.SetPlayerHandsItem(itemID)
+      local count: int
+      container->GetItemCount(count, c_iCWeapon)
+      for i = 0, count - 1 do container->SelectItem(i, false, c_iCWeapon) end
+      container->SelectItem(index, true, c_iCWeapon)
+      return true
+    end
+
+    if target <= c_iTargetClothesBase || target > c_iTargetClothesBase + 4 then return false end
+    if category != c_iCClothes then return false end
+    local hasGroup: bool
+    native.HasInvItemProperty(hasGroup, itemID, "Group")
+    if !hasGroup then return false end
+    local group: int
+    native.GetInvItemProperty(group, itemID, "Group")
+    if target != c_iTargetClothesBase + group then return false end
+
+    local count: int
+    container->GetItemCount(count, c_iCClothes)
+    for i = 0, count - 1 do
+      local other: object
+      container->GetItem(other, i, c_iCClothes)
+      local otherID: int
+      other->GetItemID(otherID)
+      local otherHasGroup: bool
+      native.HasInvItemProperty(otherHasGroup, otherID, "Group")
+      if otherHasGroup then
+        local otherGroup: int
+        native.GetInvItemProperty(otherGroup, otherID, "Group")
+        if otherGroup == group then container->SelectItem(i, false, c_iCClothes) end
+      end
+    end
+    container->SelectItem(index, true, c_iCClothes)
+    return true
   end
 
   function ToggleSlot(category: int, index: int) -> void
@@ -482,6 +788,7 @@ maintask UtopianInventoryUI do
     local container: object
     native.GetContainer(container)
     if !container then
+      native.Trace("utopian_inventory drop failed: world container unavailable")
       return
     end
 
@@ -492,6 +799,7 @@ maintask UtopianInventoryUI do
     local success: bool
     container->AddItem(success, item, 0, 1)
     if !success then
+      native.Trace("utopian_inventory drop failed: AddItem rejected category=" + category + " index=" + index)
       return
     end
 
@@ -504,6 +812,7 @@ maintask UtopianInventoryUI do
     end
 
     playerContainer->RemoveItem(index, 1, category)
+    native.Trace("utopian_inventory drop success category=" + category + " index=" + index)
   end
 
   function HandleSlotMessage(message: int, sender: string) -> bool
@@ -536,6 +845,36 @@ maintask UtopianInventoryUI do
       end
     end
     return -1
+  end
+
+  function GetSpecialTargetBySender(sender: string) -> int
+    if sender == "equip_weapon" then return c_iTargetWeapon end
+    if sender == "equip_feet" then return c_iTargetClothesBase + 1 end
+    if sender == "equip_head" then return c_iTargetClothesBase + 2 end
+    if sender == "equip_body" then return c_iTargetClothesBase + 3 end
+    if sender == "equip_hands" then return c_iTargetClothesBase + 4 end
+    if sender == "drop_slot" then return c_iTargetDrop end
+    return -1
+  end
+
+  function GetSpecialTargetByDollMessage(message: int) -> int
+    if message == -50 then return c_iTargetWeapon end
+    if message == -51 then return c_iTargetClothesBase + 1 end
+    if message == -52 then return c_iTargetClothesBase + 2 end
+    if message == -53 then return c_iTargetClothesBase + 3 end
+    if message == -54 then return c_iTargetClothesBase + 4 end
+    return -1
+  end
+
+  function IsSpecialTargetCompatible(target: int) -> bool
+    if target == c_iTargetDrop then return true end
+    if target == c_iTargetWeapon then
+      return dragItemCategory == c_iCWeapon && dragItemIsWeapon
+    end
+    if target > c_iTargetClothesBase && target <= c_iTargetClothesBase + 4 then
+      return dragItemCategory == c_iCClothes && target == c_iTargetClothesBase + dragItemGroup
+    end
+    return false
   end
 
   function SwapSlotOrder(sourceSlot: int, targetSlot: int) -> void
@@ -580,12 +919,12 @@ maintask UtopianInventoryUI do
     end
 
     if highlightedSlot >= 0 then
-      native.SendMessage(-21, GetSlotWndName(highlightedSlot))
+      native.SendMessage(-21, GetTargetWndName(highlightedSlot))
     end
 
     highlightedSlot = slot
     if highlightedSlot >= 0 then
-      native.SendMessage(-20, GetSlotWndName(highlightedSlot))
+      native.SendMessage(-20, GetTargetWndName(highlightedSlot))
     end
   end
 
@@ -596,13 +935,41 @@ maintask UtopianInventoryUI do
 
     local sourceSlot: int = dragSourceSlot
 
+    if targetSlot < 0 && lastValidDropTarget >= 0 && invalidDropTargetFrames <= 3 then
+      targetSlot = lastValidDropTarget
+      native.Trace("utopian_inventory release latched target=" + targetSlot)
+    end
+
     native.Trace("utopian_inventory finish source=" + sourceSlot + " target=" + targetSlot + " moved=" + dragMoved)
 
-    if targetSlot >= 0 && targetSlot != sourceSlot then
+    if targetSlot >= 0 && targetSlot < visibleSlots && targetSlot != sourceSlot then
       native.Trace("utopian_inventory swap " + sourceSlot + " " + targetSlot)
       SwapSlotOrder(sourceSlot, targetSlot)
     else
-      native.Trace("utopian_inventory left release " + sourceSlot)
+      if targetSlot >= c_iTargetWeapon && targetSlot <= c_iTargetClothesBase + 4 then
+        if ResolveVisibleSlot(sourceSlot) then
+          local equipped: bool = EquipDraggedItem(targetSlot, resolvedCategory, resolvedIndex)
+          if equipped then
+            native.Trace("utopian_inventory equipped target=" + targetSlot)
+          else
+            native.Trace("utopian_inventory incompatible target=" + targetSlot)
+          end
+          UpdateSlots()
+        end
+      else
+        if targetSlot == c_iTargetDrop then
+          if ResolveVisibleSlot(sourceSlot) then
+            local beforeCount: int = GetBackpackItemCount()
+            local usedOrder: int = page * visibleSlots + GetOrderValue(sourceSlot)
+            DropSlot(resolvedCategory, resolvedIndex)
+            local afterCount: int = GetBackpackItemCount()
+            if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
+            UpdateSlots()
+          end
+        else
+          native.Trace("utopian_inventory left release " + sourceSlot)
+        end
+      end
     end
 
     dragSourceSlot = -1
@@ -610,10 +977,13 @@ maintask UtopianInventoryUI do
     lastPointerSlot = -1
     SetHighlightedSlot(-1)
     dragMoved = false
+    lastValidDropTarget = -1
+    invalidDropTargetFrames = 0
+    dragDebugLastAppliedTarget = -999
     EndDragCursor()
   end
 
-  function FindSlotAt(x: int, y: int) -> int
+  function FindBackpackSlotAt(x: int, y: int) -> int
     local startX: int = GetGridStartX()
     local startY: int = GetGridStartY()
     local step: int = GetGridStep()
@@ -647,6 +1017,12 @@ maintask UtopianInventoryUI do
     return slot
   end
 
+  function FindSlotAt(x: int, y: int) -> int
+    local backpackSlot: int = FindBackpackSlotAt(x, y)
+    if backpackSlot >= 0 then return backpackSlot end
+    return FindSpecialTargetAt(x, y)
+  end
+
   function IsInsideSlotDropArea(localX: int, localY: int) -> bool
     return localX >= c_iSlotDropInset &&
       localY >= c_iSlotDropInset &&
@@ -668,9 +1044,7 @@ maintask UtopianInventoryUI do
   end
 
   function IsCursorPollingReady() -> bool
-    local ready: int = 0
-    native.GetVariable("utopian_inventory_cursor_ready", ready)
-    return ready == 1
+    return false
   end
 
   function UpdatePointerSlotFromCursorVariables() -> int
@@ -700,10 +1074,19 @@ maintask UtopianInventoryUI do
       return
     end
 
+    TraceDragTarget(slot)
+
     if slot >= 0 && slot != dragSourceSlot then
       dragMoved = true
+      lastValidDropTarget = slot
+      invalidDropTargetFrames = 0
       SetHighlightedSlot(slot)
     else
+      if slot < 0 then
+        invalidDropTargetFrames = invalidDropTargetFrames + 1
+      else
+        invalidDropTargetFrames = 0
+      end
       SetHighlightedSlot(-1)
     end
   end
@@ -750,6 +1133,53 @@ maintask UtopianInventoryUI do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == -40 then
+      if dragSourceSlot >= 0 then
+        local specialTarget: int = GetSpecialTargetBySender(sender)
+        if specialTarget >= 0 && IsSpecialTargetCompatible(specialTarget) then
+          hoverSlot = specialTarget
+          ApplyPointerSlot(specialTarget)
+        else
+          hoverSlot = -1
+          ApplyPointerSlot(-1)
+        end
+      end
+      return
+    end
+
+    if message <= -50 && message >= -54 then
+      if dragSourceSlot >= 0 then
+        local dollTarget: int = GetSpecialTargetByDollMessage(message)
+        if dollTarget >= 0 && IsSpecialTargetCompatible(dollTarget) then
+          hoverSlot = dollTarget
+          ApplyPointerSlot(dollTarget)
+        else
+          hoverSlot = -1
+          ApplyPointerSlot(-1)
+        end
+      end
+      return
+    end
+
+    if message == -42 then
+      if dragSourceSlot >= 0 then
+        local releaseTarget: int = GetSpecialTargetBySender(sender)
+        if releaseTarget >= 0 && IsSpecialTargetCompatible(releaseTarget) then
+          ApplyPointerSlot(releaseTarget)
+          FinishLeftAction(releaseTarget)
+        end
+      end
+      return
+    end
+
+    if message == -41 then
+      if dragSourceSlot >= 0 then
+        hoverSlot = -1
+        ApplyPointerSlot(-1)
+      end
+      return
+    end
+
     if sender == "page_prev" then
       ChangePage(-1)
       return
@@ -761,6 +1191,9 @@ maintask UtopianInventoryUI do
 
     if message >= c_iDragEndMessageBase then
       local targetSlot: int = GetCurrentDropSlot(message, c_iDragEndMessageBase, sender)
+      native.Trace("utopian_inventory diagnostic drag-end sender=" + sender +
+        " target=" + GetTargetDebugName(targetSlot) + " highlighted=" + GetTargetDebugName(highlightedSlot) +
+        " latched=" + GetTargetDebugName(lastValidDropTarget) + " invalidFrames=" + invalidDropTargetFrames)
       ApplyPointerSlot(targetSlot)
       FinishLeftAction(targetSlot)
       return
@@ -768,6 +1201,9 @@ maintask UtopianInventoryUI do
 
     if message >= c_iReleaseMessageBase then
       local targetSlot: int = GetCurrentDropSlot(message, c_iReleaseMessageBase, sender)
+      native.Trace("utopian_inventory diagnostic release sender=" + sender +
+        " target=" + GetTargetDebugName(targetSlot) + " highlighted=" + GetTargetDebugName(highlightedSlot) +
+        " latched=" + GetTargetDebugName(lastValidDropTarget) + " invalidFrames=" + invalidDropTargetFrames)
       ApplyPointerSlot(targetSlot)
       FinishLeftAction(targetSlot)
       return
@@ -790,7 +1226,10 @@ maintask UtopianInventoryUI do
       hoverSlot = dragSourceSlot
       lastPointerSlot = dragSourceSlot
       dragDebugLastPointerSlot = -999
+      dragDebugLastAppliedTarget = -999
       dragMoved = false
+      lastValidDropTarget = -1
+      invalidDropTargetFrames = 0
       SetHighlightedSlot(-1)
       BeginDragCursor(dragSourceSlot)
       native.Trace("utopian_inventory press " + sender + " " + dragSourceSlot)
@@ -798,14 +1237,12 @@ maintask UtopianInventoryUI do
     end
 
     if message == 4 then
-      SetHighlightedSlot(-1)
-      FinishLeftAction(-1)
+      native.Trace("utopian_inventory system drag message 4 ignored")
       return
     end
 
     if message == 5 then
-      SetHighlightedSlot(-1)
-      FinishLeftAction(-1)
+      native.Trace("utopian_inventory system drag message 5 ignored")
       return
     end
 
@@ -825,6 +1262,9 @@ maintask UtopianInventoryUI do
     if message == 8 then
       if dragSourceSlot >= 0 && IsCursorPollingReady() then
         local targetSlot: int = UpdatePointerSlotFromCursorVariables()
+        native.Trace("utopian_inventory diagnostic message8 current=" + GetTargetDebugName(targetSlot) +
+          " highlighted=" + GetTargetDebugName(highlightedSlot) +
+          " latched=" + GetTargetDebugName(lastValidDropTarget) + " invalidFrames=" + invalidDropTargetFrames)
         if targetSlot < 0 then
           targetSlot = highlightedSlot
         end

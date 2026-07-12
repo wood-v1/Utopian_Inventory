@@ -35,6 +35,7 @@ $LuaOutDir = Join-Path $RepoRoot "scripts\out"
 $GameModsDir = Join-Path $GameRoot "bin\Final\mods"
 $GameScriptsDir = Join-Path $GameRoot "data\Scripts"
 $GameUiDir = Join-Path $GameRoot "data\UI"
+$GameUiTexturesDir = Join-Path $GameRoot "data\Textures\UI"
 
 function Write-Step([string]$Message) { Write-Host "[deploy] $Message" }
 function Assert-PathExists([string]$Path, [string]$Description) {
@@ -110,7 +111,10 @@ foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui")
     Copy-DeployedFile -Source $xml.FullName -Destination (Join-Path $GameUiDir $xml.Name)
 }
 foreach ($png in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.png" -File) {
-    Copy-DeployedFile -Source $png.FullName -Destination (Join-Path $GameUiDir $png.Name)
+    Copy-DeployedFile -Source $png.FullName -Destination (Join-Path $GameUiTexturesDir $png.Name)
+}
+foreach ($tga in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tga" -File) {
+    Copy-DeployedFile -Source $tga.FullName -Destination (Join-Path $GameUiTexturesDir $tga.Name)
 }
 
 Write-Step "done"

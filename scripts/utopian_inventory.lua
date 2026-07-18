@@ -21,6 +21,7 @@ maintask UtopianInventoryUI do
   local const c_iTargetWeapon: int = 100
   local const c_iTargetClothesBase: int = 100
   local const c_iTargetDrop: int = 200
+  local const c_iTargetMoney: int = 300
 
   local windowWidth: int
   local windowHeight: int
@@ -48,9 +49,10 @@ maintask UtopianInventoryUI do
   local lastLayoutHeight: int
   local lastLayoutSlots: int
   local panelTooltipTarget: int
+  local moneyTooltipItem: object
 
   function init() -> void
-    native.Trace("utopian_inventory script init diagnostics=17 clock-contrast")
+    native.Trace("utopian_inventory script init diagnostics=18 clara-money-tooltip")
     page = 0
     resolvedCategory = -1
     resolvedIndex = -1
@@ -73,6 +75,8 @@ maintask UtopianInventoryUI do
     lastLayoutHeight = -1
     lastLayoutSlots = -1
     panelTooltipTarget = -999
+    native.CreateInvItem(moneyTooltipItem)
+    moneyTooltipItem->SetItemName("Money")
     InitSlotOrder()
     UpdateLayout()
     LoadLayoutVariables()
@@ -278,15 +282,15 @@ maintask UtopianInventoryUI do
 
   function GetGridStartX() -> int
     if windowWidth >= 1900 then
-      return 960
+      return 920
     end
     if windowWidth >= 1200 then
-      return 640
+      return 600
     end
     if windowWidth >= 1000 then
-      return 500
+      return 468
     end
-    return 384
+    return 359
   end
 
   function GetRootLeft() -> int
@@ -419,7 +423,7 @@ maintask UtopianInventoryUI do
       if target == c_iTargetClothesBase + 2 then return 590 end
       if target == c_iTargetClothesBase + 3 then return 590 end
       if target == c_iTargetClothesBase + 4 then return 445 end
-      if target == c_iTargetDrop then return 1166 end
+      if target == c_iTargetDrop then return 1126 end
     else
     if windowWidth >= 1200 then
       if target == c_iTargetWeapon then return 395 end
@@ -427,7 +431,7 @@ maintask UtopianInventoryUI do
       if target == c_iTargetClothesBase + 2 then return 270 end
       if target == c_iTargetClothesBase + 3 then return 270 end
       if target == c_iTargetClothesBase + 4 then return 125 end
-      if target == c_iTargetDrop then return 846 end
+      if target == c_iTargetDrop then return 806 end
     else
       if windowWidth >= 1000 then
         if target == c_iTargetWeapon then return 315 end
@@ -435,14 +439,14 @@ maintask UtopianInventoryUI do
         if target == c_iTargetClothesBase + 2 then return 207 end
         if target == c_iTargetClothesBase + 3 then return 207 end
         if target == c_iTargetClothesBase + 4 then return 86 end
-        if target == c_iTargetDrop then return 682 end
+        if target == c_iTargetDrop then return 650 end
       else
         if target == c_iTargetWeapon then return 234 end
         if target == c_iTargetClothesBase + 1 then return 156 end
         if target == c_iTargetClothesBase + 2 then return 156 end
         if target == c_iTargetClothesBase + 3 then return 156 end
         if target == c_iTargetClothesBase + 4 then return 68 end
-        if target == c_iTargetDrop then return 526 end
+        if target == c_iTargetDrop then return 501 end
       end
     end
     end
@@ -454,7 +458,7 @@ maintask UtopianInventoryUI do
       if target == c_iTargetWeapon then return 610 end
       if target == c_iTargetClothesBase + 1 then return 800 end
       if target == c_iTargetClothesBase + 2 then return 300 end
-      if target == c_iTargetClothesBase + 3 then return 508 end
+      if target == c_iTargetClothesBase + 3 then return 488 end
       if target == c_iTargetClothesBase + 4 then return 560 end
       if target == c_iTargetDrop then return 745 end
     else
@@ -462,7 +466,7 @@ maintask UtopianInventoryUI do
       if target == c_iTargetWeapon then return 550 end
       if target == c_iTargetClothesBase + 1 then return 740 end
       if target == c_iTargetClothesBase + 2 then return 240 end
-      if target == c_iTargetClothesBase + 3 then return 448 end
+      if target == c_iTargetClothesBase + 3 then return 428 end
       if target == c_iTargetClothesBase + 4 then return 500 end
       if target == c_iTargetDrop then return 685 end
     else
@@ -470,14 +474,14 @@ maintask UtopianInventoryUI do
         if target == c_iTargetWeapon then return 438 end
         if target == c_iTargetClothesBase + 1 then return 569 end
         if target == c_iTargetClothesBase + 2 then return 188 end
-        if target == c_iTargetClothesBase + 3 then return 362 end
+        if target == c_iTargetClothesBase + 3 then return 346 end
         if target == c_iTargetClothesBase + 4 then return 399 end
         if target == c_iTargetDrop then return 596 end
       else
         if target == c_iTargetWeapon then return 337 end
         if target == c_iTargetClothesBase + 1 then return 429 end
         if target == c_iTargetClothesBase + 2 then return 159 end
-        if target == c_iTargetClothesBase + 3 then return 284 end
+        if target == c_iTargetClothesBase + 3 then return 271 end
         if target == c_iTargetClothesBase + 4 then return 311 end
         if target == c_iTargetDrop then return 455 end
       end
@@ -489,6 +493,26 @@ maintask UtopianInventoryUI do
   function IsInsideSpecialTarget(target: int, x: int, y: int) -> bool
     local left: int = GetSpecialTargetLeft(target)
     local top: int = GetSpecialTargetTop(target)
+    return x >= left && y >= top && x < left + c_iSlotHotZone && y < top + c_iSlotHotZone
+  end
+
+  function GetMoneyLeft() -> int
+    if windowWidth >= 1900 then return 1420 end
+    if windowWidth >= 1200 then return 1100 end
+    if windowWidth >= 1000 then return 864 end
+    return 655
+  end
+
+  function GetMoneyTop() -> int
+    if windowWidth >= 1900 then return 830 end
+    if windowWidth >= 1200 then return 770 end
+    if windowWidth >= 1000 then return 616 end
+    return 465
+  end
+
+  function IsInsideMoney(x: int, y: int) -> bool
+    local left: int = GetMoneyLeft()
+    local top: int = GetMoneyTop()
     return x >= left && y >= top && x < left + c_iSlotHotZone && y < top + c_iSlotHotZone
   end
 
@@ -1369,6 +1393,14 @@ maintask UtopianInventoryUI do
   function UpdatePanelTooltip(x: int, y: int) -> void
     if dragSourceSlot >= 0 then
       ClearPanelTooltip()
+      return
+    end
+
+    if IsInsideMoney(x, y) then
+      if panelTooltipTarget != c_iTargetMoney then
+        panelTooltipTarget = c_iTargetMoney
+        native.SendMessage(1, "panel_background", moneyTooltipItem)
+      end
       return
     end
 

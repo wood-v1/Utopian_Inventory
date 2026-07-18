@@ -50,6 +50,7 @@ maintask UtopianInventoryUI do
   local lastLayoutSlots: int
   local panelTooltipTarget: int
   local moneyTooltipItem: object
+  local deferredInventoryRefresh: float
 
   function init() -> void
     native.Trace("utopian_inventory script init diagnostics=18 clara-money-tooltip")
@@ -75,6 +76,7 @@ maintask UtopianInventoryUI do
     lastLayoutHeight = -1
     lastLayoutSlots = -1
     panelTooltipTarget = -999
+    deferredInventoryRefresh = 0
     native.CreateInvItem(moneyTooltipItem)
     moneyTooltipItem->SetItemName("Money")
     InitSlotOrder()
@@ -883,6 +885,7 @@ maintask UtopianInventoryUI do
     local used: bool
     native.UseItem(index, category, used)
     if used then
+      deferredInventoryRefresh = 0.25
       amount = amount - 1
       if amount == 0 then
         container->RemoveItem(index, 1, category)
@@ -1352,6 +1355,13 @@ maintask UtopianInventoryUI do
   function OnUpdate(delta: float) -> void
     UpdateLayout()
     UpdateMoney()
+    if deferredInventoryRefresh > 0 then
+      deferredInventoryRefresh = deferredInventoryRefresh - delta
+      if deferredInventoryRefresh <= 0 then
+        UpdateSlots()
+        native.Trace("utopian_inventory deferred item-use refresh")
+      end
+    end
     if dragSourceSlot >= 0 && IsCursorPollingReady() then
       ApplyPointerSlot(UpdatePointerSlotFromCursorVariables())
     end

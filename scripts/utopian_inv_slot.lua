@@ -19,6 +19,8 @@ maintask UtopianInventorySlot do
   local dragging: bool
   local selected: bool
   local highlighted: bool
+  local hidden: bool
+  local blocked: bool
   local loadedItemID: int
 
   function init() -> void
@@ -28,6 +30,8 @@ maintask UtopianInventorySlot do
     dragging = false
     selected = false
     highlighted = false
+    hidden = false
+    blocked = false
     loadedItemID = -1
     native.SetBackground("default")
     native.SetOwnerDraw(true)
@@ -35,6 +39,11 @@ maintask UtopianInventorySlot do
   end
 
   function UpdateBackground() -> void
+    if hidden then
+      native.SetBackground("hidden")
+      return
+    end
+
     if highlighted then
       native.SetBackground("target")
       return
@@ -56,6 +65,13 @@ maintask UtopianInventorySlot do
   end
 
   function OnDraw() -> void
+    if hidden then
+      return
+    end
+    if blocked then
+      native.Blit("blocked", 1, 1)
+      return
+    end
     if item then
       native.Blit(image, 1, 1)
 
@@ -70,7 +86,7 @@ maintask UtopianInventorySlot do
   end
 
   function OnLButtonDown(x: int, y: int) -> void
-    if !item then
+    if hidden || blocked || !item then
       return
     end
 
@@ -79,6 +95,7 @@ maintask UtopianInventorySlot do
   end
 
   function OnLButtonUp(x: int, y: int) -> void
+    if hidden || blocked then return end
     if IsInsideSlotForm(x, y) then
       native.SendMessageToParent(EncodePointerMessage(c_iReleaseMessageBase, x, y))
     else
@@ -90,13 +107,13 @@ maintask UtopianInventorySlot do
   end
 
   function OnRButtonDown(x: int, y: int) -> void
-    if item then
+    if !hidden && !blocked && item then
       native.SendMessageToParent(1)
     end
   end
 
   function OnDragBegin(x: int, y: int) -> void
-    if !item then
+    if hidden || blocked || !item then
       return
     end
 
@@ -105,6 +122,7 @@ maintask UtopianInventorySlot do
   end
 
   function OnDragEnd(x: int, y: int, accepted: bool) -> void
+    if hidden || blocked then return end
     if IsInsideSlotForm(x, y) then
       native.SendMessageToParent(EncodePointerMessage(c_iDragEndMessageBase, x, y))
     else
@@ -118,6 +136,7 @@ maintask UtopianInventorySlot do
   end
 
   function OnMouseMove(x: int, y: int) -> void
+    if hidden || blocked then return end
     if IsInsideSlotForm(x, y) then
       native.SendMessageToParent(EncodePointerMessage(c_iHoverMessageBase, x, y))
     else
@@ -130,6 +149,36 @@ maintask UtopianInventorySlot do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == -22 then
+      hidden = true
+      highlighted = false
+      native.SetBackground("hidden")
+      native.SetTooltip(c_iTooltipNone, "")
+      return
+    end
+
+    if message == -23 then
+      hidden = false
+      UpdateBackground()
+      return
+    end
+
+    if message == -24 then
+      blocked = true
+      item = null
+      highlighted = false
+      loadedItemID = -1
+      UpdateBackground()
+      native.SetTooltip(c_iTooltipNone, "")
+      return
+    end
+
+    if message == -25 then
+      blocked = false
+      UpdateBackground()
+      return
+    end
+
     if message == -20 then
       highlighted = true
       UpdateBackground()

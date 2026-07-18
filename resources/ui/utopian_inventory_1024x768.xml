@@ -294,6 +294,6 @@
     <font name="big" size="12" face="fritz_quadrata" />
   </cursor>
   <cursor name="drag_item" script="utopian_drag_cursor.bin" w="64" h="64">
-    <image name="default" x="0" y="0" w="0.5" h="0.5">ui/ui_cursor_drag.tga</image>
+    <image name="default" x="0" y="0" w="1" h="1">ui/ui_cursor_drag.tga</image>
   </cursor>
 </form>

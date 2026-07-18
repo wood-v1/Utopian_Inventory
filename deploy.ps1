@@ -107,7 +107,7 @@ foreach ($bin in Get-ChildItem -LiteralPath $LuaOutDir -Filter "*.bin" -File) {
     Copy-DeployedFile -Source $bin.FullName -Destination (Join-Path $GameScriptsDir $bin.Name)
 }
 
-foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_inventory*.xml" -File) {
+foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.xml" -File) {
     Copy-DeployedFile -Source $xml.FullName -Destination (Join-Path $GameUiDir $xml.Name)
 }
 foreach ($png in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.png" -File) {
@@ -115,6 +115,9 @@ foreach ($png in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui")
 }
 foreach ($tga in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tga" -File) {
     Copy-DeployedFile -Source $tga.FullName -Destination (Join-Path $GameUiTexturesDir $tga.Name)
+}
+foreach ($tex in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tex" -File) {
+    Copy-DeployedFile -Source $tex.FullName -Destination (Join-Path $GameUiTexturesDir $tex.Name)
 }
 
 Write-Step "done"

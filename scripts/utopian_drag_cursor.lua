@@ -13,7 +13,7 @@ maintask UtopianDragCursor do
 
   function OnDraw() -> void
     native.GetVariable("utopian_inventory_drag_item", itemID)
-    if itemID <= 0 then
+    if itemID < 0 then
       native.Blit("default", 0, 0)
       return
     end
@@ -24,7 +24,7 @@ maintask UtopianDragCursor do
       loadedItemID = itemID
     end
 
-    native.StretchBlit(sprite, 0, 0, 52, 52, 0.85)
-    native.Blit("default", 0, 0)
+    native.StretchBlit(sprite, 24, 24, 40, 40, 0.85)
+    native.StretchBlit("default", 0, 0, 32, 32)
   end
 end

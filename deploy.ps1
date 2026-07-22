@@ -36,6 +36,7 @@ $GameModsDir = Join-Path $GameRoot "bin\Final\mods"
 $GameScriptsDir = Join-Path $GameRoot "data\Scripts"
 $GameUiDir = Join-Path $GameRoot "data\UI"
 $GameUiTexturesDir = Join-Path $GameRoot "data\Textures\UI"
+$GameStringsDir = Join-Path $GameRoot "data\Strings"
 
 function Write-Step([string]$Message) { Write-Host "[deploy] $Message" }
 function Assert-PathExists([string]$Path, [string]$Description) {
@@ -68,6 +69,33 @@ function Copy-DeployedFile([string]$Source, [string]$Destination) {
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath $Source).Hash -ne
         (Get-FileHash -Algorithm SHA256 -LiteralPath $Destination).Hash) {
         throw "Hash mismatch after copy: $Destination"
+    }
+}
+function Register-InventoryStringResource([string]$ConfigPath) {
+    Assert-PathExists -Path $ConfigPath -Description "Game config"
+    $content = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::ASCII)
+    $newline = if ($content.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $resource = if ($content -match '(?im)^\s*pgog_ru\s*=') {
+        "utopian_inventory_ru"
+    }
+    else {
+        "utopian_inventory"
+    }
+    $content = [System.Text.RegularExpressions.Regex]::Replace(
+        $content,
+        '(?im)^[ \t]*utopian_inventory(?:_ru)?[ \t]*=.*(?:\r?\n)?',
+        '')
+    $stringsSection = [System.Text.RegularExpressions.Regex]::new('(?im)^\[Strings\][ \t]*\r?$')
+    if (!$stringsSection.IsMatch($content)) {
+        throw "[Strings] section not found in game config: $ConfigPath"
+    }
+    $content = $stringsSection.Replace(
+        $content,
+        "[Strings]${newline}${resource} = txt, 0",
+        1)
+    Write-Step "register $resource in `"$ConfigPath`""
+    if (!$DryRun) {
+        [System.IO.File]::WriteAllText($ConfigPath, $content, [System.Text.Encoding]::ASCII)
     }
 }
 
@@ -119,5 +147,9 @@ foreach ($tga in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui")
 foreach ($tex in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tex" -File) {
     Copy-DeployedFile -Source $tex.FullName -Destination (Join-Path $GameUiTexturesDir $tex.Name)
 }
+foreach ($strings in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\strings") -Filter "utopian_*.txt" -File) {
+    Copy-DeployedFile -Source $strings.FullName -Destination (Join-Path $GameStringsDir $strings.Name)
+}
+Register-InventoryStringResource -ConfigPath (Join-Path $GameRoot "data\config.ini")
 
 Write-Step "done"

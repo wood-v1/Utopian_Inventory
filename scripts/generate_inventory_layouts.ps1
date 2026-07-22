@@ -16,11 +16,35 @@ finally {
     $transparentSlot.Dispose()
 }
 
+$stringsDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\resources\strings"))
+$englishStrings = @"
+@1400
+Inventory is full.
+@1401
+Ctrl + Left Click - drop one item from the stack
+Shift + Left Click - drop the entire stack
+@1402
+Container is full.
+@1403
+The corpse cannot hold any more items.
+"@
+$russianStringsBase64 = "QDE0MDAK0JjQvdCy0LXQvdGC0LDRgNGMINC/0L7Qu9C+0L0uCkAxNDAxCkN0cmwgKyDQu9C10LLRi9C5INC60LvQuNC6IOKAlCDQstGL0LHRgNC+0YHQuNGC0Ywg0L7QtNC40L0g0L/RgNC10LTQvNC10YIg0LjQtyDRgdGC0LDQutCwClNoaWZ0ICsg0LvQtdCy0YvQuSDQutC70LjQuiDigJQg0LLRi9Cx0YDQvtGB0LjRgtGMINCy0LXRgdGMINGB0YLQsNC6CkAxNDAyCtCa0L7QvdGC0LXQudC90LXRgCDQt9Cw0L/QvtC70L3QtdC9LgpAMTQwMwrQndCwINGC0YDRg9C/0LUg0LHQvtC70YzRiNC1INC90LXRgiDQvNC10YHRgtCwLg=="
+$russianStrings = [System.Text.Encoding]::UTF8.GetString(
+    [System.Convert]::FromBase64String($russianStringsBase64))
+[System.IO.File]::WriteAllText(
+    (Join-Path $stringsDirectory "utopian_inventory.txt"),
+    $englishStrings,
+    [System.Text.Encoding]::Unicode)
+[System.IO.File]::WriteAllText(
+    (Join-Path $stringsDirectory "utopian_inventory_ru.txt"),
+    $russianStrings,
+    [System.Text.Encoding]::Unicode)
+
 $layouts = @(
     @{ File = "utopian_inventory.xml"; LootFile = "utopian_container.xml"; CorpseFile = "utopian_corpse.xml"; Width = 800; Height = 600; PanelX = 25; PanelY = 50; PanelW = 750; PanelH = 500; PhotoX = 50; PhotoY = 157; PhotoW = 250; PhotoH = 383; GridX = 359; GridY = 225; Step = 58; Columns = 6; Slots = 24; ContainerX = 79; ContainerY = 250; OrganX = 49; OrganY = 482; MoneyX = 655; MoneyY = 465; WeaponX = 234; WeaponY = 337; FeetX = 156; FeetY = 429; HeadX = 156; HeadY = 159; BodyX = 156; BodyY = 271; HandsX = 68; HandsY = 311; DropX = 501; DropY = 455; TimeX = 294; TimeY = 54 },
-    @{ File = "utopian_inventory_1024x768.xml"; LootFile = "utopian_container_1024x768.xml"; CorpseFile = "utopian_corpse_1024x768.xml"; Width = 1024; Height = 768; PanelX = 32; PanelY = 64; PanelW = 960; PanelH = 640; PhotoX = 60; PhotoY = 187; PhotoW = 325; PhotoH = 499; GridX = 468; GridY = 266; Step = 61; Columns = 7; Slots = 35; ContainerX = 121; ContainerY = 300; OrganX = 90; OrganY = 570; MoneyX = 864; MoneyY = 616; WeaponX = 315; WeaponY = 438; FeetX = 207; FeetY = 569; HeadX = 207; HeadY = 188; BodyX = 207; BodyY = 346; HandsX = 86; HandsY = 399; DropX = 650; DropY = 596; TimeX = 406; TimeY = 68 },
-    @{ File = "utopian_inventory_1280x1024.xml"; LootFile = "utopian_container_1280x1024.xml"; CorpseFile = "utopian_corpse_1280x1024.xml"; RootY = 32; Width = 1280; Height = 960; PanelX = 40; PanelY = 80; PanelW = 1200; PanelH = 800; PhotoX = 75; PhotoY = 230; PhotoW = 405; PhotoH = 623; GridX = 600; GridY = 310; Step = 64; Columns = 8; Slots = 40; ContainerX = 170; ContainerY = 350; OrganX = 138; OrganY = 650; MoneyX = 1100; MoneyY = 770; WeaponX = 395; WeaponY = 550; FeetX = 270; FeetY = 740; HeadX = 270; HeadY = 240; BodyX = 270; BodyY = 428; HandsX = 125; HandsY = 500; DropX = 806; DropY = 685; TimeX = 534; TimeY = 87 },
-    @{ File = "utopian_inventory_1920x1080.xml"; LootFile = "utopian_container_1920x1080.xml"; CorpseFile = "utopian_corpse_1920x1080.xml"; Width = 1920; Height = 1080; PanelX = 360; PanelY = 140; PanelW = 1200; PanelH = 800; PhotoX = 395; PhotoY = 290; PhotoW = 405; PhotoH = 623; GridX = 920; GridY = 370; Step = 64; Columns = 8; Slots = 40; ContainerX = 490; ContainerY = 410; OrganX = 458; OrganY = 710; MoneyX = 1420; MoneyY = 830; WeaponX = 715; WeaponY = 610; FeetX = 590; FeetY = 800; HeadX = 590; HeadY = 300; BodyX = 590; BodyY = 488; HandsX = 445; HandsY = 560; DropX = 1126; DropY = 745; TimeX = 854; TimeY = 147 }
+    @{ File = "utopian_inventory_1024x768.xml"; LootFile = "utopian_container_1024x768.xml"; CorpseFile = "utopian_corpse_1024x768.xml"; Width = 1024; Height = 768; PanelX = 32; PanelY = 64; PanelW = 960; PanelH = 640; PhotoX = 60; PhotoY = 187; PhotoW = 325; PhotoH = 499; GridX = 468; GridY = 266; Step = 61; Columns = 7; Slots = 35; ContainerX = 121; ContainerY = 300; OrganX = 90; OrganY = 570; MoneyX = 864; MoneyY = 616; WeaponX = 315; WeaponY = 438; FeetX = 207; FeetY = 569; HeadX = 207; HeadY = 188; BodyX = 207; BodyY = 346; HandsX = 86; HandsY = 399; DropX = 650; DropY = 580; TimeX = 406; TimeY = 68 },
+    @{ File = "utopian_inventory_1280x1024.xml"; LootFile = "utopian_container_1280x1024.xml"; CorpseFile = "utopian_corpse_1280x1024.xml"; RootY = 32; Width = 1280; Height = 960; PanelX = 40; PanelY = 80; PanelW = 1200; PanelH = 800; PhotoX = 75; PhotoY = 230; PhotoW = 405; PhotoH = 623; GridX = 600; GridY = 182; Step = 64; Columns = 8; Slots = 56; ContainerX = 170; ContainerY = 350; OrganX = 138; OrganY = 650; MoneyX = 1100; MoneyY = 770; WeaponX = 395; WeaponY = 550; FeetX = 270; FeetY = 740; HeadX = 270; HeadY = 240; BodyX = 270; BodyY = 428; HandsX = 125; HandsY = 500; DropX = 806; DropY = 685; TimeX = 534; TimeY = 87 },
+    @{ File = "utopian_inventory_1920x1080.xml"; LootFile = "utopian_container_1920x1080.xml"; CorpseFile = "utopian_corpse_1920x1080.xml"; Width = 1920; Height = 1080; PanelX = 360; PanelY = 140; PanelW = 1200; PanelH = 800; PhotoX = 395; PhotoY = 290; PhotoW = 405; PhotoH = 623; GridX = 920; GridY = 242; Step = 64; Columns = 8; Slots = 56; ContainerX = 490; ContainerY = 410; OrganX = 458; OrganY = 710; MoneyX = 1420; MoneyY = 830; WeaponX = 715; WeaponY = 610; FeetX = 590; FeetY = 800; HeadX = 590; HeadY = 300; BodyX = 590; BodyY = 488; HandsX = 445; HandsY = 560; DropX = 1126; DropY = 745; TimeX = 854; TimeY = 147 }
 )
 
 function Add-Line([System.Text.StringBuilder]$Builder, [string]$Line) {
@@ -47,7 +71,9 @@ function Add-InventorySlot([System.Text.StringBuilder]$Builder, [int]$Number, [i
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="occupied" x="0" y="0" w="1" h="1">ui/utopian_slot_occupied.png</image>'
     Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
+    Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
     Add-Line $Builder '    <font name="default" size="8" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
 }
@@ -55,6 +81,7 @@ function Add-InventorySlot([System.Text.StringBuilder]$Builder, [int]$Number, [i
 function Add-EquipSlot([System.Text.StringBuilder]$Builder, [string]$Name, [int]$X, [int]$Y) {
     Add-Line $Builder "  <form name=`"$Name`" x=`"$X`" y=`"$Y`" w=`"52`" h=`"52`" script=`"utopian_equip_slot.bin`">"
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="occupied" x="0" y="0" w="1" h="1">ui/utopian_slot_occupied.png</image>'
     Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
     Add-Line $Builder '    <font name="default" size="8" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
@@ -65,6 +92,7 @@ function Add-LootSlot([System.Text.StringBuilder]$Builder, [string]$Name, [int]$
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="disabled" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="occupied" x="0" y="0" w="1" h="1">ui/utopian_slot_occupied.png</image>'
     Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
     if ($CanHide) {
         Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
@@ -73,6 +101,29 @@ function Add-LootSlot([System.Text.StringBuilder]$Builder, [string]$Name, [int]$
         Add-Line $Builder '    <image name="blocked" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/utopian_organ_blocked.tex</image>'
     }
     Add-Line $Builder '    <font name="default" size="8" face="fritz_quadrata" />'
+    Add-Line $Builder "  </form>"
+}
+
+function Add-Pagination([System.Text.StringBuilder]$Builder, [string]$Prefix, [int]$X, [int]$Y) {
+    $previousName = "${Prefix}page_prev"
+    $counterName = "${Prefix}page_counter"
+    $nextName = "${Prefix}page_next"
+    Add-Line $Builder "  <form name=`"$previousName`" x=`"$X`" y=`"$Y`" w=`"32`" h=`"28`" script=`"utopian_page_button.bin`">"
+    Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
+    Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
+    Add-Line $Builder '    <font name="default" size="14" face="fritz_quadrata" />'
+    Add-Line $Builder "  </form>"
+    Add-Line $Builder "  <form name=`"$counterName`" x=`"$($X + 36)`" y=`"$Y`" w=`"60`" h=`"28`" script=`"utopian_page_counter.bin`">"
+    Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
+    Add-Line $Builder '    <font name="default" size="12" face="fritz_quadrata" />'
+    Add-Line $Builder "  </form>"
+    Add-Line $Builder "  <form name=`"$nextName`" x=`"$($X + 100)`" y=`"$Y`" w=`"32`" h=`"28`" script=`"utopian_page_button.bin`">"
+    Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
+    Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
+    Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
+    Add-Line $Builder '    <font name="default" size="14" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
 }
 
@@ -93,6 +144,18 @@ foreach ($layout in $layouts) {
     $builder = [System.Text.StringBuilder]::new()
     $rootX = if ($layout.ContainsKey("RootX")) { $layout.RootX } else { 0 }
     $rootY = if ($layout.ContainsKey("RootY")) { $layout.RootY } else { 0 }
+    if ($layout.Width -le 800) {
+        $inventoryPagerX = 359; $playerPagerX = 501; $playerPagerY = 465
+    }
+    elseif ($layout.Width -le 1024) {
+        $inventoryPagerX = 710; $playerPagerX = 650; $playerPagerY = 580
+    }
+    elseif ($layout.Width -le 1280) {
+        $inventoryPagerX = 0; $playerPagerX = 0; $playerPagerY = 0
+    }
+    else {
+        $inventoryPagerX = 0; $playerPagerX = 0; $playerPagerY = 0
+    }
     Add-Line $builder "<form name=`"utopian_inventory`" x=`"$rootX`" y=`"$rootY`" w=`"$($layout.Width)`" h=`"$($layout.Height)`" script=`"utopian_inventory.bin`">"
     Add-Frame $builder $layout
     Add-Line $builder "  <form name=`"time`" x=`"$($layout.TimeX)`" y=`"$($layout.TimeY)`" w=`"213`" h=`"24`" script=`"ui_inventory_time.bin`">"
@@ -125,6 +188,10 @@ foreach ($layout in $layouts) {
     Add-Line $builder '    <font name="default" size="8" face="fritz_quadrata" />'
     Add-Line $builder "  </form>"
 
+    if ($layout.Slots -lt 56) {
+        Add-Pagination $builder "" $inventoryPagerX $playerPagerY
+    }
+
     Add-Cursors $builder
     Add-Line $builder "</form>"
 
@@ -151,7 +218,7 @@ foreach ($layout in $layouts) {
     for ($slot = 0; $slot -lt 12; $slot++) {
         $column = $slot % 3
         $row = [Math]::Floor($slot / 3)
-        Add-LootSlot $lootBuilder ("cslot{0:D2}" -f ($slot + 1)) ($layout.ContainerX + $column * $layout.Step) ($layout.ContainerY + $row * $layout.Step) $false
+        Add-LootSlot $lootBuilder ("cslot{0:D2}" -f ($slot + 1)) ($layout.ContainerX + $column * $layout.Step) ($layout.GridY + $row * $layout.Step) $false
     }
     Add-Line $lootBuilder "  <form name=`"money`" x=`"$($layout.MoneyX)`" y=`"$($layout.MoneyY)`" w=`"52`" h=`"52`" script=`"utopian_money_slot.bin`">"
     Add-Line $lootBuilder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
@@ -163,6 +230,11 @@ foreach ($layout in $layouts) {
         $row = [Math]::Floor($slot / $layout.Columns)
         Add-InventorySlot $lootBuilder ($slot + 1) ($layout.GridX + $column * $layout.Step) ($layout.GridY + $row * $layout.Step)
     }
+
+    $containerPagerX = $layout.ContainerX + 28
+    $containerPagerY = $layout.GridY + 4 * $layout.Step - 4
+    Add-Pagination $lootBuilder "container_" $containerPagerX $containerPagerY
+    Add-Pagination $lootBuilder "player_" $playerPagerX $playerPagerY
 
     for ($slot = 0; $slot -lt 4; $slot++) {
         Add-LootSlot $lootBuilder ("oslot{0:D2}" -f ($slot + 1)) ($layout.OrganX + $slot * $layout.Step) $layout.OrganY $true

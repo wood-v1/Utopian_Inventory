@@ -82,7 +82,19 @@ DWORD WINAPI MainThread(LPVOID)
 {
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
 
+    if (!OynonSetPlayerBootstrapEffect("utopian_inventory_guard.bin")) {
+        Log("UtopianInventory failed to configure inventory guard effect");
+    }
+    if (!OynonSetPlayerInventoryCategoryCapacity(64)) {
+        Log("UtopianInventory failed to configure player category capacity");
+    }
+    if (!OynonSetWorldContainerCapacity(128)) {
+        Log("UtopianInventory failed to configure world container capacity");
+    }
+
     const DWORD hookFlags =
+        OYNON_HOOK_PLAYER_EFFECT_CALLBACK |
+        OYNON_HOOK_PLAYER_INVENTORY_CAPACITY |
         OYNON_HOOK_UI_INVENTORY_STATE |
         OYNON_HOOK_UI_INVENTORY_REDIRECT;
 

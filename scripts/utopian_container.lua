@@ -2,6 +2,10 @@ maintask UtopianContainerUI do
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
+  local const c_iInventoryCapacity: int = 56
+  local const c_iLayoutVersion: int = 4
+  local const c_iVKShift: int = 16
+  local const c_iVKControl: int = 17
   local const c_iBranchBurah: int = 1
   local const c_iSlotEmpty: int = 32768
   local const c_iSlotNumber: int = 65536
@@ -26,6 +30,10 @@ maintask UtopianContainerUI do
   local const c_iOrganSlots: int = 4
   local const c_iMaxContainerVisuals: int = 128
   local const c_iTransferMarker: int = 791337
+  local const c_iWMHelpMessage: int = 200
+  local const c_iInventoryFullTextID: int = 1400
+  local const c_iContainerFullTextID: int = 1402
+  local const c_iCorpseFullTextID: int = 1403
 
   local windowWidth: int
   local windowHeight: int
@@ -38,7 +46,11 @@ maintask UtopianContainerUI do
   local resolvedContainerOrdinal: int
   local slotOrder: object
   local playerOrderSnapshot: object
+  local playerCategoryCache: object
+  local playerIndexCache: object
   local containerOrder: object
+  local containerIndexCache: object
+  local cachedNormalContainerCount: int
   local organOrder: object
   local dragSource: int
   local dragKind: int
@@ -61,6 +73,11 @@ maintask UtopianContainerUI do
   local lastLayoutWidth: int
   local lastLayoutHeight: int
   local deferredInventoryRefresh: float
+  local deferredContainerRefresh: float
+  local inventoryFullMessageCooldown: float
+  local lastContainerMaxPage: int
+  local shiftHeld: bool
+  local controlHeld: bool
 
   function init() -> void
     native.Trace("utopian_container script init diagnostics=1 bidirectional-loot")
@@ -85,6 +102,11 @@ maintask UtopianContainerUI do
     lastLayoutWidth = -1
     lastLayoutHeight = -1
     deferredInventoryRefresh = 0
+    deferredContainerRefresh = 0
+    inventoryFullMessageCooldown = 0
+    lastContainerMaxPage = -1
+    shiftHeld = false
+    controlHeld = false
     corpseVisualPending = false
     organVisibilityRefresh = 0.5
     native.SetCursor("default")
@@ -102,6 +124,7 @@ maintask UtopianContainerUI do
     DetectContainerKind()
     native.Trace("utopian_container init kind ready corpse=" + isCorpse)
     LoadLayoutVariables()
+    OrderFreeCellsByDisplay()
     native.Trace("utopian_container init variables ready")
     UpdateAllSlots()
     native.Trace("utopian_container init slots ready")
@@ -154,30 +177,44 @@ maintask UtopianContainerUI do
     native.SendMessage(-100, "loot_doll")
     UpdateContainerSlots()
     UpdateOrganSlots()
+    deferredContainerRefresh = 0.05
   end
 
   function InitSlotOrder() -> void
     native.CreateIntVector(slotOrder)
-    for i = 0, 39 do slotOrder->add(i) end
+    for i = 0, c_iInventoryCapacity - 1 do slotOrder->add(GetDefaultOrderForCell(i)) end
     native.CreateIntVector(playerOrderSnapshot)
-    for i = 0, 39 do playerOrderSnapshot->add(-1) end
+    native.CreateIntVector(playerCategoryCache)
+    native.CreateIntVector(playerIndexCache)
+    for i = 0, c_iInventoryCapacity - 1 do playerOrderSnapshot->add(-1) end
+    for i = 0, c_iInventoryCapacity - 1 do playerCategoryCache->add(-1) end
+    for i = 0, c_iInventoryCapacity - 1 do playerIndexCache->add(-1) end
+  end
+
+
+  function GetDefaultOrderForCell(cell: int) -> int
+    if cell < 16 then return cell + 40 end
+    return cell - 16
   end
 
   function InitContainerOrders() -> void
     native.CreateIntVector(containerOrder)
     for i = 0, c_iMaxContainerVisuals - 1 do containerOrder->add(i) end
+    native.CreateIntVector(containerIndexCache)
+    for i = 0, c_iMaxContainerVisuals - 1 do containerIndexCache->add(-1) end
+    cachedNormalContainerCount = 0
     native.CreateIntVector(organOrder)
     for i = 0, c_iOrganSlots - 1 do organOrder->add(i) end
   end
 
   function GetOrderValue(slot: int) -> int
     local order: int = slot
-    if slot >= 0 && slot < 40 then slotOrder->get(order, slot) end
+    if slot >= 0 && slot < c_iInventoryCapacity then slotOrder->get(order, slot) end
     return order
   end
 
   function SetOrderValue(slot: int, value: int) -> void
-    if slot >= 0 && slot < 40 then slotOrder->set(slot, value) end
+    if slot >= 0 && slot < c_iInventoryCapacity then slotOrder->set(slot, value) end
   end
 
   function GetContainerOrderValue(visual: int) -> int
@@ -209,23 +246,40 @@ maintask UtopianContainerUI do
     local version: int = 0
     native.GetVariable("utopian_inventory_layout_initialized", initialized)
     native.GetVariable("utopian_inventory_layout_version", version)
-    if initialized != 1 || version != 3 then
+    if initialized != 1 then
       SaveLayoutVariables()
       return
     end
-    for i = 0, 39 do
-      local order: int = i
-      native.GetVariable(GetCellVariableName(i), order)
-      if order < 0 || order >= 40 then order = i end
-      SetOrderValue(i, order)
+    local storedSlots: int = c_iInventoryCapacity
+    if version == 3 then storedSlots = 40 end
+    if version != 3 && version != c_iLayoutVersion then
+      SaveLayoutVariables()
+      return
+    end
+    if version == 3 then
+      for i = 0, 15 do SetOrderValue(i, i + 40) end
+      for i = 0, 39 do
+        local order: int = i
+        native.GetVariable(GetCellVariableName(i), order)
+        if order < 0 || order >= 40 then order = i end
+        SetOrderValue(i + 16, order)
+      end
+    else
+      for i = 0, storedSlots - 1 do
+        local order: int = GetDefaultOrderForCell(i)
+        native.GetVariable(GetCellVariableName(i), order)
+        if order < 0 || order >= storedSlots then order = GetDefaultOrderForCell(i) end
+        SetOrderValue(i, order)
+      end
     end
     NormalizeSlotOrder()
+    SaveLayoutVariables()
   end
 
   function SaveLayoutVariables() -> void
-    for i = 0, 39 do native.SetVariable(GetCellVariableName(i), GetOrderValue(i)) end
+    for i = 0, c_iInventoryCapacity - 1 do native.SetVariable(GetCellVariableName(i), GetOrderValue(i)) end
     native.SetVariable("utopian_inventory_layout_initialized", 1)
-    native.SetVariable("utopian_inventory_layout_version", 3)
+    native.SetVariable("utopian_inventory_layout_version", c_iLayoutVersion)
   end
 
   function IsOrderUsedBefore(slot: int, order: int) -> bool
@@ -243,26 +297,40 @@ maintask UtopianContainerUI do
   end
 
   function FindFirstUnusedOrder(slot: int) -> int
-    for candidate = 0, 39 do
+    for candidate = 0, c_iInventoryCapacity - 1 do
       if !IsOrderUsedAtOrBefore(slot, candidate) then return candidate end
     end
     return slot
   end
 
   function NormalizeSlotOrder() -> void
-    for slot = 0, 39 do
+    for slot = 0, c_iInventoryCapacity - 1 do
       local order: int = GetOrderValue(slot)
-      if order < 0 || order >= 40 || IsOrderUsedBefore(slot, order) then
+      if order < 0 || order >= c_iInventoryCapacity || IsOrderUsedBefore(slot, order) then
         SetOrderValue(slot, FindFirstUnusedOrder(slot))
       end
     end
+  end
+
+  function OrderFreeCellsByDisplay() -> void
+    local itemCount: int = GetBackpackItemCount()
+    if itemCount > c_iInventoryCapacity then return end
+    local nextFreeOrder: int = itemCount
+    for linear = 0, c_iInventoryCapacity - 1 do
+      local cell: int = GetCellForLinearSlot(linear)
+      if cell >= 0 && GetOrderValue(cell) >= itemCount then
+        SetOrderValue(cell, nextFreeOrder)
+        nextFreeOrder = nextFreeOrder + 1
+      end
+    end
+    SaveLayoutVariables()
   end
 
   function UpdateLayout() -> void
     native.GetWindowSize(windowWidth, windowHeight)
     if windowWidth <= 0 || windowHeight <= 0 then native.GetScreenSize(windowWidth, windowHeight) end
     if windowWidth >= 1200 then
-      visibleSlots = 40
+      visibleSlots = c_iInventoryCapacity
     else
       if windowWidth >= 1000 then visibleSlots = 35 else visibleSlots = 24 end
     end
@@ -278,6 +346,17 @@ maintask UtopianContainerUI do
     local number: int = slot + 1
     if number < 10 then return "slot0" + number end
     return "slot" + number
+  end
+
+  function GetVisibleCell(slot: int) -> int
+    local linear: int = playerPage * visibleSlots + slot
+    return GetCellForLinearSlot(linear)
+  end
+
+  function GetCellForLinearSlot(linear: int) -> int
+    if linear < 0 || linear >= c_iInventoryCapacity then return -1 end
+    if visibleSlots < c_iInventoryCapacity then return (linear + 16) - ((linear + 16) / c_iInventoryCapacity) * c_iInventoryCapacity end
+    return linear
   end
 
   function GetContainerSlotWndName(slot: int) -> string
@@ -312,8 +391,8 @@ maintask UtopianContainerUI do
   end
 
   function GetGridStartY() -> int
-    if windowWidth >= 1900 then return 370 end
-    if windowWidth >= 1200 then return 310 end
+    if windowWidth >= 1900 then return 242 end
+    if windowWidth >= 1200 then return 182 end
     if windowWidth >= 1000 then return 266 end
     return 225
   end
@@ -338,10 +417,7 @@ maintask UtopianContainerUI do
   end
 
   function GetContainerStartY() -> int
-    if windowWidth >= 1900 then return 410 end
-    if windowWidth >= 1200 then return 350 end
-    if windowWidth >= 1000 then return 300 end
-    return 250
+    return GetGridStartY()
   end
 
   function GetOrganStartX() -> int
@@ -419,10 +495,58 @@ maintask UtopianContainerUI do
     return total
   end
 
+  function ShowInventoryFull() -> void
+    if inventoryFullMessageCooldown > 0 then return end
+    local text: object
+    native.CreateIntVector(text)
+    text->add(c_iInventoryFullTextID)
+    native.SendWorldWndMessage(c_iWMHelpMessage, text)
+    inventoryFullMessageCooldown = 1.0
+  end
+
+  function ShowContainerFull() -> void
+    if inventoryFullMessageCooldown > 0 then return end
+    local text: object
+    native.CreateIntVector(text)
+    if isCorpse then text->add(c_iCorpseFullTextID) else text->add(c_iContainerFullTextID) end
+    native.SendWorldWndMessage(c_iWMHelpMessage, text)
+    inventoryFullMessageCooldown = 1.0
+  end
+
+  function CanPlayerAcceptItem(item: object, category: int) -> bool
+    if GetBackpackItemCount() < c_iInventoryCapacity then return true end
+    if !item then return false end
+
+    local itemID: int
+    item->GetItemID(itemID)
+    local maxStackSize: int
+    native.GetInvItemMaxStackSize(maxStackSize, itemID)
+    if maxStackSize <= 1 then return false end
+
+    local player: object = GetPlayerContainer()
+    local count: int
+    player->GetItemCount(count, category)
+    for index = 0, count - 1 do
+      if !IsEquippedItem(category, index) then
+        local candidate: object
+        local candidateID: int
+        local candidateAmount: int
+        player->GetItem(candidate, index, category)
+        candidate->GetItemID(candidateID)
+        player->GetItemAmount(candidateAmount, index, category)
+        if candidateID == itemID && candidateAmount < maxStackSize then return true end
+      end
+    end
+    return false
+  end
+
+  function GetMaxPlayerPage() -> int
+    if visibleSlots <= 0 then return 0 end
+    return (c_iInventoryCapacity - 1) / visibleSlots
+  end
+
   function ClampPlayerPage() -> void
-    local total: int = GetBackpackItemCount()
-    local maxPage: int = 0
-    if total > 0 then maxPage = (total - 1) / visibleSlots end
+    local maxPage: int = GetMaxPlayerPage()
     if playerPage < 0 then playerPage = 0 end
     if playerPage > maxPage then playerPage = maxPage end
   end
@@ -430,24 +554,33 @@ maintask UtopianContainerUI do
   function ResolveVisibleSlot(slot: int) -> bool
     resolvedCategory = -1
     resolvedIndex = -1
-    local target: int = playerPage * visibleSlots + GetOrderValue(slot)
-    local current: int = 0
+    local target: int = GetOrderValue(GetVisibleCell(slot))
+    if target < 0 || target >= c_iInventoryCapacity then return false end
+    playerCategoryCache->get(resolvedCategory, target)
+    playerIndexCache->get(resolvedIndex, target)
+    return resolvedCategory >= 0 && resolvedIndex >= 0
+  end
+
+  function BuildPlayerIndexCache() -> void
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      playerCategoryCache->set(ordinal, -1)
+      playerIndexCache->set(ordinal, -1)
+    end
     local container: object = GetPlayerContainer()
+    local ordinal: int = 0
     for category = 0, c_iCategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
         if !IsEquippedItem(category, index) then
-          if current == target then
-            resolvedCategory = category
-            resolvedIndex = index
-            return true
+          if ordinal < c_iInventoryCapacity then
+            playerCategoryCache->set(ordinal, category)
+            playerIndexCache->set(ordinal, index)
           end
-          current = current + 1
+          ordinal = ordinal + 1
         end
       end
     end
-    return false
   end
 
   function IsOrganItem(item: object) -> bool
@@ -521,25 +654,30 @@ maintask UtopianContainerUI do
   function ResolveNormalContainerOrdinal(ordinal: int) -> bool
     resolvedContainerIndex = -1
     resolvedContainerOrdinal = -1
-    if ordinal < 0 then return false end
+    if ordinal < 0 || ordinal >= cachedNormalContainerCount || ordinal >= c_iMaxContainerVisuals then return false end
+    containerIndexCache->get(resolvedContainerIndex, ordinal)
+    if resolvedContainerIndex < 0 then return false end
+    resolvedContainerOrdinal = ordinal
+    return true
+  end
+
+  function BuildContainerIndexCache() -> void
+    for ordinal = 0, c_iMaxContainerVisuals - 1 do containerIndexCache->set(ordinal, -1) end
+    cachedNormalContainerCount = 0
     local container: object = GetExternalContainer()
-    if !container then return false end
+    if !container then return end
     local count: int
     container->GetItemCount(count)
-    local current: int = 0
     for index = 0, count - 1 do
       local item: object
       container->GetItem(item, index)
       if !IsOrganItem(item) then
-        if current == ordinal then
-          resolvedContainerIndex = index
-          resolvedContainerOrdinal = ordinal
-          return true
+        if cachedNormalContainerCount < c_iMaxContainerVisuals then
+          containerIndexCache->set(cachedNormalContainerCount, index)
         end
-        current = current + 1
+        cachedNormalContainerCount = cachedNormalContainerCount + 1
       end
     end
-    return false
   end
 
   function ResolveOrganOrdinal(ordinal: int) -> bool
@@ -617,7 +755,7 @@ maintask UtopianContainerUI do
   end
 
   function GetLastOccupiedContainerVisual() -> int
-    local count: int = GetNormalContainerItemCount()
+    local count: int = cachedNormalContainerCount
     if count <= 0 then return -1 end
     local last: int = -1
     for visual = 0, c_iMaxContainerVisuals - 1 do
@@ -627,11 +765,49 @@ maintask UtopianContainerUI do
   end
 
   function ClampContainerPage() -> void
-    local last: int = GetLastOccupiedContainerVisual()
-    local maxPage: int = 0
-    if last >= 0 then maxPage = last / c_iContainerSlots end
+    local maxPage: int = GetMaxContainerPage()
     if containerPage < 0 then containerPage = 0 end
     if containerPage > maxPage then containerPage = maxPage end
+  end
+
+  function GetMaxContainerPage() -> int
+    local lastVisual: int = GetLastOccupiedContainerVisual()
+    if lastVisual < 0 then return 0 end
+    return lastVisual / c_iContainerSlots
+  end
+
+  function SetPageControlsVisible(prefix: string, visible: bool) -> void
+    local message: int = -93
+    if visible then message = -92 end
+    native.SendMessage(message, prefix + "page_prev")
+    native.SendMessage(message, prefix + "page_counter")
+    native.SendMessage(message, prefix + "page_next")
+  end
+
+  function UpdatePlayerPageControls() -> void
+    local maxPage: int = GetMaxPlayerPage()
+    SetPageControlsVisible("player_", maxPage > 0)
+    if maxPage <= 0 then return end
+    native.SendMessage(-90, "player_page_prev")
+    native.SendMessage(-91, "player_page_next")
+    if playerPage > 0 then native.SendMessage(-97, "player_page_prev") else native.SendMessage(-96, "player_page_prev") end
+    if playerPage < maxPage then native.SendMessage(-97, "player_page_next") else native.SendMessage(-96, "player_page_next") end
+    native.SendMessage((playerPage + 1) * 100 + maxPage + 1, "player_page_counter")
+  end
+
+  function UpdateContainerPageControls() -> void
+    local maxPage: int = GetMaxContainerPage()
+    if maxPage != lastContainerMaxPage then
+      native.Trace("utopian_container pages count=" + cachedNormalContainerCount + " max=" + maxPage + " current=" + containerPage + " corpse=" + isCorpse)
+      lastContainerMaxPage = maxPage
+    end
+    SetPageControlsVisible("container_", maxPage > 0)
+    if maxPage <= 0 then return end
+    native.SendMessage(-90, "container_page_prev")
+    native.SendMessage(-91, "container_page_next")
+    if containerPage > 0 then native.SendMessage(-97, "container_page_prev") else native.SendMessage(-96, "container_page_prev") end
+    if containerPage < maxPage then native.SendMessage(-97, "container_page_next") else native.SendMessage(-96, "container_page_next") end
+    native.SendMessage((containerPage + 1) * 100 + maxPage + 1, "container_page_counter")
   end
 
   function UpdateMoney() -> void
@@ -643,23 +819,32 @@ maintask UtopianContainerUI do
 
   function UpdatePlayerSlots() -> void
     ClampPlayerPage()
+    BuildPlayerIndexCache()
     local container: object = GetPlayerContainer()
     for slot = 0, visibleSlots - 1 do
       local wnd: string = GetSlotWndName(slot)
-      if ResolveVisibleSlot(slot) then
-        local item: object
-        local amount: int
-        container->GetItem(item, resolvedIndex, resolvedCategory)
-        container->GetItemAmount(amount, resolvedIndex, resolvedCategory)
-        native.SendMessage(0, wnd, item)
-        native.SendMessage(amount + c_iSlotNumber, wnd)
-      else
+      if GetVisibleCell(slot) < 0 then
         native.SendMessage(c_iSlotEmpty, wnd)
+        native.SendMessage(-22, wnd)
+      else
+        native.SendMessage(-23, wnd)
+        if ResolveVisibleSlot(slot) then
+          local item: object
+          local amount: int
+          container->GetItem(item, resolvedIndex, resolvedCategory)
+          container->GetItemAmount(amount, resolvedIndex, resolvedCategory)
+          native.SendMessage(0, wnd, item)
+          native.SendMessage(amount + c_iSlotNumber, wnd)
+        else
+          native.SendMessage(c_iSlotEmpty, wnd)
+        end
       end
     end
+    UpdatePlayerPageControls()
   end
 
   function UpdateContainerSlots() -> void
+    BuildContainerIndexCache()
     ClampContainerPage()
     local container: object = GetExternalContainer()
     for slot = 0, c_iContainerSlots - 1 do
@@ -675,6 +860,7 @@ maintask UtopianContainerUI do
         native.SendMessage(c_iSlotEmpty, wnd)
       end
     end
+    UpdateContainerPageControls()
   end
 
   function UpdateOrganSlots() -> void
@@ -713,10 +899,13 @@ maintask UtopianContainerUI do
   function SwapSlotOrder(sourceSlot: int, targetSlot: int) -> void
     if sourceSlot < 0 || targetSlot < 0 || sourceSlot == targetSlot then return end
     if sourceSlot >= visibleSlots || targetSlot >= visibleSlots then return end
-    local sourceOrder: int = GetOrderValue(sourceSlot)
-    local targetOrder: int = GetOrderValue(targetSlot)
-    SetOrderValue(sourceSlot, targetOrder)
-    SetOrderValue(targetSlot, sourceOrder)
+    local sourceCell: int = GetVisibleCell(sourceSlot)
+    local targetCell: int = GetVisibleCell(targetSlot)
+    if sourceCell < 0 || targetCell < 0 then return end
+    local sourceOrder: int = GetOrderValue(sourceCell)
+    local targetOrder: int = GetOrderValue(targetCell)
+    SetOrderValue(sourceCell, targetOrder)
+    SetOrderValue(targetCell, sourceOrder)
     SaveLayoutVariables()
   end
 
@@ -735,7 +924,7 @@ maintask UtopianContainerUI do
   function RemoveOrderOrdinal(removedOrder: int, beforeCount: int) -> void
     if removedOrder < 0 then return end
     local emptyOrder: int = beforeCount - 1
-    for slot = 0, 39 do
+    for slot = 0, c_iInventoryCapacity - 1 do
       local order: int = GetOrderValue(slot)
       if order == removedOrder then
         SetOrderValue(slot, emptyOrder)
@@ -748,8 +937,9 @@ maintask UtopianContainerUI do
   end
 
   function FindFirstFreePlayerVisual(itemCount: int) -> int
-    for slot = 0, visibleSlots - 1 do
-      if GetOrderValue(slot) >= itemCount then return slot end
+    for linear = 0, c_iInventoryCapacity - 1 do
+      local cell: int = GetCellForLinearSlot(linear)
+      if cell >= 0 && GetOrderValue(cell) >= itemCount then return cell end
     end
     return -1
   end
@@ -787,7 +977,7 @@ maintask UtopianContainerUI do
         end
       end
     end
-    for emptyOrdinal = ordinal, 39 do playerOrderSnapshot->set(emptyOrdinal, -1) end
+    for emptyOrdinal = ordinal, c_iInventoryCapacity - 1 do playerOrderSnapshot->set(emptyOrdinal, -1) end
   end
 
   function FindSnapshotPlayerOrdinal(oldOrder: int, insertedCategory: int, insertedIndex: int) -> int
@@ -825,27 +1015,25 @@ maintask UtopianContainerUI do
   end
 
   function RestorePlayerOrderAfterInsert(insertedOrder: int, insertedCategory: int, insertedIndex: int, beforeCount: int, preferredSlot: int) -> bool
-    if insertedOrder < 0 || beforeCount >= 40 then return false end
-    local insertedSlot: int = -1
-    for slot = 0, 39 do
+    if insertedOrder < 0 || beforeCount >= c_iInventoryCapacity then return false end
+    local insertedSlot: int = FindFirstFreePlayerVisual(beforeCount)
+    if insertedSlot < 0 then return false end
+    for slot = 0, c_iInventoryCapacity - 1 do
       local oldOrder: int = GetOrderValue(slot)
       if oldOrder < beforeCount then
         local mappedOrder: int = FindSnapshotPlayerOrdinal(oldOrder, insertedCategory, insertedIndex)
         if mappedOrder >= 0 then SetOrderValue(slot, mappedOrder) end
-      else
-        if oldOrder == beforeCount then
-          SetOrderValue(slot, insertedOrder)
-          insertedSlot = slot
-        end
       end
     end
-    if insertedSlot < 0 then return false end
-    if preferredSlot >= 0 && preferredSlot < visibleSlots && preferredSlot != insertedSlot then
-      local preferredOrder: int = GetOrderValue(preferredSlot)
-      SetOrderValue(preferredSlot, insertedOrder)
+    SetOrderValue(insertedSlot, insertedOrder)
+    local preferredCell: int = GetVisibleCell(preferredSlot)
+    if preferredSlot >= 0 && preferredSlot < visibleSlots && preferredCell != insertedSlot then
+      local preferredOrder: int = GetOrderValue(preferredCell)
+      SetOrderValue(preferredCell, insertedOrder)
       SetOrderValue(insertedSlot, preferredOrder)
     end
     NormalizeSlotOrder()
+    OrderFreeCellsByDisplay()
     SaveLayoutVariables()
     return true
   end
@@ -890,7 +1078,7 @@ maintask UtopianContainerUI do
 
   function RestorePlayerOrderAfterRemove(removedOrder: int, beforeCount: int) -> bool
     if removedOrder < 0 || removedOrder >= beforeCount then return false end
-    for slot = 0, 39 do
+    for slot = 0, c_iInventoryCapacity - 1 do
       local oldOrder: int = GetOrderValue(slot)
       if oldOrder == removedOrder then
         SetOrderValue(slot, beforeCount - 1)
@@ -902,30 +1090,29 @@ maintask UtopianContainerUI do
       end
     end
     NormalizeSlotOrder()
+    OrderFreeCellsByDisplay()
     SaveLayoutVariables()
     return true
   end
 
   function InsertOrderOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
     if insertedOrder < 0 then return false end
-    if beforeCount >= 40 then return false end
-    local insertedSlot: int = -1
-    for slot = 0, 39 do
-      local order: int = GetOrderValue(slot)
-      if order == beforeCount then
-        SetOrderValue(slot, insertedOrder)
-        insertedSlot = slot
-      else
-        if order >= insertedOrder && order < beforeCount then SetOrderValue(slot, order + 1) end
-      end
-    end
+    if beforeCount >= c_iInventoryCapacity then return false end
+    local insertedSlot: int = FindFirstFreePlayerVisual(beforeCount)
     if insertedSlot < 0 then return false end
-    if preferredSlot >= 0 && preferredSlot < visibleSlots && preferredSlot != insertedSlot then
-      local preferredOrder: int = GetOrderValue(preferredSlot)
-      SetOrderValue(preferredSlot, insertedOrder)
+    for slot = 0, c_iInventoryCapacity - 1 do
+      local order: int = GetOrderValue(slot)
+      if slot != insertedSlot && order >= insertedOrder && order < beforeCount then SetOrderValue(slot, order + 1) end
+    end
+    SetOrderValue(insertedSlot, insertedOrder)
+    local preferredCell: int = GetVisibleCell(preferredSlot)
+    if preferredSlot >= 0 && preferredSlot < visibleSlots && preferredCell != insertedSlot then
+      local preferredOrder: int = GetOrderValue(preferredCell)
+      SetOrderValue(preferredCell, insertedOrder)
       SetOrderValue(insertedSlot, preferredOrder)
     end
     NormalizeSlotOrder()
+    OrderFreeCellsByDisplay()
     SaveLayoutVariables()
     return true
   end
@@ -1112,6 +1299,27 @@ maintask UtopianContainerUI do
     return -1
   end
 
+  function GetPlayerItemTotalAmount(category: int, wantedItemID: int) -> int
+    local player: object = GetPlayerContainer()
+    local count: int
+    local total: int = 0
+    player->GetItemCount(count, category)
+    for index = 0, count - 1 do
+      local candidate: object
+      player->GetItem(candidate, index, category)
+      if candidate then
+        local candidateID: int
+        candidate->GetItemID(candidateID)
+        if candidateID == wantedItemID then
+          local candidateAmount: int
+          player->GetItemAmount(candidateAmount, index, category)
+          total = total + candidateAmount
+        end
+      end
+    end
+    return total
+  end
+
   function FindExternalTransferMarkerOrdinal(organItem: bool) -> int
     local external: object = GetExternalContainer()
     local count: int
@@ -1151,6 +1359,28 @@ maintask UtopianContainerUI do
     return -1
   end
 
+  function GetExternalItemTotalAmount(wantedItemID: int) -> int
+    local external: object = GetExternalContainer()
+    if !external then return 0 end
+    local count: int
+    external->GetItemCount(count)
+    local total: int = 0
+    for index = 0, count - 1 do
+      local candidate: object
+      external->GetItem(candidate, index)
+      if candidate then
+        local candidateID: int
+        candidate->GetItemID(candidateID)
+        if candidateID == wantedItemID then
+          local candidateAmount: int
+          external->GetItemAmount(candidateAmount, index)
+          total = total + candidateAmount
+        end
+      end
+    end
+    return total
+  end
+
   function MovePlayerToContainer(sourceSlot: int, targetSlot: int, asOrgan: bool) -> void
     if !ResolveVisibleSlot(sourceSlot) then return end
     local player: object = GetPlayerContainer()
@@ -1163,12 +1393,16 @@ maintask UtopianContainerUI do
     local usedOrder: int = GetBackpackOrdinal(category, index)
     local beforeExternal: int
     if asOrgan then beforeExternal = GetOrganItemCount() else beforeExternal = GetNormalContainerItemCount() end
+    if !asOrgan && beforeExternal >= c_iMaxContainerVisuals then
+      ShowContainerFull()
+      return
+    end
     local item: object
     player->GetItem(item, index, category)
     if !item then return end
-    SnapshotExistingPlayerOrder()
     local itemID: int
     item->GetItemID(itemID)
+    local beforeExternalAmount: int = GetExternalItemTotalAmount(itemID)
 
     if asOrgan then
       item->RemoveProperty("UtopianOrgan")
@@ -1176,15 +1410,17 @@ maintask UtopianContainerUI do
     end
     local success: bool
     external->AddItem(success, item, 0, 1)
-    if !success then
+    local afterExternalAmount: int = GetExternalItemTotalAmount(itemID)
+    if !success || afterExternalAmount <= beforeExternalAmount then
       if asOrgan then
         item->RemoveProperty("Organ")
         item->SetProperty("UtopianOrgan", 1)
       end
-      native.Trace("utopian_container player-to-container rejected slot=" + sourceSlot)
+      ShowContainerFull()
+      native.Trace("utopian_container player-to-container rejected slot=" + sourceSlot + " success=" + success + " before_amount=" + beforeExternalAmount + " after_amount=" + afterExternalAmount)
+      UpdateContainerSlots()
       return
     end
-    local insertedExternalOrdinal: int = FindExternalItemOrdinalByID(asOrgan, itemID)
 
     if category == c_iCWeapon then
       local selected: bool
@@ -1195,16 +1431,18 @@ maintask UtopianContainerUI do
 
     local afterBackpack: int = GetBackpackItemCount()
     if afterBackpack < beforeBackpack then
-      RestorePlayerOrderAfterRemove(usedOrder, beforeBackpack)
-      native.Trace("utopian_container restored player order after remove=" + usedOrder)
+      RemoveOrderOrdinal(usedOrder, beforeBackpack)
     end
     local afterExternal: int
     if asOrgan then afterExternal = GetOrganItemCount() else afterExternal = GetNormalContainerItemCount() end
     if afterExternal > beforeExternal then
-      if asOrgan then InsertOrganOrdinalAt(insertedExternalOrdinal, beforeExternal, targetSlot) else InsertContainerOrdinalAt(insertedExternalOrdinal, beforeExternal, targetSlot) end
+      if asOrgan then InsertOrganOrdinalAt(beforeExternal, beforeExternal, targetSlot) else InsertContainerOrdinalAt(beforeExternal, beforeExternal, targetSlot) end
     end
-    native.Trace("utopian_container moved player-to-container source=" + sourceSlot + " target=" + targetSlot + " organ=" + asOrgan + " inserted=" + insertedExternalOrdinal + " before=" + beforeExternal + " after=" + afterExternal)
+    if !asOrgan && beforeExternal <= c_iContainerSlots && afterExternal > c_iContainerSlots then
+      native.Trace("utopian_container corpse/container page 2 activated count=" + afterExternal)
+    end
     UpdateAllSlots()
+    deferredContainerRefresh = 0.05
   end
 
   function MoveExternalToPlayer(organSource: bool, sourceSlot: int, targetSlot: int) -> void
@@ -1240,23 +1478,36 @@ maintask UtopianContainerUI do
 
     local category: int
     native.GetInvItemProperty(category, itemID, "Category")
-    SnapshotExistingPlayerOrder()
+    if !CanPlayerAcceptItem(item, category) then
+      ShowInventoryFull()
+      native.Trace("utopian_container container-to-player refused: inventory full")
+      return
+    end
+    local beforeCategoryCount: int
+    player->GetItemCount(beforeCategoryCount, category)
+    local beforePlayerAmount: int = GetPlayerItemTotalAmount(category, itemID)
     if organSource then
       item->SetProperty("UtopianOrgan", 1)
       item->RemoveProperty("Organ")
     end
     local success: bool
     player->AddItem(success, item, category, 1)
-    if !success then
+    local afterPlayerAmount: int = GetPlayerItemTotalAmount(category, itemID)
+    if !success || afterPlayerAmount <= beforePlayerAmount then
       if organSource then
         item->RemoveProperty("UtopianOrgan")
         item->SetProperty("Organ", 1)
       end
-      native.Trace("utopian_container container-to-player rejected source=" + sourceSlot)
+      ShowInventoryFull()
+      native.Trace("utopian_container container-to-player rejected source=" + sourceSlot + " success=" + success + " before_amount=" + beforePlayerAmount + " after_amount=" + afterPlayerAmount)
+      UpdateAllSlots()
       return
     end
 
-    local insertedPlayerIndex: int = FindPlayerItemIndexByID(category, itemID)
+    local afterCategoryCount: int
+    player->GetItemCount(afterCategoryCount, category)
+    local insertedPlayerIndex: int = -1
+    if afterCategoryCount > beforeCategoryCount then insertedPlayerIndex = afterCategoryCount - 1 end
 
     external->RemoveItem(sourceIndex, 1)
     if amount == 1 then
@@ -1264,17 +1515,15 @@ maintask UtopianContainerUI do
     end
 
     local afterBackpack: int = GetBackpackItemCount()
-    if afterBackpack > beforeBackpack then
+    if afterBackpack > beforeBackpack && insertedPlayerIndex >= 0 then
       local insertedOrder: int = GetBackpackOrdinal(category, insertedPlayerIndex)
-      RestorePlayerOrderAfterInsert(insertedOrder, category, insertedPlayerIndex, beforeBackpack, targetSlot)
-      native.Trace("utopian_container restored player order inserted=" + insertedOrder + " target=" + targetSlot)
+      InsertOrderOrdinalAt(insertedOrder, beforeBackpack, targetSlot)
     end
     if organSource then native.PlaySound("take_organ") end
-    native.Trace("utopian_container moved container-to-player source=" + sourceSlot + " target=" + targetSlot + " organ=" + organSource + " index=" + insertedPlayerIndex + " before=" + beforeBackpack + " after=" + afterBackpack)
     UpdateAllSlots()
   end
 
-  function DropPlayerToWorld(sourceSlot: int) -> void
+  function DropPlayerToWorld(sourceSlot: int, requestedAmount: int) -> void
     if !ResolveVisibleSlot(sourceSlot) then return end
     local player: object = GetPlayerContainer()
     local category: int = resolvedCategory
@@ -1284,18 +1533,33 @@ maintask UtopianContainerUI do
     local item: object
     player->GetItem(item, index, category)
     if !item then return end
-    SnapshotExistingPlayerOrder()
-
+    local availableAmount: int
+    player->GetItemAmount(availableAmount, index, category)
+    local amount: int = requestedAmount
+    if amount <= 0 || amount > availableAmount then amount = availableAmount end
+    if amount <= 0 then return end
     if category == c_iCWeapon then
       local selected: bool
       player->IsItemSelected(selected, index, category)
       if selected then native.SetPlayerHandsItem(-1) end
     end
-    player->DropItems(item, 1)
-    player->RemoveItem(index, 1, category)
-    if GetBackpackItemCount() < beforeBackpack then RestorePlayerOrderAfterRemove(usedOrder, beforeBackpack) end
-    native.Trace("utopian_container dropped player item source=" + sourceSlot)
+    player->DropItems(item, amount)
+    player->RemoveItem(index, amount, category)
+    if GetBackpackItemCount() < beforeBackpack then RemoveOrderOrdinal(usedOrder, beforeBackpack) end
     UpdateAllSlots()
+  end
+
+  function HandleModifiedDrop(source: int) -> bool
+    if !shiftHeld && !controlHeld then return false end
+    if source < 0 || source >= visibleSlots then return false end
+    if !ResolveVisibleSlot(source) then return true end
+    local amount: int = 1
+    if shiftHeld then
+      local player: object = GetPlayerContainer()
+      player->GetItemAmount(amount, resolvedIndex, resolvedCategory)
+    end
+    DropPlayerToWorld(source, amount)
+    return true
   end
 
   function ResolveDragSource(source: int) -> bool
@@ -1455,7 +1719,7 @@ maintask UtopianContainerUI do
   end
 
   function SetHighlightedTarget(target: int) -> void
-    if target >= 0 && !IsTargetCompatible(target) then target = -1 end
+    if dragSource >= 0 && target >= 0 && !IsTargetCompatible(target) then target = -1 end
     if highlightedTarget == target then return end
     if highlightedTarget >= 0 then native.SendMessage(-21, GetTargetWndName(highlightedTarget)) end
     highlightedTarget = target
@@ -1481,7 +1745,6 @@ maintask UtopianContainerUI do
     lastValidDropTarget = -1
     invalidDropTargetFrames = 0
     SetHighlightedTarget(-1)
-    native.Trace("utopian_container drag-start sender=" + sender + " source=" + source + " kind=" + dragKind)
   end
 
   function FinishDrag(target: int) -> void
@@ -1489,7 +1752,6 @@ maintask UtopianContainerUI do
     if target < 0 && lastValidDropTarget >= 0 && invalidDropTargetFrames <= 3 then target = lastValidDropTarget end
     local source: int = dragSource
     local sourceKind: int = dragKind
-    native.Trace("utopian_container drag-finish source=" + source + " target=" + target + " kind=" + sourceKind)
 
     if IsTargetCompatible(target) then
       if sourceKind == 0 then
@@ -1530,6 +1792,7 @@ maintask UtopianContainerUI do
       if !ResolveVisibleSlot(source) then return end
       local visual: int = FindFirstFreeContainerVisual(GetNormalContainerItemCount())
       if visual < 0 then
+        ShowContainerFull()
         native.Trace("utopian_container quick player-to-container refused: no visual slot")
         return
       end
@@ -1538,8 +1801,15 @@ maintask UtopianContainerUI do
       return
     end
 
-    local playerTarget: int = FindFirstFreePlayerVisual(GetBackpackItemCount())
-    if playerTarget < 0 then playerTarget = 0 end
+    local playerVisual: int = FindFirstFreePlayerVisual(GetBackpackItemCount())
+    if playerVisual < 0 then playerVisual = 0 end
+    local playerLinear: int = playerVisual
+    if visibleSlots < c_iInventoryCapacity then
+      playerLinear = playerVisual - 16
+      if playerLinear < 0 then playerLinear = playerLinear + c_iInventoryCapacity end
+    end
+    playerPage = playerLinear / visibleSlots
+    local playerTarget: int = playerLinear - playerPage * visibleSlots
     if source >= c_iTargetContainerBase && source < c_iTargetContainerBase + c_iContainerSlots then
       MoveExternalToPlayer(false, source - c_iTargetContainerBase, playerTarget)
       return
@@ -1615,6 +1885,7 @@ maintask UtopianContainerUI do
   function StartPanelPointerDrag(x: int, y: int) -> void
     local source: int = FindTargetAt(x, y)
     if source < 0 then return end
+    if HandleModifiedDrop(source) then return end
     StartDragAction(source, "panel_background")
   end
 
@@ -1634,6 +1905,7 @@ maintask UtopianContainerUI do
     local action: int = 0
     if message >= c_iPanelPointerLeaveBase then
       ClearPanelTooltip()
+      ClearPageControlHover()
       return
     end
     if message >= c_iPanelPointerDragEndBase then
@@ -1663,9 +1935,13 @@ maintask UtopianContainerUI do
 
     local x: int = GetPanelPointerX(message, base)
     local y: int = GetPanelPointerY(message, base)
-    if action == 0 then UpdatePanelTooltip(x, y) end
+    if action == 0 then
+      UpdatePageControlHover(x, y)
+      UpdatePanelTooltip(x, y)
+    end
     if action == 1 then
       ClearPanelTooltip()
+      if HandlePageControlAt(x, y) then return end
       StartPanelPointerDrag(x, y)
       return
     end
@@ -1680,6 +1956,70 @@ maintask UtopianContainerUI do
       return
     end
     if dragSource >= 0 then ApplyPointerTarget(target) end
+  end
+
+  function HandlePageControlAt(x: int, y: int) -> bool
+    local playerMaxPage: int = GetMaxPlayerPage()
+    if playerMaxPage > 0 then
+      local playerX: int = 501
+      local playerY: int = 465
+      if windowWidth >= 1000 then
+        playerX = 650
+        playerY = 580
+      end
+      if x >= playerX && x < playerX + 32 && y >= playerY && y < playerY + 28 then
+        if playerPage > 0 then ChangePlayerPage(-1) end
+        return true
+      end
+      if x >= playerX + 100 && x < playerX + 132 && y >= playerY && y < playerY + 28 then
+        if playerPage < playerMaxPage then ChangePlayerPage(1) end
+        return true
+      end
+    end
+
+    local containerMaxPage: int = GetMaxContainerPage()
+    if containerMaxPage > 0 then
+      local containerX: int = GetContainerStartX() + 28
+      local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
+      if x >= containerX && x < containerX + 32 && y >= containerY && y < containerY + 28 then
+        if containerPage > 0 then ChangeContainerPage(-1) end
+        return true
+      end
+      if x >= containerX + 100 && x < containerX + 132 && y >= containerY && y < containerY + 28 then
+        if containerPage < containerMaxPage then ChangeContainerPage(1) end
+        return true
+      end
+    end
+    return false
+  end
+
+  function SetPageButtonHover(wnd: string, highlighted: bool) -> void
+    if highlighted then native.SendMessage(-94, wnd) else native.SendMessage(-95, wnd) end
+  end
+
+  function ClearPageControlHover() -> void
+    SetPageButtonHover("player_page_prev", false)
+    SetPageButtonHover("player_page_next", false)
+    SetPageButtonHover("container_page_prev", false)
+    SetPageButtonHover("container_page_next", false)
+  end
+
+  function UpdatePageControlHover(x: int, y: int) -> void
+    local playerX: int = 501
+    local playerY: int = 465
+    if windowWidth >= 1000 then
+      playerX = 650
+      playerY = 580
+    end
+    local playerVisible: bool = GetMaxPlayerPage() > 0
+    SetPageButtonHover("player_page_prev", playerVisible && playerPage > 0 && x >= playerX && x < playerX + 32 && y >= playerY && y < playerY + 28)
+    SetPageButtonHover("player_page_next", playerVisible && playerPage < GetMaxPlayerPage() && x >= playerX + 100 && x < playerX + 132 && y >= playerY && y < playerY + 28)
+
+    local containerX: int = GetContainerStartX() + 28
+    local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
+    local containerVisible: bool = GetMaxContainerPage() > 0
+    SetPageButtonHover("container_page_prev", containerVisible && containerPage > 0 && x >= containerX && x < containerX + 32 && y >= containerY && y < containerY + 28)
+    SetPageButtonHover("container_page_next", containerVisible && containerPage < GetMaxContainerPage() && x >= containerX + 100 && x < containerX + 132 && y >= containerY && y < containerY + 28)
   end
 
   function ChangePlayerPage(delta: int) -> void
@@ -1704,6 +2044,23 @@ maintask UtopianContainerUI do
       return
     end
 
+    if sender == "player_page_prev" then
+      if playerPage > 0 then ChangePlayerPage(-1) end
+      return
+    end
+    if sender == "player_page_next" then
+      if playerPage < GetMaxPlayerPage() then ChangePlayerPage(1) end
+      return
+    end
+    if sender == "container_page_prev" then
+      if containerPage > 0 then ChangeContainerPage(-1) end
+      return
+    end
+    if sender == "container_page_next" then
+      if containerPage < GetMaxContainerPage() then ChangeContainerPage(1) end
+      return
+    end
+
     if message >= c_iDragEndMessageBase then
       local target: int = GetSlotTargetFromPointerMessage(message, c_iDragEndMessageBase, sender)
       ApplyPointerTarget(target)
@@ -1717,15 +2074,18 @@ maintask UtopianContainerUI do
       return
     end
     if message >= c_iHoverMessageBase then
-      if dragSource >= 0 then ApplyPointerTarget(GetSlotTargetFromPointerMessage(message, c_iHoverMessageBase, sender)) end
+      local target: int = GetSlotTargetFromPointerMessage(message, c_iHoverMessageBase, sender)
+      if dragSource >= 0 then ApplyPointerTarget(target) else SetHighlightedTarget(target) end
       return
     end
     if message == 2 || message == 3 then
-      StartDragAction(GetTargetBySender(sender), sender)
+      local source: int = GetTargetBySender(sender)
+      if HandleModifiedDrop(source) then return end
+      StartDragAction(source, sender)
       return
     end
     if message == 7 then
-      if dragSource >= 0 then ApplyPointerTarget(-1) end
+      if dragSource >= 0 then ApplyPointerTarget(-1) else SetHighlightedTarget(-1) end
       return
     end
     if message == 8 then
@@ -1738,6 +2098,10 @@ maintask UtopianContainerUI do
   end
 
   function OnUpdate(delta: float) -> void
+    if inventoryFullMessageCooldown > 0 then
+      inventoryFullMessageCooldown = inventoryFullMessageCooldown - delta
+      if inventoryFullMessageCooldown < 0 then inventoryFullMessageCooldown = 0 end
+    end
     UpdateLayout()
     UpdateMoney()
     if organVisibilityRefresh > 0 then
@@ -1754,6 +2118,10 @@ maintask UtopianContainerUI do
         UpdatePlayerSlots()
         native.Trace("utopian_container deferred inventory refresh")
       end
+    end
+    if deferredContainerRefresh > 0 then
+      deferredContainerRefresh = deferredContainerRefresh - delta
+      if deferredContainerRefresh <= 0 then UpdateContainerSlots() end
     end
   end
 
@@ -1773,19 +2141,18 @@ maintask UtopianContainerUI do
     end
   end
 
-  function OnMouseWheel(x: int, y: int, delta: float) -> void
-    if x < GetGridStartX() then
-      if delta > 0 then ChangeContainerPage(-1) else ChangeContainerPage(1) end
-    else
-      if delta > 0 then ChangePlayerPage(-1) else ChangePlayerPage(1) end
-    end
-  end
-
   function OnChar(char: int) -> void
     native.DestroyWindow()
   end
 
   function OnKeyDown(key: int) -> void
+    if key == c_iVKShift then shiftHeld = true end
+    if key == c_iVKControl then controlHeld = true end
     if key == 27 || key == 73 || key == 105 then native.DestroyWindow() end
+  end
+
+  function OnKeyUp(key: int) -> void
+    if key == c_iVKShift then shiftHeld = false end
+    if key == c_iVKControl then controlHeld = false end
   end
 end

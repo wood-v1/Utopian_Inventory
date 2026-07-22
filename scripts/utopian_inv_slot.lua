@@ -49,6 +49,11 @@ maintask UtopianInventorySlot do
       return
     end
 
+    if item then
+      native.SetBackground("occupied")
+      return
+    end
+
     if selected then
       native.SetBackground("selected")
     else
@@ -101,7 +106,7 @@ maintask UtopianInventorySlot do
     else
       native.SendMessageToParent(8)
     end
-    highlighted = false
+    highlighted = IsInsideSlotForm(x, y)
     UpdateBackground()
     dragging = false
   end
@@ -128,16 +133,24 @@ maintask UtopianInventorySlot do
     else
       native.SendMessageToParent(8)
     end
-    highlighted = false
+    highlighted = IsInsideSlotForm(x, y)
     UpdateBackground()
   end
 
   function OnMouseEnter() -> void
+    if !hidden && !blocked then
+      highlighted = true
+      UpdateBackground()
+    end
   end
 
   function OnMouseMove(x: int, y: int) -> void
     if hidden || blocked then return end
     if IsInsideSlotForm(x, y) then
+      if !highlighted then
+        highlighted = true
+        UpdateBackground()
+      end
       native.SendMessageToParent(EncodePointerMessage(c_iHoverMessageBase, x, y))
     else
       native.SendMessageToParent(7)
@@ -145,6 +158,8 @@ maintask UtopianInventorySlot do
   end
 
   function OnMouseLeave() -> void
+    highlighted = false
+    UpdateBackground()
     native.SendMessageToParent(7)
   end
 
@@ -220,6 +235,7 @@ maintask UtopianInventorySlot do
     UpdateBackground()
 
     item = data
+    UpdateBackground()
     if item then
       local itemID: int
       item->GetItemID(itemID)

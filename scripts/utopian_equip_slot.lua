@@ -25,7 +25,11 @@ maintask UtopianEquipSlot do
     if highlighted then
       native.SetBackground("target")
     else
-      native.SetBackground("default")
+      if item then
+        native.SetBackground("occupied")
+      else
+        native.SetBackground("default")
+      end
     end
   end
 
@@ -120,11 +124,13 @@ maintask UtopianEquipSlot do
     if message >= c_iSlotEmpty then
       item = null
       loadedItemID = -1
+      UpdateBackground()
       native.SetTooltip(c_iTooltipNone, "")
       return
     end
 
     item = data
+    UpdateBackground()
     if item then
       local itemID: int
       item->GetItemID(itemID)

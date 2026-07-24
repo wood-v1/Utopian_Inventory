@@ -28,6 +28,9 @@ maintask UtopianInventoryUI do
   local const c_iTargetClothesBase: int = 100
   local const c_iTargetDrop: int = 200
   local const c_iTargetMoney: int = 300
+  local const c_iPageHoverEnter: int = -110
+  local const c_iPageHoverLeave: int = -111
+  local const c_fPageHoverDelay: float = 1.00
 
   local windowWidth: int
   local windowHeight: int
@@ -37,6 +40,7 @@ maintask UtopianInventoryUI do
   local resolvedIndex: int
   local slotOrder: object
   local dragSourceSlot: int
+  local dragSourceCell: int
   local hoverSlot: int
   local highlightedSlot: int
   local dragMoved: bool
@@ -69,6 +73,10 @@ maintask UtopianInventoryUI do
   local shiftHeld: bool
   local controlHeld: bool
   local inventoryPollCooldown: float
+  local dragPageHoverAction: int
+  local dragPageHoverElapsed: float
+  local dragPageHoverConsumed: bool
+  local tooltipResumeDelay: float
 
   function init() -> void
     native.Trace("utopian_inventory script init diagnostics=18 clara-money-tooltip")
@@ -76,6 +84,7 @@ maintask UtopianInventoryUI do
     resolvedCategory = -1
     resolvedIndex = -1
     dragSourceSlot = -1
+    dragSourceCell = -1
     hoverSlot = -1
     highlightedSlot = -1
     dragMoved = false
@@ -99,6 +108,10 @@ maintask UtopianInventoryUI do
     shiftHeld = false
     controlHeld = false
     inventoryPollCooldown = 0.1
+    dragPageHoverAction = 0
+    dragPageHoverElapsed = 0
+    dragPageHoverConsumed = false
+    tooltipResumeDelay = 0
     native.CreateInvItem(moneyTooltipItem)
     moneyTooltipItem->SetItemName("Money")
     native.CreateIntVector(backpackSnapshot)
@@ -125,7 +138,9 @@ maintask UtopianInventoryUI do
     UpdateSlots()
     SnapshotBackpackItems()
     UpdateMoney()
-    native.SetCursor("default")
+    native.SetVariable("utopian_inventory_drag_item", -1)
+    native.SetVariable("utopian_inventory_page_hover", 0)
+    native.SetCursor("utopian_inventory")
     native.ShowCursor()
     native.CaptureKeyboard()
     native.SetOwnerDraw(false)
@@ -307,7 +322,7 @@ maintask UtopianInventoryUI do
       end
     end
     native.SetVariable("utopian_inventory_drag_item", itemID)
-    native.SetCursor("drag_item")
+    native.Trace("UTOPIAN_TOOLTIP_DIAG inventory unified cursor drag begin source=" + slot + " item=" + itemID)
     native.Trace("utopian_inventory diagnostic drag-start slot=" + slot + " item=" + dragItemID +
       " category=" + dragItemCategory + " index=" + dragItemIndex + " group=" + dragItemGroup +
       " weapon=" + dragItemIsWeapon)
@@ -315,7 +330,8 @@ maintask UtopianInventoryUI do
 
   function EndDragCursor() -> void
     native.SetVariable("utopian_inventory_drag_item", -1)
-    native.SetCursor("default")
+    native.SetVariable("utopian_inventory_page_hover", 0)
+    native.Trace("UTOPIAN_TOOLTIP_DIAG inventory unified cursor drag end")
     dragItemID = -1
     dragItemCategory = -1
     dragItemIndex = -1
@@ -323,11 +339,31 @@ maintask UtopianInventoryUI do
     dragItemIsWeapon = false
   end
 
+  function ConfigureSlotRenderSize() -> void
+    local sizeMessage: int = -27
+    local equipSizeMessage: int = -27
+    if windowWidth >= 1900 then sizeMessage = -26 end
+    if windowWidth >= 1900 then equipSizeMessage = -28 end
+    for slot = 0, visibleSlots - 1 do
+      native.SendMessage(sizeMessage, GetSlotWndName(slot))
+    end
+    native.SendMessage(equipSizeMessage, "equip_head")
+    native.SendMessage(equipSizeMessage, "equip_body")
+    native.SendMessage(equipSizeMessage, "equip_hands")
+    native.SendMessage(equipSizeMessage, "equip_feet")
+    native.SendMessage(equipSizeMessage, "equip_weapon")
+    native.SendMessage(sizeMessage, "drop_slot")
+    native.SendMessage(sizeMessage, "money")
+  end
+
   function UpdateLayout() -> void
     native.GetWindowSize(windowWidth, windowHeight)
     if windowWidth <= 0 || windowHeight <= 0 then
       native.GetScreenSize(windowWidth, windowHeight)
     end
+    if windowWidth >= 1900 then
+      visibleSlots = 35
+    else
     if windowWidth >= 1200 then
       visibleSlots = c_iInventoryCapacity
     else
@@ -337,12 +373,14 @@ maintask UtopianInventoryUI do
         visibleSlots = 24
       end
     end
+    end
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight || visibleSlots != lastLayoutSlots then
       native.Trace("utopian_inventory layout window=" + windowWidth + "x" + windowHeight + " slots=" + visibleSlots)
       native.SendMessage(windowWidth, "character_doll")
       native.SendMessage(5000 + windowHeight, "character_doll")
       native.SendMessage(windowWidth, "panel_background")
       native.SendMessage(5000 + windowHeight, "panel_background")
+      ConfigureSlotRenderSize()
       lastLayoutWidth = windowWidth
       lastLayoutHeight = windowHeight
       lastLayoutSlots = visibleSlots
@@ -370,7 +408,7 @@ maintask UtopianInventoryUI do
 
   function GetGridStartX() -> int
     if windowWidth >= 1900 then
-      return 920
+      return 825
     end
     if windowWidth >= 1200 then
       return 600
@@ -391,7 +429,7 @@ maintask UtopianInventoryUI do
 
   function GetGridStartY() -> int
     if windowWidth >= 1900 then
-      return 242
+      return 245
     end
     if windowWidth >= 1200 then
       return 182
@@ -403,6 +441,9 @@ maintask UtopianInventoryUI do
   end
 
   function GetGridStep() -> int
+    if windowWidth >= 1900 then
+      return 96
+    end
     if windowWidth >= 1200 then
       return 64
     end
@@ -413,6 +454,9 @@ maintask UtopianInventoryUI do
   end
 
   function GetGridColumns() -> int
+    if windowWidth >= 1900 then
+      return 7
+    end
     if windowWidth >= 1200 then
       return 8
     end
@@ -506,12 +550,12 @@ maintask UtopianInventoryUI do
 
   function GetSpecialTargetLeft(target: int) -> int
     if windowWidth >= 1900 then
-      if target == c_iTargetWeapon then return 715 end
+      if target == c_iTargetWeapon then return 690 end
       if target == c_iTargetClothesBase + 1 then return 590 end
       if target == c_iTargetClothesBase + 2 then return 590 end
       if target == c_iTargetClothesBase + 3 then return 590 end
       if target == c_iTargetClothesBase + 4 then return 445 end
-      if target == c_iTargetDrop then return 1126 end
+      if target == c_iTargetDrop then return 1067 end
     else
     if windowWidth >= 1200 then
       if target == c_iTargetWeapon then return 395 end
@@ -548,7 +592,7 @@ maintask UtopianInventoryUI do
       if target == c_iTargetClothesBase + 2 then return 300 end
       if target == c_iTargetClothesBase + 3 then return 488 end
       if target == c_iTargetClothesBase + 4 then return 560 end
-      if target == c_iTargetDrop then return 745 end
+      if target == c_iTargetDrop then return 765 end
     else
     if windowWidth >= 1200 then
       if target == c_iTargetWeapon then return 550 end
@@ -581,18 +625,30 @@ maintask UtopianInventoryUI do
   function IsInsideSpecialTarget(target: int, x: int, y: int) -> bool
     local left: int = GetSpecialTargetLeft(target)
     local top: int = GetSpecialTargetTop(target)
-    return x >= left && y >= top && x < left + c_iSlotHotZone && y < top + c_iSlotHotZone
+    local hotZone: int = GetEquipSlotHotZone()
+    if target == c_iTargetDrop then hotZone = GetSlotHotZone() end
+    return x >= left && y >= top && x < left + hotZone && y < top + hotZone
+  end
+
+  function GetSlotHotZone() -> int
+    if windowWidth >= 1900 then return 82 end
+    return c_iSlotHotZone
+  end
+
+  function GetEquipSlotHotZone() -> int
+    if windowWidth >= 1900 then return 48 end
+    return c_iSlotHotZone
   end
 
   function GetMoneyLeft() -> int
-    if windowWidth >= 1900 then return 1420 end
+    if windowWidth >= 1900 then return 1390 end
     if windowWidth >= 1200 then return 1100 end
     if windowWidth >= 1000 then return 864 end
     return 655
   end
 
   function GetMoneyTop() -> int
-    if windowWidth >= 1900 then return 830 end
+    if windowWidth >= 1900 then return 780 end
     if windowWidth >= 1200 then return 770 end
     if windowWidth >= 1000 then return 616 end
     return 465
@@ -601,7 +657,8 @@ maintask UtopianInventoryUI do
   function IsInsideMoney(x: int, y: int) -> bool
     local left: int = GetMoneyLeft()
     local top: int = GetMoneyTop()
-    return x >= left && y >= top && x < left + c_iSlotHotZone && y < top + c_iSlotHotZone
+    local hotZone: int = GetSlotHotZone()
+    return x >= left && y >= top && x < left + hotZone && y < top + hotZone
   end
 
   function FindSpecialTargetAt(x: int, y: int) -> int
@@ -830,6 +887,8 @@ maintask UtopianInventoryUI do
     if visibleSlots >= c_iInventoryCapacity then return end
     local maxPage: int = GetMaxPage()
     local visibilityMessage: int = -93
+    native.SendMessage(-112, "page_prev")
+    native.SendMessage(-113, "page_next")
     if maxPage > 0 then visibilityMessage = -92 end
     native.SendMessage(visibilityMessage, "page_prev")
     native.SendMessage(visibilityMessage, "page_counter")
@@ -1283,7 +1342,11 @@ maintask UtopianInventoryUI do
   end
 
   function StartDragAction(source: int, sender: string) -> void
+    CancelDragPageHover(0)
+    ClearPanelTooltip()
     dragSourceSlot = source
+    dragSourceCell = -1
+    if source >= 0 && source < visibleSlots then dragSourceCell = GetVisibleCell(source) end
     hoverSlot = dragSourceSlot
     lastPointerSlot = dragSourceSlot
     dragDebugLastPointerSlot = -999
@@ -1322,8 +1385,11 @@ maintask UtopianInventoryUI do
       return
     end
 
-    local sourceCell: int = GetVisibleCell(sourceSlot)
-    local targetCell: int = GetVisibleCell(targetSlot)
+    SwapSlotOrderCells(GetVisibleCell(sourceSlot), GetVisibleCell(targetSlot))
+  end
+
+  function SwapSlotOrderCells(sourceCell: int, targetCell: int) -> void
+    if sourceCell == targetCell then return end
     if sourceCell < 0 || targetCell < 0 then return end
     local sourceOrder: int = GetOrderValue(sourceCell)
     local targetOrder: int = GetOrderValue(targetCell)
@@ -1383,23 +1449,41 @@ maintask UtopianInventoryUI do
   end
 
   function InsertOrderOrdinal(insertedOrder: int, beforeCount: int) -> bool
-    if insertedOrder < 0 then return false end
-    local freeSlot: int = FindFirstFreeVisualSlot(beforeCount)
-    if freeSlot < 0 then return false end
+    return InsertOrderOrdinalAtCell(insertedOrder, beforeCount, FindFirstFreeVisualSlot(beforeCount))
+  end
 
-    for slot = 0, c_iInventoryCapacity - 1 do
-      if slot != freeSlot then
-        local order: int = GetOrderValue(slot)
-        if order >= insertedOrder && order < beforeCount then
-          SetOrderValue(slot, order + 1)
-        end
+  function InsertOrderOrdinalAtCell(insertedOrder: int, beforeCount: int, targetCell: int) -> bool
+    if insertedOrder < 0 || targetCell < 0 || targetCell >= c_iInventoryCapacity then return false end
+    local freeCell: int = FindFirstFreeVisualSlot(beforeCount)
+    if freeCell < 0 then return false end
+
+    local targetOrder: int = GetOrderValue(targetCell)
+    local targetOccupied: bool = targetOrder >= 0 && targetOrder < beforeCount
+    local displacedOrder: int = targetOrder
+    if targetOccupied && displacedOrder >= insertedOrder then
+      displacedOrder = displacedOrder + 1
+    end
+
+    for cell = 0, c_iInventoryCapacity - 1 do
+      local order: int = GetOrderValue(cell)
+      if order >= insertedOrder && order < beforeCount then
+        SetOrderValue(cell, order + 1)
       end
     end
-    SetOrderValue(freeSlot, insertedOrder)
+
+    if freeCell != targetCell then
+      if targetOccupied then
+        SetOrderValue(freeCell, displacedOrder)
+      else
+        SetOrderValue(freeCell, targetOrder)
+      end
+    end
+    SetOrderValue(targetCell, insertedOrder)
     NormalizeSlotOrder()
     OrderFreeCellsByDisplay()
     SaveLayoutVariables()
-    native.Trace("utopian_inventory inserted ordinal=" + insertedOrder + " visualSlot=" + freeSlot)
+    native.Trace("utopian_inventory inserted ordinal=" + insertedOrder + " targetCell=" + targetCell +
+      " displacedCell=" + freeCell + " occupied=" + targetOccupied)
     return true
   end
 
@@ -1430,14 +1514,26 @@ maintask UtopianInventoryUI do
       native.Trace("utopian_inventory release latched target=" + targetSlot)
     end
 
-    native.Trace("utopian_inventory finish source=" + sourceSlot + " target=" + targetSlot + " moved=" + dragMoved)
+    native.Trace("UTOPIAN_TOOLTIP_DIAG inventory finish source=" + sourceSlot + " target=" + targetSlot +
+      " moved=" + dragMoved)
+    tooltipResumeDelay = 0.2
+    ClearPanelTooltip()
+    if sourceSlot >= 0 && sourceSlot <= c_iTargetClothesBase + 4 then
+      native.SendMessage(-130, GetTargetWndName(sourceSlot))
+    end
+    if targetSlot >= 0 && targetSlot <= c_iTargetClothesBase + 4 then
+      native.SendMessage(-130, GetTargetWndName(targetSlot))
+    end
 
     if sourceSlot >= c_iTargetWeapon && sourceSlot <= c_iTargetClothesBase + 4 then
       if targetSlot >= 0 && targetSlot < visibleSlots then
         local beforeCount: int = GetBackpackItemCount()
         if beforeCount < c_iInventoryCapacity then
           if UnequipItem(dragItemCategory, dragItemIndex) then
-            InsertOrderOrdinal(GetBackpackOrdinal(dragItemCategory, dragItemIndex), beforeCount)
+            InsertOrderOrdinalAtCell(
+              GetBackpackOrdinal(dragItemCategory, dragItemIndex),
+              beforeCount,
+              GetVisibleCell(targetSlot))
             native.Trace("utopian_inventory unequipped by drag source=" + sourceSlot + " target=" + targetSlot)
           end
         else
@@ -1454,15 +1550,15 @@ maintask UtopianInventoryUI do
         end
       end
     else
-      if targetSlot >= 0 && targetSlot < visibleSlots && targetSlot != sourceSlot then
+      if targetSlot >= 0 && targetSlot < visibleSlots && GetVisibleCell(targetSlot) != dragSourceCell then
         native.Trace("utopian_inventory swap " + sourceSlot + " " + targetSlot)
-        SwapSlotOrder(sourceSlot, targetSlot)
+        SwapSlotOrderCells(dragSourceCell, GetVisibleCell(targetSlot))
       else
         if targetSlot >= c_iTargetWeapon && targetSlot <= c_iTargetClothesBase + 4 then
-          if ResolveVisibleSlot(sourceSlot) then
+          if dragItemCategory >= 0 && dragItemIndex >= 0 then
             local beforeCount: int = GetBackpackItemCount()
-            local usedOrder: int = GetOrderValue(GetVisibleCell(sourceSlot))
-            local equipped: bool = EquipDraggedItem(targetSlot, resolvedCategory, resolvedIndex)
+            local usedOrder: int = GetOrderValue(dragSourceCell)
+            local equipped: bool = EquipDraggedItem(targetSlot, dragItemCategory, dragItemIndex)
             if equipped then
               local afterCount: int = GetBackpackItemCount()
               if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
@@ -1474,10 +1570,10 @@ maintask UtopianInventoryUI do
           end
         else
           if targetSlot == c_iTargetDrop then
-            if ResolveVisibleSlot(sourceSlot) then
+            if dragItemCategory >= 0 && dragItemIndex >= 0 then
               local beforeCount: int = GetBackpackItemCount()
-              local usedOrder: int = GetOrderValue(GetVisibleCell(sourceSlot))
-              DropSlot(resolvedCategory, resolvedIndex, 1)
+              local usedOrder: int = GetOrderValue(dragSourceCell)
+              DropSlot(dragItemCategory, dragItemIndex, 1)
               local afterCount: int = GetBackpackItemCount()
               if afterCount < beforeCount then RemoveOrderOrdinal(usedOrder, beforeCount) end
               UpdateSlots()
@@ -1490,6 +1586,7 @@ maintask UtopianInventoryUI do
     end
 
     dragSourceSlot = -1
+    dragSourceCell = -1
     hoverSlot = -1
     lastPointerSlot = -1
     SetHighlightedSlot(-1)
@@ -1498,6 +1595,7 @@ maintask UtopianInventoryUI do
     invalidDropTargetFrames = 0
     dragDebugLastAppliedTarget = -999
     EndDragCursor()
+    CancelDragPageHover(0)
   end
 
   function FindBackpackSlotAt(x: int, y: int) -> int
@@ -1541,10 +1639,11 @@ maintask UtopianInventoryUI do
   end
 
   function IsInsideSlotDropArea(localX: int, localY: int) -> bool
+    local hotZone: int = GetSlotHotZone()
     return localX >= c_iSlotDropInset &&
       localY >= c_iSlotDropInset &&
-      localX < c_iSlotHotZone - c_iSlotDropInset &&
-      localY < c_iSlotHotZone - c_iSlotDropInset
+      localX < hotZone - c_iSlotDropInset &&
+      localY < hotZone - c_iSlotDropInset
   end
 
   function FindSlotAtPointer(x: int, y: int) -> int
@@ -1593,7 +1692,12 @@ maintask UtopianInventoryUI do
 
     TraceDragTarget(slot)
 
-    if slot >= 0 && slot != dragSourceSlot then
+    local sameSource: bool = false
+    if slot == dragSourceSlot then sameSource = true end
+    if dragSourceCell >= 0 && slot >= 0 && slot < visibleSlots then
+      if GetVisibleCell(slot) == dragSourceCell then sameSource = true else sameSource = false end
+    end
+    if slot >= 0 && !sameSource then
       dragMoved = true
       lastValidDropTarget = slot
       invalidDropTargetFrames = 0
@@ -1641,7 +1745,83 @@ maintask UtopianInventoryUI do
     UpdateSlots()
   end
 
+  function GetDragPageHoverAction(sender: string) -> int
+    if sender == "page_prev" && page > 0 then return -1 end
+    if sender == "page_next" && page < GetMaxPage() then return 1 end
+    return 0
+  end
+
+  function BeginDragPageHover(sender: string) -> void
+    if dragSourceSlot < 0 then return end
+    local action: int = GetDragPageHoverAction(sender)
+    if action == 0 then return end
+    if dragPageHoverAction == action then return end
+    dragPageHoverAction = action
+    dragPageHoverElapsed = 0
+    dragPageHoverConsumed = false
+    native.Trace("utopian_inventory page-hover begin sender=" + sender + " action=" + action + " source=" + dragSourceSlot)
+  end
+
+  function CancelDragPageHover(action: int) -> void
+    if action != 0 && dragPageHoverAction != action then return end
+    if dragPageHoverAction != 0 then
+      native.Trace("utopian_inventory page-hover cancel action=" + dragPageHoverAction + " elapsed=" + dragPageHoverElapsed)
+    end
+    dragPageHoverAction = 0
+    dragPageHoverElapsed = 0
+    dragPageHoverConsumed = false
+  end
+
+  function UpdateDragPageHover(delta: float) -> void
+    if dragSourceSlot < 0 || dragPageHoverAction == 0 || dragPageHoverConsumed then return end
+    if dragPageHoverAction < 0 && page <= 0 then
+      CancelDragPageHover(dragPageHoverAction)
+      return
+    end
+    if dragPageHoverAction > 0 && page >= GetMaxPage() then
+      CancelDragPageHover(dragPageHoverAction)
+      return
+    end
+    dragPageHoverElapsed = dragPageHoverElapsed + delta
+    if dragPageHoverElapsed < c_fPageHoverDelay then return end
+    dragPageHoverConsumed = true
+    lastValidDropTarget = -1
+    invalidDropTargetFrames = 0
+    SetHighlightedSlot(-1)
+    native.Trace("utopian_inventory page-hover switch action=" + dragPageHoverAction + " page=" + page)
+    ChangePage(dragPageHoverAction)
+  end
+
+  function SyncDragPageHoverFromCursor() -> void
+    if dragSourceSlot < 0 then
+      CancelDragPageHover(0)
+      return
+    end
+    local hoverTarget: int = 0
+    local action: int = 0
+    native.GetVariable("utopian_inventory_page_hover", hoverTarget)
+    if hoverTarget == 1 && page > 0 then action = -1 end
+    if hoverTarget == 2 && page < GetMaxPage() then action = 1 end
+    if action == 0 then
+      CancelDragPageHover(0)
+      return
+    end
+    if action == dragPageHoverAction then return end
+    dragPageHoverAction = action
+    dragPageHoverElapsed = 0
+    dragPageHoverConsumed = false
+    native.Trace("utopian_inventory page-hover cursor target=" + hoverTarget + " action=" + action + " page=" + page)
+  end
+
   function OnUpdate(delta: float) -> void
+    if tooltipResumeDelay > 0 then
+      ClearPanelTooltip()
+      tooltipResumeDelay = tooltipResumeDelay - delta
+      if tooltipResumeDelay <= 0 then
+        tooltipResumeDelay = 0
+        native.Trace("UTOPIAN_TOOLTIP_DIAG inventory post-drop suppression complete")
+      end
+    end
     if inventoryFullMessageCooldown > 0 then
       inventoryFullMessageCooldown = inventoryFullMessageCooldown - delta
       if inventoryFullMessageCooldown < 0 then inventoryFullMessageCooldown = 0 end
@@ -1667,6 +1847,8 @@ maintask UtopianInventoryUI do
     if dragSourceSlot >= 0 && IsCursorPollingReady() then
       ApplyPointerSlot(UpdatePointerSlotFromCursorVariables())
     end
+    SyncDragPageHoverFromCursor()
+    UpdateDragPageHover(delta)
   end
 
   function GetPanelPointerX(message: int, base: int) -> int
@@ -1698,14 +1880,33 @@ maintask UtopianInventoryUI do
 
   function ClearPanelTooltip() -> void
     if panelTooltipTarget != -1 then
-      panelTooltipTarget = -1
-      native.SendMessage(-1, "panel_background")
+      native.Trace("UTOPIAN_TOOLTIP_DIAG inventory panel clear target=" + panelTooltipTarget)
     end
+    panelTooltipTarget = -1
+    native.SendMessage(-1, "panel_background")
+  end
+
+  function ShowDropPanelTooltip() -> void
+    if panelTooltipTarget != c_iTargetDrop then
+      panelTooltipTarget = c_iTargetDrop
+      native.Trace("UTOPIAN_TOOLTIP_DIAG inventory drop tooltip set")
+    end
+    native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_type", 5)
   end
 
   function UpdatePanelTooltip(x: int, y: int) -> void
+    if tooltipResumeDelay > 0 then
+      ClearPanelTooltip()
+      return
+    end
     if dragSourceSlot >= 0 then
       ClearPanelTooltip()
+      return
+    end
+
+    if IsInsideSpecialTarget(c_iTargetDrop, x, y) then
+      ShowDropPanelTooltip()
       return
     end
 
@@ -1737,6 +1938,7 @@ maintask UtopianInventoryUI do
     container->GetItem(item, resolvedIndex, resolvedCategory)
     if item then
       panelTooltipTarget = target
+      native.Trace("UTOPIAN_TOOLTIP_DIAG inventory panel set target=" + target)
       native.SendMessage(1, "panel_background", item)
     else
       ClearPanelTooltip()
@@ -1822,9 +2024,14 @@ maintask UtopianInventoryUI do
 
     local controlX: int = 359
     local controlY: int = 465
+    if windowWidth >= 1900 then
+      controlX = 1161
+      controlY = 780
+    else
     if windowWidth >= 1000 then
       controlX = 710
       controlY = 580
+    end
     end
 
     if y < controlY || y >= controlY + 28 then return false end
@@ -1843,9 +2050,14 @@ maintask UtopianInventoryUI do
     if GetMaxPage() <= 0 then return end
     local controlX: int = 359
     local controlY: int = 465
+    if windowWidth >= 1900 then
+      controlX = 1161
+      controlY = 780
+    else
     if windowWidth >= 1000 then
       controlX = 710
       controlY = 580
+    end
     end
     if page > 0 && x >= controlX && x < controlX + 32 && y >= controlY && y < controlY + 28 then
       native.SendMessage(-94, "page_prev")
@@ -1860,6 +2072,14 @@ maintask UtopianInventoryUI do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == c_iPageHoverEnter then
+      BeginDragPageHover(sender)
+      return
+    end
+    if message == c_iPageHoverLeave then
+      CancelDragPageHover(GetDragPageHoverAction(sender))
+      return
+    end
     if sender == "panel_background" && message >= c_iPanelPointerMoveBase then
       HandlePanelPointer(message)
       return
@@ -1932,11 +2152,11 @@ maintask UtopianInventoryUI do
       return
     end
 
-    if sender == "page_prev" then
+    if sender == "page_prev" && message == 0 then
       if page > 0 then ChangePage(-1) end
       return
     end
-    if sender == "page_next" then
+    if sender == "page_next" && message == 0 then
       if page < GetMaxPage() then ChangePage(1) end
       return
     end

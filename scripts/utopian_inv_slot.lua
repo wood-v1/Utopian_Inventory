@@ -9,8 +9,6 @@ maintask UtopianInventorySlot do
   local const c_iHoverMessageBase: int = 100000
   local const c_iReleaseMessageBase: int = 200000
   local const c_iDragEndMessageBase: int = 300000
-  local const c_iSlotSize: int = 52
-
   local amount: int
   local maxStackSize: int
   local item: object
@@ -22,6 +20,10 @@ maintask UtopianInventorySlot do
   local hidden: bool
   local blocked: bool
   local loadedItemID: int
+  local slotWidth: int
+  local slotHeight: int
+  local highResolutionSprite: bool
+  local tooltipSuppressed: bool
 
   function init() -> void
     item = null
@@ -33,6 +35,11 @@ maintask UtopianInventorySlot do
     hidden = false
     blocked = false
     loadedItemID = -1
+    highResolutionSprite = false
+    tooltipSuppressed = false
+    native.GetWindowSize(slotWidth, slotHeight)
+    if slotWidth <= 0 then slotWidth = 52 end
+    if slotHeight <= 0 then slotHeight = 52 end
     native.SetBackground("default")
     native.SetOwnerDraw(true)
     native.ProcessEvents()
@@ -61,12 +68,22 @@ maintask UtopianInventorySlot do
     end
   end
 
+  function UpdateTooltip() -> void
+    if tooltipSuppressed || disabled || !item then
+      native.Trace("UTOPIAN_TOOLTIP_DIAG grid tooltip clear item=" + loadedItemID + " suppressed=" + tooltipSuppressed)
+      native.SetTooltip(c_iTooltipNone, "")
+    else
+      native.Trace("UTOPIAN_TOOLTIP_DIAG grid tooltip set item=" + loadedItemID)
+      native.SetTooltip(c_iTooltipInvObject, "", item)
+    end
+  end
+
   function EncodePointerMessage(base: int, x: int, y: int) -> int
     return base + x * 100 + y
   end
 
   function IsInsideSlotForm(x: int, y: int) -> bool
-    return x >= 0 && y >= 0 && x < c_iSlotSize && y < c_iSlotSize
+    return x >= 0 && y >= 0 && x < slotWidth && y < slotHeight
   end
 
   function OnDraw() -> void
@@ -74,18 +91,26 @@ maintask UtopianInventorySlot do
       return
     end
     if blocked then
-      native.Blit("blocked", 1, 1)
+      native.StretchBlit("blocked", 1, 1, slotWidth - 2, slotHeight - 2)
       return
     end
     if item then
-      native.Blit(image, 1, 1)
+      if highResolutionSprite then
+        native.StretchBlit(image, 2, 2, slotWidth - 4, slotHeight - 4)
+      else
+      if slotWidth > 52 then
+        native.StretchBlit(image, 1, 1, (slotWidth - 2) * 64 / 52, (slotHeight - 2) * 64 / 52)
+      else
+        native.Blit(image, 1, 1)
+      end
+      end
 
       if amount > 1 then
-        native.Print("default", 2, 35, amount)
+        native.Print("default", 2, slotHeight - 17, amount)
       end
 
       if disabled then
-        native.StretchBlit("disabled", 1, 1, 50, 50)
+        native.StretchBlit("disabled", 1, 1, slotWidth - 2, slotHeight - 2)
       end
     end
   end
@@ -138,9 +163,16 @@ maintask UtopianInventorySlot do
   end
 
   function OnMouseEnter() -> void
+    native.Trace("UTOPIAN_TOOLTIP_DIAG grid enter item=" + loadedItemID + " suppressed=" + tooltipSuppressed)
     if !hidden && !blocked then
       highlighted = true
       UpdateBackground()
+      -- Updating the grid after a drop must not re-register a tooltip for a
+      -- window that the cursor has already left. The engine can keep that
+      -- tooltip's original screen position for one frame, which produces a
+      -- visible flash after drag-and-drop. Tooltips are registered only from
+      -- OnMouseEnter.
+      native.SetTooltip(c_iTooltipNone, "")
     end
   end
 
@@ -158,12 +190,46 @@ maintask UtopianInventorySlot do
   end
 
   function OnMouseLeave() -> void
+    native.Trace("UTOPIAN_TOOLTIP_DIAG grid leave item=" + loadedItemID + " suppressed=" + tooltipSuppressed)
     highlighted = false
     UpdateBackground()
+    if tooltipSuppressed then tooltipSuppressed = false end
+    native.SetTooltip(c_iTooltipNone, "")
     native.SendMessageToParent(7)
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == -26 then
+      slotWidth = 82
+      slotHeight = 82
+      highResolutionSprite = true
+      loadedItemID = -1
+      return
+    end
+
+    if message == -27 then
+      slotWidth = 52
+      slotHeight = 52
+      highResolutionSprite = false
+      loadedItemID = -1
+      return
+    end
+
+    if message == -29 then
+      slotWidth = 57
+      slotHeight = 57
+      highResolutionSprite = true
+      loadedItemID = -1
+      return
+    end
+
+    if message == -130 then
+      native.Trace("UTOPIAN_TOOLTIP_DIAG grid suppress item=" + loadedItemID)
+      tooltipSuppressed = true
+      native.SetTooltip(c_iTooltipNone, "")
+      return
+    end
+
     if message == -22 then
       hidden = true
       highlighted = false
@@ -241,15 +307,19 @@ maintask UtopianInventorySlot do
       item->GetItemID(itemID)
       if itemID != loadedItemID then
         loadedItemID = itemID
-        native.GetInvItemSprite(image, itemID)
+        if highResolutionSprite then
+          native.GetInvItemSprite2(image, itemID)
+        else
+          native.GetInvItemSprite(image, itemID)
+        end
         native.LoadImage(image)
         native.GetInvItemMaxStackSize(maxStackSize, itemID)
       end
-      if disabled then
-        native.SetTooltip(c_iTooltipNone, "")
-      else
-        native.SetTooltip(c_iTooltipInvObject, "", item)
-      end
+      -- Slot data is refreshed for the entire grid after every drop. Calling
+      -- UpdateTooltip here registers every occupied slot on the cursor and
+      -- revives the pre-drag tooltip for one frame. The panel hit-test and
+      -- OnMouseEnter are the only legitimate tooltip activation paths.
+      native.SetTooltip(c_iTooltipNone, "")
     else
       loadedItemID = -1
       native.SetTooltip(c_iTooltipNone, "")

@@ -18,6 +18,7 @@ maintask UtopianInventoryBackground do
   local panelHeight: int
   local rootWidth: int
   local rootHeight: int
+  local tooltipActive: bool
 
   function init() -> void
     local branch: int = c_iBranchDanko
@@ -36,6 +37,9 @@ maintask UtopianInventoryBackground do
     native.GetWindowSize(panelWidth, panelHeight)
     rootWidth = 0
     rootHeight = 0
+    tooltipActive = false
+    native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipNone)
     native.Trace("utopian_inventory_background branch=" + branch + " size=" + panelWidth + "x" + panelHeight)
     native.LoadImage(image)
     native.SetOwnerDraw(true)
@@ -71,7 +75,11 @@ maintask UtopianInventoryBackground do
   end
 
   function OnMouseLeave() -> void
+    native.Trace("UTOPIAN_TOOLTIP_DIAG background pointer leave active=" + tooltipActive)
     native.SetTooltip(c_iTooltipNone, "")
+    native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipNone)
+    tooltipActive = false
     native.SendMessageToParent(c_iPointerLeaveBase)
   end
 
@@ -105,8 +113,18 @@ maintask UtopianInventoryBackground do
       return
     end
     if message == c_iTooltipInvObject && data then
+      local tooltipItemID: int
+      data->GetItemID(tooltipItemID)
+      native.Trace("UTOPIAN_TOOLTIP_DIAG background tooltip set")
+      tooltipActive = true
+      native.SetVariable("utopian_inventory_tooltip_item", tooltipItemID)
+      native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipInvObject)
       native.SetTooltip(c_iTooltipInvObject, "", data)
     else
+      if tooltipActive then native.Trace("UTOPIAN_TOOLTIP_DIAG background tooltip clear") end
+      tooltipActive = false
+      native.SetVariable("utopian_inventory_tooltip_item", -1)
+      native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipNone)
       native.SetTooltip(c_iTooltipNone, "")
     end
   end

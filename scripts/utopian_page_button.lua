@@ -27,11 +27,16 @@ maintask UtopianPageButton do
   end
 
   function OnDraw() -> void
-    if visible then native.Print("default", 11, 6, label) end
+    if visible then native.Print("default", 15, 7, label) end
   end
 
   function OnMouseEnter() -> void
     native.Trace("utopian_page_button diagnostics enter label=" + label + " visible=" + visible + " enabled=" + enabled)
+    if visible && hoverTarget >= 1 && hoverTarget <= 4 then
+      native.SetVariable("utopian_inventory_tooltip_item", -1)
+      native.SetVariable("utopian_inventory_tooltip_text_id", 1404)
+      native.SetVariable("utopian_inventory_tooltip_type", 5)
+    end
     if visible && enabled then
       highlighted = true
       UpdateBackground()

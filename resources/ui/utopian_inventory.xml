@@ -257,27 +257,27 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="drop_slot" x="501" y="455" w="52" h="52" script="utopian_drop_slot.bin">
+  <form name="drop_slot" x="359" y="465" w="52" h="52" script="utopian_drop_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="page_prev" x="359" y="465" w="32" h="28" script="utopian_page_button.bin">
+  <form name="page_prev" x="467" y="465" w="40" h="36" script="utopian_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
-    <font name="default" size="14" face="fritz_quadrata" />
+    <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="page_counter" x="395" y="465" w="60" h="28" script="utopian_page_counter.bin">
+  <form name="page_counter" x="507" y="465" w="52" h="36" script="utopian_page_counter.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
-    <font name="default" size="12" face="fritz_quadrata" />
+    <font name="default" size="16" face="fritz_quadrata" />
   </form>
-  <form name="page_next" x="459" y="465" w="32" h="28" script="utopian_page_button.bin">
+  <form name="page_next" x="559" y="465" w="40" h="36" script="utopian_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
-    <font name="default" size="14" face="fritz_quadrata" />
+    <font name="default" size="18" face="fritz_quadrata" />
   </form>
   <cursor name="utopian_inventory" script="utopian_inventory_cursor.bin" w="112" h="112">
     <image name="default" x="0" y="0" w="1" h="1">ui/ui_cursor.tga</image>

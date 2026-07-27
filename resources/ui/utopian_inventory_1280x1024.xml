@@ -545,7 +545,7 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="drop_slot" x="806" y="685" w="52" h="52" script="utopian_drop_slot.bin">
+  <form name="drop_slot" x="600" y="770" w="52" h="52" script="utopian_drop_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <font name="default" size="8" face="fritz_quadrata" />

@@ -32,6 +32,7 @@ maintask UtopianDropSlot do
 
   function OnMouseEnter() -> void
     native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_text_id", c_iDropTooltipTextID)
     native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipMapObject)
     native.SetTooltip(c_iTooltipMapObject, tooltip)
     native.SendMessageToParent(-40)
@@ -39,6 +40,7 @@ maintask UtopianDropSlot do
 
   function OnMouseMove(x: int, y: int) -> void
     native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_text_id", c_iDropTooltipTextID)
     native.SetVariable("utopian_inventory_tooltip_type", c_iTooltipMapObject)
     native.SetTooltip(c_iTooltipMapObject, tooltip)
     native.SendMessageToParent(-40)

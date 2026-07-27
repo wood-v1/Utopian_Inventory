@@ -33,14 +33,17 @@ $englishStrings = @"
 @1400
 Inventory is full.
 @1401
-Ctrl + Left Click - drop one item from the stack
+Drag an item here - drop it
 Shift + Left Click - drop the entire stack
 @1402
 Container is full.
 @1403
 The corpse cannot hold any more items.
+@1404
+Ctrl + Left Click - move the item to the other inventory page
+Drag item to arrow - move it to the other page
 "@
-$russianStringsBase64 = "QDE0MDAK0JjQvdCy0LXQvdGC0LDRgNGMINC/0L7Qu9C+0L0uCkAxNDAxCkN0cmwgKyDQu9C10LLRi9C5INC60LvQuNC6IOKAlCDQstGL0LHRgNC+0YHQuNGC0Ywg0L7QtNC40L0g0L/RgNC10LTQvNC10YIg0LjQtyDRgdGC0LDQutCwClNoaWZ0ICsg0LvQtdCy0YvQuSDQutC70LjQuiDigJQg0LLRi9Cx0YDQvtGB0LjRgtGMINCy0LXRgdGMINGB0YLQsNC6CkAxNDAyCtCa0L7QvdGC0LXQudC90LXRgCDQt9Cw0L/QvtC70L3QtdC9LgpAMTQwMwrQndCwINGC0YDRg9C/0LUg0LHQvtC70YzRiNC1INC90LXRgiDQvNC10YHRgtCwLg=="
+$russianStringsBase64 = "QDE0MDAK0JjQvdCy0LXQvdGC0LDRgNGMINC/0L7Qu9C+0L0uCkAxNDAxCtCf0LXRgNC10YLQsNGJ0LjRgtC1INC/0YDQtdC00LzQtdGCINGB0Y7QtNCwIOKAlCDQstGL0LHRgNC+0YHQuNGC0Ywg0LXQs9C+ClNoaWZ0ICsg0LvQtdCy0YvQuSDQutC70LjQuiDigJQg0LLRi9Cx0YDQvtGB0LjRgtGMINCy0LXRgdGMINGB0YLQsNC6CkAxNDAyCtCa0L7QvdGC0LXQudC90LXRgCDQt9Cw0L/QvtC70L3QtdC9LgpAMTQwMwrQndCwINGC0YDRg9C/0LUg0LHQvtC70YzRiNC1INC90LXRgiDQvNC10YHRgtCwLgpAMTQwNApDdHJsICsg0LvQtdCy0YvQuSDQutC70LjQuiDigJQg0L/QtdGA0LXQvdC10YHRgtC4INC/0YDQtdC00LzQtdGCINC90LAg0LTRgNGD0LPRg9GOINGB0YLRgNCw0L3QuNGG0YMg0LjQvdCy0LXQvdGC0LDRgNGPCtCf0LXRgNC10YLQsNGJ0LjRgtC1INC/0YDQtdC00LzQtdGCINC90LAg0YHRgtGA0LXQu9C60YMg4oCUINC/0LXRgNC10L3QtdGB0YLQuCDQtdCz0L4g0L3QsCDQtNGA0YPQs9GD0Y4g0YHRgtGA0LDQvdC40YbRgw=="
 $russianStrings = [System.Text.Encoding]::UTF8.GetString(
     [System.Convert]::FromBase64String($russianStringsBase64))
 [System.IO.File]::WriteAllText(
@@ -120,22 +123,22 @@ function Add-Pagination([System.Text.StringBuilder]$Builder, [string]$Prefix, [i
     $previousName = "${Prefix}page_prev"
     $counterName = "${Prefix}page_counter"
     $nextName = "${Prefix}page_next"
-    Add-Line $Builder "  <form name=`"$previousName`" x=`"$X`" y=`"$Y`" w=`"32`" h=`"28`" script=`"utopian_page_button.bin`">"
+    Add-Line $Builder "  <form name=`"$previousName`" x=`"$X`" y=`"$Y`" w=`"40`" h=`"36`" script=`"utopian_page_button.bin`">"
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
     Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
-    Add-Line $Builder '    <font name="default" size="14" face="fritz_quadrata" />'
+    Add-Line $Builder '    <font name="default" size="18" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
-    Add-Line $Builder "  <form name=`"$counterName`" x=`"$($X + 36)`" y=`"$Y`" w=`"60`" h=`"28`" script=`"utopian_page_counter.bin`">"
+    Add-Line $Builder "  <form name=`"$counterName`" x=`"$($X + 40)`" y=`"$Y`" w=`"52`" h=`"36`" script=`"utopian_page_counter.bin`">"
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
-    Add-Line $Builder '    <font name="default" size="12" face="fritz_quadrata" />'
+    Add-Line $Builder '    <font name="default" size="16" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
-    Add-Line $Builder "  <form name=`"$nextName`" x=`"$($X + 100)`" y=`"$Y`" w=`"32`" h=`"28`" script=`"utopian_page_button.bin`">"
+    Add-Line $Builder "  <form name=`"$nextName`" x=`"$($X + 92)`" y=`"$Y`" w=`"40`" h=`"36`" script=`"utopian_page_button.bin`">"
     Add-Line $Builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $Builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
     Add-Line $Builder '    <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>'
-    Add-Line $Builder '    <font name="default" size="14" face="fritz_quadrata" />'
+    Add-Line $Builder '    <font name="default" size="18" face="fritz_quadrata" />'
     Add-Line $Builder "  </form>"
 }
 
@@ -157,18 +160,11 @@ foreach ($layout in $layouts) {
     $equipSlotSize = if ($layout.ContainsKey("EquipSlotSize")) { $layout.EquipSlotSize } else { $slotSize }
     $organSlotSize = if ($layout.ContainsKey("OrganSlotSize")) { $layout.OrganSlotSize } else { $slotSize }
     $organStep = if ($layout.ContainsKey("OrganStep")) { $layout.OrganStep } else { $layout.Step }
-    if ($layout.Width -le 800) {
-        $inventoryPagerX = 359; $playerPagerX = 501; $playerPagerY = 465
-    }
-    elseif ($layout.Width -le 1024) {
-        $inventoryPagerX = 710; $playerPagerX = 650; $playerPagerY = 580
-    }
-    elseif ($layout.Width -le 1280) {
-        $inventoryPagerX = 0; $playerPagerX = 0; $playerPagerY = 0
-    }
-    else {
-        $inventoryPagerX = 1161; $playerPagerX = 1161; $playerPagerY = 780
-    }
+    $dropX = $layout.GridX
+    $lowerControlsY = $layout.MoneyY
+    $inventoryPagerX = [Math]::Floor(($dropX + $slotSize + $layout.MoneyX - 132) / 2)
+    $playerPagerX = $inventoryPagerX
+    $playerPagerY = $lowerControlsY
     Add-Line $builder "<form name=`"utopian_inventory`" x=`"$rootX`" y=`"$rootY`" w=`"$($layout.Width)`" h=`"$($layout.Height)`" script=`"utopian_inventory.bin`">"
     Add-Frame $builder $layout
     Add-Line $builder "  <form name=`"time`" x=`"$($layout.TimeX)`" y=`"$($layout.TimeY)`" w=`"213`" h=`"24`" script=`"ui_inventory_time.bin`">"
@@ -195,7 +191,7 @@ foreach ($layout in $layouts) {
         Add-InventorySlot $builder ($slot + 1) ($layout.GridX + $column * $layout.Step) ($layout.GridY + $row * $layout.Step) $slotSize
     }
 
-    Add-Line $builder "  <form name=`"drop_slot`" x=`"$($layout.DropX)`" y=`"$($layout.DropY)`" w=`"$slotSize`" h=`"$slotSize`" script=`"utopian_drop_slot.bin`">"
+    Add-Line $builder "  <form name=`"drop_slot`" x=`"$dropX`" y=`"$lowerControlsY`" w=`"$slotSize`" h=`"$slotSize`" script=`"utopian_drop_slot.bin`">"
     Add-Line $builder '    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>'
     Add-Line $builder '    <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>'
     Add-Line $builder '    <font name="default" size="8" face="fritz_quadrata" />'

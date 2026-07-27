@@ -21,6 +21,7 @@ maintask UI_Cursor do
   local tooltipDrawLogged: bool
   local trackedTooltipItemID: int
   local trackedTooltipType: int
+  local trackedTooltipTextID: int
 
   function EnsureInitialized() -> void
     if initialized then return end
@@ -37,6 +38,7 @@ maintask UI_Cursor do
     tooltipDrawLogged = false
     trackedTooltipItemID = -1
     trackedTooltipType = c_iTooltipNone
+    trackedTooltipTextID = 1401
     native.CreateInvItem(tooltipObject)
     native.SetOwnerDraw(true)
     native.SetNeedUpdate(true)
@@ -138,11 +140,14 @@ maintask UI_Cursor do
 
     local publishedItemID: int = -1
     local publishedType: int = c_iTooltipNone
+    local publishedTextID: int = 1401
     native.GetVariable("utopian_inventory_tooltip_item", publishedItemID)
     native.GetVariable("utopian_inventory_tooltip_type", publishedType)
-    if publishedItemID != trackedTooltipItemID || publishedType != trackedTooltipType then
+    native.GetVariable("utopian_inventory_tooltip_text_id", publishedTextID)
+    if publishedItemID != trackedTooltipItemID || publishedType != trackedTooltipType || publishedTextID != trackedTooltipTextID then
       trackedTooltipItemID = publishedItemID
       trackedTooltipType = publishedType
+      trackedTooltipTextID = publishedTextID
       tooltipType = publishedType
       tooltipText = ""
       tooltipTime = 0
@@ -158,8 +163,8 @@ maintask UI_Cursor do
         native.Trace("UTOPIAN_CURSOR_DIAG published tooltip item=" + publishedItemID + " name='" + itemName + "'")
       else
         if publishedType == c_iTooltipMapObject then
-          native.GetStringByID(tooltipText, 1401)
-          native.Trace("UTOPIAN_CURSOR_DIAG published drop tooltip")
+          native.GetStringByID(tooltipText, publishedTextID)
+          native.Trace("UTOPIAN_CURSOR_DIAG published text tooltip id=" + publishedTextID)
         else
           native.Trace("UTOPIAN_CURSOR_DIAG published tooltip cleared")
         end

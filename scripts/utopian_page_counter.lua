@@ -11,7 +11,7 @@ maintask UtopianPageCounter do
   end
 
   function OnDraw() -> void
-    if visible then native.Print("default", 13, 7, label) end
+    if visible then native.Print("default", 7, 9, label) end
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void

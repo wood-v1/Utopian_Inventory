@@ -17,9 +17,9 @@ constexpr const char* CUSTOM_LOOT_XML = "utopian_container.xml";
 constexpr const char* CUSTOM_LOOT_XML_1920 = "utopian_container_1920x1080.xml";
 constexpr const char* CUSTOM_CORPSE_XML = "utopian_corpse.xml";
 constexpr const char* CUSTOM_CORPSE_XML_1920 = "utopian_corpse_1920x1080.xml";
-constexpr int PAGE_BUTTON_WIDTH = 32;
-constexpr int PAGE_BUTTON_HEIGHT = 28;
-constexpr int PAGE_NEXT_OFFSET = 100;
+constexpr int PAGE_BUTTON_WIDTH = 40;
+constexpr int PAGE_BUTTON_HEIGHT = 36;
+constexpr int PAGE_NEXT_OFFSET = 92;
 
 std::atomic<bool> g_inventoryOpen{ false };
 int g_publishedPageHover = -1;
@@ -133,17 +133,8 @@ bool WriteEmptySlotTexture(HMODULE module)
     return writeSucceeded && written == tga.size();
 }
 
-void PublishEmptySlotOpacity()
+void LogEmptySlotOpacity()
 {
-    const int scaledOpacity = static_cast<int>(g_emptySlotOpacity * 1000.0f + 0.5f);
-    char command[96] = {};
-    std::snprintf(
-        command,
-        sizeof(command),
-        "setvar utopian_inventory_empty_slot_opacity %d",
-        scaledOpacity);
-    OynonExecCommand(command);
-
     char line[96] = {};
     std::snprintf(line, sizeof(line), "empty slot opacity=%.3f", g_emptySlotOpacity);
     OynonDebugLog(DEBUG_CHANNEL, line);
@@ -213,7 +204,10 @@ void __stdcall OnInventoryStateChanged(BOOL opened, void*)
 {
     g_inventoryOpen.store(opened != FALSE);
     if (!opened) {
-        g_publishedPageHover = -1;
+        // Do not publish console variables while the game is loading a world.
+        // OynonExecCommand invokes the engine directly and is only safe here
+        // while the inventory UI is active.
+        g_publishedPageHover = 0;
     }
     Log(opened ? "inventory overlay opened" : "inventory overlay closed");
 }
@@ -265,13 +259,13 @@ int ResolvePageHoverTarget()
 
     if (kind == OYNON_INVENTORY_OVERLAY_PLAYER) {
         if (width == 1920 && height == 1080) {
-            return HitPagePair(cursor, 1161, 780, 1, 2);
+            return HitPagePair(cursor, 1082, 780, 1, 2);
         }
         if (width == 1024 && height == 768) {
-            return HitPagePair(cursor, 710, 580, 1, 2);
+            return HitPagePair(cursor, 626, 616, 1, 2);
         }
         if (width < 1000) {
-            return HitPagePair(cursor, 359, 465, 1, 2);
+            return HitPagePair(cursor, 467, 465, 1, 2);
         }
         return 0;
     }
@@ -280,7 +274,7 @@ int ResolvePageHoverTarget()
         kind == OYNON_INVENTORY_OVERLAY_CORPSE) {
         int target = 0;
         if (width == 1920 && height == 1080) {
-            target = HitPagePair(cursor, 1161, 780, 1, 2);
+            target = HitPagePair(cursor, 1082, 780, 1, 2);
             if (target == 0) {
                 target = HitPagePair(cursor, 528, 625, 5, 6);
             }
@@ -290,13 +284,13 @@ int ResolvePageHoverTarget()
             return HitPagePair(cursor, 198, 434, 5, 6);
         }
         if (width == 1024 && height == 768) {
-            target = HitPagePair(cursor, 650, 580, 1, 2);
+            target = HitPagePair(cursor, 626, 616, 1, 2);
             if (target == 0) {
                 target = HitPagePair(cursor, 149, 506, 5, 6);
             }
             return target;
         }
-        target = HitPagePair(cursor, 501, 465, 1, 2);
+        target = HitPagePair(cursor, 467, 465, 1, 2);
         if (target == 0) {
             target = HitPagePair(cursor, 107, 453, 5, 6);
         }
@@ -308,6 +302,11 @@ int ResolvePageHoverTarget()
 
 void PollPageHover()
 {
+    if (!g_inventoryOpen.load()) {
+        g_publishedPageHover = 0;
+        return;
+    }
+
     const int hoverTarget = ResolvePageHoverTarget();
     if (hoverTarget == g_publishedPageHover) {
         return;
@@ -335,6 +334,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     const HMODULE module = static_cast<HMODULE>(parameter);
     g_emptySlotOpacity = ReadEmptySlotOpacity(module);
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
+    Log("UTOPIAN_INVENTORY_NATIVE_VERSION 2026.07.27-opt6");
     if (!WriteEmptySlotTexture(module)) {
         Log("failed to create empty slot opacity texture");
     }
@@ -367,7 +367,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     OynonUIInventorySetRedirect(inventoryXml);
     OynonUILootSetRedirects(lootXml, corpseXml);
     OynonRegisterInventoryStateCallback(&OnInventoryStateChanged, nullptr);
-    PublishEmptySlotOpacity();
+    LogEmptySlotOpacity();
     Log(inventoryXml == CUSTOM_INVENTORY_XML_1920
         ? "UtopianInventory initialized (centered 1920x1080 layout)"
         : "UtopianInventory initialized (standard layout)");

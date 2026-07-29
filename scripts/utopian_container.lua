@@ -1,10 +1,11 @@
 maintask UtopianContainerUI do
-  local const c_sScriptVersion: string = "2026.07.27-opt6"
+  local const c_sScriptVersion: string = "2026.07.29-snapshot-reconcile-1"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
   local const c_iLayoutVersion: int = 4
+  local const c_iSnapshotVersion: int = 1
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
   local const c_iBranchBurah: int = 1
@@ -55,6 +56,7 @@ maintask UtopianContainerUI do
   local playerOrdinalMap: object
   local playerCategoryCache: object
   local playerIndexCache: object
+  local persistentUsedLayoutCell: object
   local containerOrder: object
   local containerIndexCache: object
   local cachedNormalContainerCount: int
@@ -158,6 +160,7 @@ maintask UtopianContainerUI do
     DetectContainerKind()
     native.Trace("utopian_container init kind ready corpse=" + isCorpse)
     LoadLayoutVariables()
+    InitializePersistentPlayerSnapshot()
     OrderFreeCellsByDisplay()
     native.Trace("utopian_container init variables ready")
     UpdatePlayerPageControls()
@@ -222,10 +225,12 @@ maintask UtopianContainerUI do
     native.CreateIntVector(playerOrdinalMap)
     native.CreateIntVector(playerCategoryCache)
     native.CreateIntVector(playerIndexCache)
+    native.CreateIntVector(persistentUsedLayoutCell)
     for i = 0, c_iInventoryCapacity - 1 do playerOrderSnapshot->add(-1) end
     for i = 0, c_iInventoryCapacity - 1 do playerOrdinalMap->add(-1) end
     for i = 0, c_iInventoryCapacity - 1 do playerCategoryCache->add(-1) end
     for i = 0, c_iInventoryCapacity - 1 do playerIndexCache->add(-1) end
+    for i = 0, c_iInventoryCapacity - 1 do persistentUsedLayoutCell->add(0) end
   end
 
 
@@ -1081,24 +1086,188 @@ maintask UtopianContainerUI do
     return -1
   end
 
-  function SnapshotExistingPlayerOrder() -> void
+  function CapturePlayerItemIDs(snapshot: object) -> int
     local player: object = GetPlayerContainer()
     local ordinal: int = 0
+    for emptyOrdinal = 0, c_iInventoryCapacity - 1 do snapshot->set(emptyOrdinal, -1) end
     for category = 0, c_iCategoryCount - 1 do
       local count: int
       player->GetItemCount(count, category)
       for index = 0, count - 1 do
         if !IsEquippedItem(category, index) then
-          local item: object
-          local itemID: int
-          player->GetItem(item, index, category)
-          item->GetItemID(itemID)
-          playerOrderSnapshot->set(ordinal, itemID)
+          if ordinal < c_iInventoryCapacity then
+            local item: object
+            local itemID: int = -1
+            player->GetItem(item, index, category)
+            if item then item->GetItemID(itemID) end
+            snapshot->set(ordinal, itemID)
+          end
           ordinal = ordinal + 1
         end
       end
     end
-    for emptyOrdinal = ordinal, c_iInventoryCapacity - 1 do playerOrderSnapshot->set(emptyOrdinal, -1) end
+    return ordinal
+  end
+
+  function SnapshotExistingPlayerOrder() -> void
+    CapturePlayerItemIDs(playerOrderSnapshot)
+  end
+
+  function GetPersistentSnapshotVariableName(ordinal: int) -> string
+    return "utopian_inventory_snapshot_" + ordinal
+  end
+
+  function LoadPersistentPlayerSnapshot() -> int
+    local valid: int = 0
+    local version: int = 0
+    local count: int = 0
+    native.GetVariable("utopian_inventory_snapshot_valid", valid)
+    native.GetVariable("utopian_inventory_snapshot_version", version)
+    native.GetVariable("utopian_inventory_snapshot_count", count)
+    if valid != 1 || version != c_iSnapshotVersion || count < 0 || count > c_iInventoryCapacity then
+      return -1
+    end
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      if ordinal < count then native.GetVariable(GetPersistentSnapshotVariableName(ordinal), itemID) end
+      playerOrderSnapshot->set(ordinal, itemID)
+    end
+    return count
+  end
+
+  function SavePersistentPlayerSnapshot(count: int) -> void
+    if count < 0 then count = 0 end
+    if count > c_iInventoryCapacity then count = c_iInventoryCapacity end
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      playerOrderSnapshot->get(itemID, ordinal)
+      native.SetVariable(GetPersistentSnapshotVariableName(ordinal), itemID)
+    end
+    native.SetVariable("utopian_inventory_snapshot_count", count)
+    native.SetVariable("utopian_inventory_snapshot_version", c_iSnapshotVersion)
+    native.SetVariable("utopian_inventory_snapshot_valid", 1)
+  end
+
+  function PersistCurrentPlayerSnapshot() -> void
+    local count: int = CapturePlayerItemIDs(playerOrderSnapshot)
+    SavePersistentPlayerSnapshot(count)
+  end
+
+  function FindFirstUnusedPersistentCell() -> int
+    for linear = 0, c_iInventoryCapacity - 1 do
+      local cell: int = GetCellForLinearSlot(linear)
+      local used: int = 0
+      persistentUsedLayoutCell->get(used, cell)
+      if used == 0 then return cell end
+    end
+    return -1
+  end
+
+  function PersistentPlayerSnapshotDiffers(oldCount: int, currentCount: int) -> bool
+    if oldCount != currentCount then return true end
+    for ordinal = 0, currentCount - 1 do
+      local oldID: int
+      local currentID: int
+      playerOrderSnapshot->get(oldID, ordinal)
+      playerCategoryCache->get(currentID, ordinal)
+      if oldID != currentID then return true end
+    end
+    return false
+  end
+
+  function ReconcilePersistentPlayerLayout(oldCount: int, currentCount: int) -> void
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      playerOrdinalMap->set(ordinal, -1)
+      playerIndexCache->set(ordinal, 0)
+      persistentUsedLayoutCell->set(ordinal, 0)
+    end
+
+    for oldOrdinal = 0, oldCount - 1 do
+      if oldOrdinal < currentCount then
+        local oldID: int
+        local currentID: int
+        playerOrderSnapshot->get(oldID, oldOrdinal)
+        playerCategoryCache->get(currentID, oldOrdinal)
+        if oldID == currentID then
+          playerOrdinalMap->set(oldOrdinal, oldOrdinal)
+          playerIndexCache->set(oldOrdinal, 1)
+        end
+      end
+    end
+
+    for oldOrdinal = 0, oldCount - 1 do
+      local mapped: int = -1
+      playerOrdinalMap->get(mapped, oldOrdinal)
+      if mapped < 0 then
+        local wantedID: int
+        playerOrderSnapshot->get(wantedID, oldOrdinal)
+        for currentOrdinal = 0, currentCount - 1 do
+          local claimed: int
+          local currentID: int
+          playerIndexCache->get(claimed, currentOrdinal)
+          playerCategoryCache->get(currentID, currentOrdinal)
+          if claimed == 0 && currentID == wantedID then
+            playerOrdinalMap->set(oldOrdinal, currentOrdinal)
+            playerIndexCache->set(currentOrdinal, 1)
+            currentOrdinal = currentCount
+          end
+        end
+      end
+    end
+
+    for cell = 0, c_iInventoryCapacity - 1 do
+      local oldOrder: int = GetOrderValue(cell)
+      if oldOrder >= 0 && oldOrder < oldCount then
+        local mappedOrder: int
+        playerOrdinalMap->get(mappedOrder, oldOrder)
+        if mappedOrder >= 0 then
+          SetOrderValue(cell, mappedOrder)
+          persistentUsedLayoutCell->set(cell, 1)
+        end
+      end
+    end
+
+    for insertedOrder = 0, currentCount - 1 do
+      local claimed: int
+      playerIndexCache->get(claimed, insertedOrder)
+      if claimed == 0 then
+        local freeCell: int = FindFirstUnusedPersistentCell()
+        if freeCell >= 0 then
+          SetOrderValue(freeCell, insertedOrder)
+          persistentUsedLayoutCell->set(freeCell, 1)
+        end
+      end
+    end
+
+    local freeOrder: int = currentCount
+    for linear = 0, c_iInventoryCapacity - 1 do
+      local freeCell: int = GetCellForLinearSlot(linear)
+      local used: int
+      persistentUsedLayoutCell->get(used, freeCell)
+      if used == 0 then
+        SetOrderValue(freeCell, freeOrder)
+        freeOrder = freeOrder + 1
+      end
+    end
+    NormalizeSlotOrder()
+    SaveLayoutVariables()
+    native.Trace("utopian_container reconciled generic snapshot old=" + oldCount + " new=" + currentCount)
+  end
+
+  function InitializePersistentPlayerSnapshot() -> void
+    local currentCount: int = CapturePlayerItemIDs(playerCategoryCache)
+    if currentCount > c_iInventoryCapacity then currentCount = c_iInventoryCapacity end
+    local oldCount: int = LoadPersistentPlayerSnapshot()
+    if oldCount >= 0 && PersistentPlayerSnapshotDiffers(oldCount, currentCount) then
+      ReconcilePersistentPlayerLayout(oldCount, currentCount)
+    end
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      playerCategoryCache->get(itemID, ordinal)
+      playerOrderSnapshot->set(ordinal, itemID)
+    end
+    SavePersistentPlayerSnapshot(currentCount)
+    if oldCount < 0 then native.Trace("utopian_container persistent snapshot initialized count=" + currentCount) end
   end
 
   function FindInsertedBackpackOrdinal(beforeCount: int) -> int
@@ -2705,13 +2874,17 @@ maintask UtopianContainerUI do
   end
 
   function OnChar(char: int) -> void
+    PersistCurrentPlayerSnapshot()
     native.DestroyWindow()
   end
 
   function OnKeyDown(key: int) -> void
     if key == c_iVKShift then shiftHeld = true end
     if key == c_iVKControl then controlHeld = true end
-    if key == 27 || key == 73 || key == 105 then native.DestroyWindow() end
+    if key == 27 || key == 73 || key == 105 then
+      PersistCurrentPlayerSnapshot()
+      native.DestroyWindow()
+    end
   end
 
   function OnKeyUp(key: int) -> void

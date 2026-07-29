@@ -1,10 +1,11 @@
 maintask UtopianInventoryUI do
-  local const c_sScriptVersion: string = "2026.07.27-opt6"
+  local const c_sScriptVersion: string = "2026.07.29-snapshot-reconcile-1"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
   local const c_iLayoutVersion: int = 4
+  local const c_iSnapshotVersion: int = 1
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
   local const c_iWMHelpMessage: int = 200
@@ -156,6 +157,7 @@ maintask UtopianInventoryUI do
     InitSlotOrder()
     UpdateLayout()
     LoadLayoutVariables()
+    InitializePersistentBackpackSnapshot()
     OrderFreeCellsByDisplay()
     UpdatePageControls()
     UpdateMoney()
@@ -789,6 +791,87 @@ maintask UtopianInventoryUI do
     lastBackpackItemCount = CaptureBackpackItems(backpackSnapshot)
   end
 
+  function GetSnapshotVariableName(ordinal: int) -> string
+    return "utopian_inventory_snapshot_" + ordinal
+  end
+
+  function LoadPersistentBackpackSnapshot() -> bool
+    local valid: int = 0
+    local version: int = 0
+    local count: int = 0
+    native.GetVariable("utopian_inventory_snapshot_valid", valid)
+    native.GetVariable("utopian_inventory_snapshot_version", version)
+    native.GetVariable("utopian_inventory_snapshot_count", count)
+    if valid != 1 || version != c_iSnapshotVersion || count < 0 || count > c_iInventoryCapacity then
+      return false
+    end
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      if ordinal < count then native.GetVariable(GetSnapshotVariableName(ordinal), itemID) end
+      backpackSnapshot->set(ordinal, itemID)
+    end
+    lastBackpackItemCount = count
+    return true
+  end
+
+  function SavePersistentBackpackSnapshot() -> void
+    local count: int = lastBackpackItemCount
+    if count < 0 then count = 0 end
+    if count > c_iInventoryCapacity then count = c_iInventoryCapacity end
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      backpackSnapshot->get(itemID, ordinal)
+      native.SetVariable(GetSnapshotVariableName(ordinal), itemID)
+    end
+    native.SetVariable("utopian_inventory_snapshot_count", count)
+    native.SetVariable("utopian_inventory_snapshot_version", c_iSnapshotVersion)
+    native.SetVariable("utopian_inventory_snapshot_valid", 1)
+  end
+
+  function CopyCurrentBackpackSnapshot(newCount: int) -> void
+    for ordinal = 0, c_iInventoryCapacity - 1 do
+      local itemID: int = -1
+      currentBackpackSnapshot->get(itemID, ordinal)
+      backpackSnapshot->set(ordinal, itemID)
+    end
+    lastBackpackItemCount = newCount
+    if lastBackpackItemCount > c_iInventoryCapacity then lastBackpackItemCount = c_iInventoryCapacity end
+  end
+
+  function BackpackSnapshotDiffers(newCount: int) -> bool
+    local comparableCount: int = newCount
+    if comparableCount > c_iInventoryCapacity then comparableCount = c_iInventoryCapacity end
+    if comparableCount != lastBackpackItemCount then return true end
+    for ordinal = 0, comparableCount - 1 do
+      local previousID: int
+      local currentID: int
+      backpackSnapshot->get(previousID, ordinal)
+      currentBackpackSnapshot->get(currentID, ordinal)
+      if previousID != currentID then return true end
+    end
+    return false
+  end
+
+  function PersistCurrentBackpackSnapshot() -> void
+    lastBackpackItemCount = CaptureBackpackItems(backpackSnapshot)
+    if lastBackpackItemCount > c_iInventoryCapacity then lastBackpackItemCount = c_iInventoryCapacity end
+    SavePersistentBackpackSnapshot()
+  end
+
+  function InitializePersistentBackpackSnapshot() -> void
+    local currentCount: int = CaptureBackpackItems(currentBackpackSnapshot)
+    if currentCount > c_iInventoryCapacity then currentCount = c_iInventoryCapacity end
+    local loaded: bool = LoadPersistentBackpackSnapshot()
+    if loaded && BackpackSnapshotDiffers(currentCount) then
+      ReconcileBackpackSnapshot(currentCount)
+      native.Trace("utopian_inventory persistent snapshot reconciled old=" + lastBackpackItemCount +
+        " current=" + currentCount)
+    end
+    CopyCurrentBackpackSnapshot(currentCount)
+    SavePersistentBackpackSnapshot()
+    if !loaded then native.Trace("utopian_inventory persistent snapshot initialized count=" + currentCount) end
+  end
+
   function FindFirstUnusedDisplayCell() -> int
     for linear = 0, c_iInventoryCapacity - 1 do
       local cell: int = GetCellForLinearSlot(linear)
@@ -799,9 +882,12 @@ maintask UtopianInventoryUI do
     return -1
   end
 
-  function ReconcileExternalAdditions(newCount: int) -> void
+  function ReconcileBackpackSnapshot(newCount: int) -> void
     local oldCount: int = lastBackpackItemCount
-    if newCount <= oldCount || newCount > c_iInventoryCapacity then return end
+    if oldCount > c_iInventoryCapacity then oldCount = c_iInventoryCapacity end
+    if newCount > c_iInventoryCapacity then newCount = c_iInventoryCapacity end
+    if oldCount < 0 then oldCount = 0 end
+    if newCount < 0 then newCount = 0 end
 
     for i = 0, c_iInventoryCapacity - 1 do
       oldToNewOrder->set(i, -1)
@@ -809,36 +895,34 @@ maintask UtopianInventoryUI do
       usedLayoutCell->set(i, 0)
     end
 
-    local oldOrdinal: int = 0
-    local newOrdinal: int = 0
-    while newOrdinal < newCount do
-      local currentID: int
-      currentBackpackSnapshot->get(currentID, newOrdinal)
-      local previousID: int = -1
-      if oldOrdinal < oldCount then backpackSnapshot->get(previousID, oldOrdinal) end
-      if oldOrdinal < oldCount && currentID == previousID then
-        oldToNewOrder->set(oldOrdinal, newOrdinal)
-        claimedNewOrder->set(newOrdinal, 1)
-        oldOrdinal = oldOrdinal + 1
+    for oldOrdinal = 0, oldCount - 1 do
+      if oldOrdinal < newCount then
+        local previousID: int
+        local currentID: int
+        backpackSnapshot->get(previousID, oldOrdinal)
+        currentBackpackSnapshot->get(currentID, oldOrdinal)
+        if previousID == currentID then
+          oldToNewOrder->set(oldOrdinal, oldOrdinal)
+          claimedNewOrder->set(oldOrdinal, 1)
+        end
       end
-      newOrdinal = newOrdinal + 1
     end
 
-    for old = 0, oldCount - 1 do
+    for oldOrdinal = 0, oldCount - 1 do
       local mapped: int = -1
-      oldToNewOrder->get(mapped, old)
+      oldToNewOrder->get(mapped, oldOrdinal)
       if mapped < 0 then
         local wantedID: int
-        backpackSnapshot->get(wantedID, old)
-        for current = 0, newCount - 1 do
+        backpackSnapshot->get(wantedID, oldOrdinal)
+        for newOrdinal = 0, newCount - 1 do
           local claimed: int
+          claimedNewOrder->get(claimed, newOrdinal)
           local currentID: int
-          claimedNewOrder->get(claimed, current)
-          currentBackpackSnapshot->get(currentID, current)
+          currentBackpackSnapshot->get(currentID, newOrdinal)
           if claimed == 0 && currentID == wantedID then
-            oldToNewOrder->set(old, current)
-            claimedNewOrder->set(current, 1)
-            current = newCount
+            oldToNewOrder->set(oldOrdinal, newOrdinal)
+            claimedNewOrder->set(newOrdinal, 1)
+            newOrdinal = newCount
           end
         end
       end
@@ -880,7 +964,11 @@ maintask UtopianInventoryUI do
     end
     NormalizeSlotOrder()
     SaveLayoutVariables()
-    native.Trace("utopian_inventory reconciled external add old=" + oldCount + " new=" + newCount)
+    native.Trace("utopian_inventory reconciled generic snapshot old=" + oldCount + " new=" + newCount)
+  end
+
+  function ReconcileExternalAdditions(newCount: int) -> void
+    ReconcileBackpackSnapshot(newCount)
   end
 
   function RestoreOrderAfterEquipmentReplacement(replacedOrder: int, itemCount: int) -> bool
@@ -2179,9 +2267,10 @@ maintask UtopianInventoryUI do
       inventoryPollCooldown = 0.25
       UpdateMoney()
       local currentBackpackCount: int = CaptureBackpackItems(currentBackpackSnapshot)
-      if dragSourceSlot < 0 && currentBackpackCount != lastBackpackItemCount then
-        if currentBackpackCount > lastBackpackItemCount then ReconcileExternalAdditions(currentBackpackCount) end
+      if dragSourceSlot < 0 && BackpackSnapshotDiffers(currentBackpackCount) then
+        ReconcileBackpackSnapshot(currentBackpackCount)
         UpdateSlots()
+        SavePersistentBackpackSnapshot()
       end
     end
     if deferredInventoryRefresh > 0 then
@@ -2678,6 +2767,7 @@ maintask UtopianInventoryUI do
 
   function OnChar(char: int) -> void
     native.Trace("utopian_inventory OnChar close")
+    PersistCurrentBackpackSnapshot()
     native.DestroyWindow()
   end
 
@@ -2686,6 +2776,7 @@ maintask UtopianInventoryUI do
     if key == c_iVKShift then shiftHeld = true end
     if key == c_iVKControl then controlHeld = true end
     if key == 27 || key == 73 || key == 105 then
+      PersistCurrentBackpackSnapshot()
       native.DestroyWindow()
     end
   end

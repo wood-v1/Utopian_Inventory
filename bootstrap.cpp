@@ -2,9 +2,11 @@
 
 #include "OynonToolsApi.h"
 
+#include <array>
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -20,6 +22,24 @@ constexpr const char* CUSTOM_CORPSE_XML_1920 = "utopian_corpse_1920x1080.xml";
 constexpr int PAGE_BUTTON_WIDTH = 40;
 constexpr int PAGE_BUTTON_HEIGHT = 36;
 constexpr int PAGE_NEXT_OFFSET = 92;
+constexpr DWORD PLAYER_CATEGORY_COUNT = 5;
+constexpr DWORD PLAYER_CATEGORY_MAPPING_STRIDE = 64;
+constexpr DWORD PLAYER_INVENTORY_MAPPING_CAPACITY =
+    PLAYER_CATEGORY_COUNT * PLAYER_CATEGORY_MAPPING_STRIDE;
+constexpr std::array<DWORD, 5> APPARATUS_PRIORITY_IDS = {
+    50, 51, 52, 53, 54
+};
+constexpr std::array<DWORD, 26> MICROSCOPE_PRIORITY_IDS = {
+    59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+    1113, 1117, 1118, 1119, 1120, 1121, 1122, 1126,
+    1128, 1129, 1130, 1131, 1132, 1133
+};
+constexpr std::array<DWORD, 27> DOCTOR_APPARATUS_PRIORITY_IDS = {
+    55,
+    59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+    1113, 1117, 1118, 1119, 1120, 1121, 1122, 1126,
+    1128, 1129, 1130, 1131, 1132, 1133
+};
 
 std::atomic<bool> g_inventoryOpen{ false };
 int g_publishedPageHover = -1;
@@ -212,6 +232,119 @@ void __stdcall OnInventoryStateChanged(BOOL opened, void*)
     Log(opened ? "inventory overlay opened" : "inventory overlay closed");
 }
 
+void __stdcall OnUIWindowPrepare(const char* xml, void*)
+{
+    const DWORD* priorityIds = nullptr;
+    DWORD priorityIdCount = 0;
+    if (xml && std::strcmp(xml, "apparatus.xml") == 0) {
+        priorityIds = APPARATUS_PRIORITY_IDS.data();
+        priorityIdCount = static_cast<DWORD>(APPARATUS_PRIORITY_IDS.size());
+    }
+    else if (xml && std::strcmp(xml, "dapparatus.xml") == 0) {
+        priorityIds = DOCTOR_APPARATUS_PRIORITY_IDS.data();
+        priorityIdCount = static_cast<DWORD>(DOCTOR_APPARATUS_PRIORITY_IDS.size());
+    }
+    else if (xml && std::strcmp(xml, "microscope.xml") == 0) {
+        priorityIds = MICROSCOPE_PRIORITY_IDS.data();
+        priorityIdCount = static_cast<DWORD>(MICROSCOPE_PRIORITY_IDS.size());
+    }
+    if (!priorityIds) {
+        return;
+    }
+
+    std::array<DWORD, PLAYER_INVENTORY_MAPPING_CAPACITY> oldToNew = {};
+    std::array<DWORD, PLAYER_CATEGORY_COUNT> categoryCounts = {};
+    BOOL changed = FALSE;
+    if (!OynonStablePrioritizePlayerInventory(
+            priorityIds,
+            priorityIdCount,
+            oldToNew.data(),
+            static_cast<DWORD>(oldToNew.size()),
+            categoryCounts.data(),
+            static_cast<DWORD>(categoryCounts.size()),
+            &changed)) {
+        Log("special inventory synchronous priority unavailable; opening vanilla window unchanged");
+        return;
+    }
+
+    if (!changed) {
+        char line[112] = {};
+        std::snprintf(
+            line,
+            sizeof(line),
+            "special inventory synchronous priority unchanged xml=%s",
+            xml);
+        Log(line);
+        return;
+    }
+
+    DWORD changedCategoryMask = 0;
+    bool published = true;
+    for (DWORD category = 0; category < PLAYER_CATEGORY_COUNT; ++category) {
+        bool categoryChanged = false;
+        const DWORD mappingBase = category * PLAYER_CATEGORY_MAPPING_STRIDE;
+        for (DWORD oldIndex = 0; oldIndex < categoryCounts[category]; ++oldIndex) {
+            if (oldToNew[mappingBase + oldIndex] != oldIndex) {
+                categoryChanged = true;
+                break;
+            }
+        }
+        char command[128] = {};
+        if (!categoryChanged) {
+            std::snprintf(
+                command,
+                sizeof(command),
+                "setvar utopian_special_inventory_count_%lu 0",
+                static_cast<unsigned long>(category));
+            published = OynonExecCommand(command) && published;
+            continue;
+        }
+
+        changedCategoryMask |= 1u << category;
+        std::snprintf(
+            command,
+            sizeof(command),
+            "setvar utopian_special_inventory_count_%lu %lu",
+            static_cast<unsigned long>(category),
+            static_cast<unsigned long>(categoryCounts[category]));
+        published = OynonExecCommand(command) && published;
+
+        for (DWORD oldIndex = 0; oldIndex < categoryCounts[category]; ++oldIndex) {
+            std::snprintf(
+                command,
+                sizeof(command),
+                "setvar utopian_special_inventory_map_%lu_%lu %lu",
+                static_cast<unsigned long>(category),
+                static_cast<unsigned long>(oldIndex),
+                static_cast<unsigned long>(oldToNew[mappingBase + oldIndex]));
+            published = OynonExecCommand(command) && published;
+        }
+    }
+
+    if (published) {
+        char command[96] = {};
+        std::snprintf(
+            command,
+            sizeof(command),
+            "setvar utopian_special_inventory_remap_mask %lu",
+            static_cast<unsigned long>(changedCategoryMask));
+        published = OynonExecCommand(command) &&
+            OynonExecCommand("setvar utopian_special_inventory_remap_request 1");
+    }
+    if (!published) {
+        Log("special inventory physical priority succeeded but layout remap publish failed");
+    }
+
+    char line[128] = {};
+    std::snprintf(
+        line,
+        sizeof(line),
+        "special inventory synchronous priority complete xml=%s mask=%lu",
+        xml,
+        static_cast<unsigned long>(changedCategoryMask));
+    Log(line);
+}
+
 bool IsPointInside(const POINT& point, int x, int y)
 {
     return point.x >= x && point.x < x + PAGE_BUTTON_WIDTH &&
@@ -334,7 +467,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     const HMODULE module = static_cast<HMODULE>(parameter);
     g_emptySlotOpacity = ReadEmptySlotOpacity(module);
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
-    Log("UTOPIAN_INVENTORY_NATIVE_VERSION 2026.07.27-opt6");
+    Log("UTOPIAN_INVENTORY_NATIVE_VERSION 2026.07.29-special-physical-2");
     if (!WriteEmptySlotTexture(module)) {
         Log("failed to create empty slot opacity texture");
     }
@@ -354,7 +487,8 @@ DWORD WINAPI MainThread(LPVOID parameter)
         OYNON_HOOK_CONSOLE_EXECUTE |
         OYNON_HOOK_PLAYER_INVENTORY_CAPACITY |
         OYNON_HOOK_UI_INVENTORY_STATE |
-        OYNON_HOOK_UI_INVENTORY_REDIRECT;
+        OYNON_HOOK_UI_INVENTORY_REDIRECT |
+        OYNON_HOOK_UI_WINDOW_PREPARE;
 
     if (!OynonInitializeHooksWhenReady(hookFlags)) {
         Log("UtopianInventory failed to initialize OynonTools hooks");
@@ -367,6 +501,9 @@ DWORD WINAPI MainThread(LPVOID parameter)
     OynonUIInventorySetRedirect(inventoryXml);
     OynonUILootSetRedirects(lootXml, corpseXml);
     OynonRegisterInventoryStateCallback(&OnInventoryStateChanged, nullptr);
+    if (!OynonRegisterUIWindowPrepareCallback(&OnUIWindowPrepare, nullptr)) {
+        Log("UtopianInventory failed to register pre-window callback");
+    }
     LogEmptySlotOpacity();
     Log(inventoryXml == CUSTOM_INVENTORY_XML_1920
         ? "UtopianInventory initialized (centered 1920x1080 layout)"
@@ -374,6 +511,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     Log(lootXml == CUSTOM_LOOT_XML_1920
         ? "UtopianInventory loot redirect initialized (centered 1920x1080 layout)"
         : "UtopianInventory loot redirect initialized (standard layout)");
+    Log("UtopianInventory vanilla special inventory physical priority initialized");
 
     while (true) {
         OynonUIInventoryPoll();

@@ -71,6 +71,11 @@ function Copy-DeployedFile([string]$Source, [string]$Destination) {
         throw "Hash mismatch after copy: $Destination"
     }
 }
+function Remove-DeployedFile([string]$Path) {
+    if (!(Test-Path -LiteralPath $Path)) { return }
+    Write-Step "remove stale `"$Path`""
+    if (!$DryRun) { Remove-Item -LiteralPath $Path -Force }
+}
 function Register-InventoryStringResource([string]$ConfigPath) {
     Assert-PathExists -Path $ConfigPath -Description "Game config"
     $content = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::ASCII)
@@ -116,6 +121,13 @@ if (!$SkipLuaCompile) {
     if (!$DryRun -and !(Test-Path -LiteralPath $LuaOutDir)) {
         New-Item -ItemType Directory -Path $LuaOutDir | Out-Null
     }
+    foreach ($staleScript in @(
+        "utopian_apparatus.bin",
+        "utopian_dapparatus.bin",
+        "utopian_microscope.bin"
+    )) {
+        Remove-DeployedFile -Path (Join-Path $LuaOutDir $staleScript)
+    }
     foreach ($lua in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "scripts") -Filter "*.lua" -File) {
         Invoke-External -WorkingDirectory $LuaCompilerRoot -FilePath "python" -Arguments @(
             ".\compiler.py",
@@ -125,6 +137,27 @@ if (!$SkipLuaCompile) {
             "--pathologic-re",
             $PathologicReRoot)
     }
+}
+
+foreach ($staleScript in @(
+    "utopian_apparatus.bin",
+    "utopian_dapparatus.bin",
+    "utopian_microscope.bin"
+)) {
+    Remove-DeployedFile -Path (Join-Path $GameScriptsDir $staleScript)
+}
+foreach ($staleXml in @(
+    "utopian_apparatus.xml",
+    "utopian_apparatus_1024x768.xml",
+    "utopian_apparatus_1280x1024.xml",
+    "utopian_dapparatus.xml",
+    "utopian_dapparatus_1024x768.xml",
+    "utopian_dapparatus_1280x1024.xml",
+    "utopian_microscope.xml",
+    "utopian_microscope_1024x768.xml",
+    "utopian_microscope_1280x1024.xml"
+)) {
+    Remove-DeployedFile -Path (Join-Path $GameUiDir $staleXml)
 }
 
 Copy-DeployedFile -Source (Join-Path $OynonToolsRoot "bin\Win32\$Configuration\OynonTools.dll") -Destination (Join-Path $GameModsDir "OynonTools.dll")

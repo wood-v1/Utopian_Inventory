@@ -3,9 +3,14 @@
 Full-screen equipment and backpack UI for Pathologic Classic HD.
 
 The mod keeps vanilla item storage, categories, saves, item definitions, trade,
-loot, and equipment state intact. OynonTools redirects only vanilla
-`inventory.xml` to `utopian_inventory.xml`; container, corpse, apparatus, and
-doctor-apparatus windows remain vanilla.
+loot, and equipment state intact. OynonTools redirects only the player
+inventory and loot windows to mod-owned XML entry points.
+
+The apparatus, doctor-apparatus, and microscope use their original XML and
+scripts. Immediately before one of these windows opens, compatible vanilla
+items are moved to the front of their physical categories with a stable
+partition. The saved Utopian Inventory cell mapping is adjusted at the same
+time, so the custom inventory keeps every existing item in its visual cell.
 
 The adaptive layouts place the backpack grid on the right and the current
 character silhouette on the left. The silhouette automatically follows the

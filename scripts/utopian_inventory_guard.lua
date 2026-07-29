@@ -3,6 +3,7 @@ maintask TEffect do
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
+  local const c_iSnapshotVersion: int = 1
   local const c_iOverflowQueueSize: int = 64
   local const c_iWMHelpMessage: int = 200
   local const c_iInventoryFullTextID: int = 1400
@@ -61,6 +62,95 @@ maintask TEffect do
       end
     end
     return total
+  end
+
+  function GetCategoryBackpackBase(targetCategory: int) -> int
+    local player: object = GetPlayer()
+    local ordinal: int = 0
+    for category = 0, targetCategory - 1 do
+      local count: int
+      player->GetItemCount(count, category)
+      for index = 0, count - 1 do
+        if !IsEquippedItem(category, index) then ordinal = ordinal + 1 end
+      end
+    end
+    return ordinal
+  end
+
+  function RemapPublishedLayout(category: int, count: int) -> void
+    local initialized: int = 0
+    local layoutVersion: int = 0
+    native.GetVariable("utopian_inventory_layout_initialized", initialized)
+    native.GetVariable("utopian_inventory_layout_version", layoutVersion)
+    if initialized != 1 || layoutVersion != 4 then return end
+
+    local base: int = GetCategoryBackpackBase(category)
+    for cell = 0, c_iInventoryCapacity - 1 do
+      local variableName: string = "utopian_inventory_cell_" + cell
+      local oldOrder: int = -1
+      native.GetVariable(variableName, oldOrder)
+      if oldOrder >= base && oldOrder < base + count then
+        local mappedIndex: int = -1
+        local mapName: string = "utopian_special_inventory_map_" + category + "_" + (oldOrder - base)
+        native.GetVariable(mapName, mappedIndex)
+        if mappedIndex >= 0 then native.SetVariable(variableName, base + mappedIndex) end
+      end
+    end
+  end
+
+  function ProcessSpecialInventoryRemap() -> void
+    local request: int = 0
+    native.GetVariable("utopian_special_inventory_remap_request", request)
+    if request != 1 then return end
+    native.SetVariable("utopian_special_inventory_remap_request", 0)
+
+    local mask: int = 0
+    native.GetVariable("utopian_special_inventory_remap_mask", mask)
+    local generation: int = 0
+    native.GetVariable("utopian_inventory_reorder_generation", generation)
+    native.SetVariable("utopian_inventory_reorder_generation", generation + 1)
+    native.Trace("utopian_inventory_guard special reorder published mask=" + mask +
+      " generation=" + (generation + 1))
+  end
+
+  function GetSnapshotVariableName(ordinal: int) -> string
+    return "utopian_inventory_snapshot_" + ordinal
+  end
+
+  function InitializePersistentSnapshotIfMissing() -> void
+    local valid: int = 0
+    local version: int = 0
+    native.GetVariable("utopian_inventory_snapshot_valid", valid)
+    native.GetVariable("utopian_inventory_snapshot_version", version)
+    if valid == 1 && version == c_iSnapshotVersion then return end
+
+    local player: object = GetPlayer()
+    local ordinal: int = 0
+    for category = 0, c_iCategoryCount - 1 do
+      local count: int
+      player->GetItemCount(count, category)
+      for index = 0, count - 1 do
+        if !IsEquippedItem(category, index) then
+          if ordinal < c_iInventoryCapacity then
+            local item: object
+            local itemID: int = -1
+            player->GetItem(item, index, category)
+            if item then item->GetItemID(itemID) end
+            native.SetVariable(GetSnapshotVariableName(ordinal), itemID)
+          end
+          ordinal = ordinal + 1
+        end
+      end
+    end
+    local storedCount: int = ordinal
+    if storedCount > c_iInventoryCapacity then storedCount = c_iInventoryCapacity end
+    for emptyOrdinal = storedCount, c_iInventoryCapacity - 1 do
+      native.SetVariable(GetSnapshotVariableName(emptyOrdinal), -1)
+    end
+    native.SetVariable("utopian_inventory_snapshot_count", storedCount)
+    native.SetVariable("utopian_inventory_snapshot_version", c_iSnapshotVersion)
+    native.SetVariable("utopian_inventory_snapshot_valid", 1)
+    native.Trace("utopian_inventory_guard persistent snapshot initialized count=" + storedCount)
   end
 
   function ShowInventoryFull() -> void
@@ -160,7 +250,9 @@ maintask TEffect do
     end
     m_iAllowedSlots = GetBackpackItemCount()
     if m_iAllowedSlots < c_iInventoryCapacity then m_iAllowedSlots = c_iInventoryCapacity end
-    native.Trace("utopian_inventory_guard init allowed=" + m_iAllowedSlots)
+    InitializePersistentSnapshotIfMissing()
+    native.SetVariable("utopian_special_inventory_remap_request", 0)
+    native.Trace("UTOPIAN_INVENTORY_GUARD_VERSION 2026.07.29-snapshot-reconcile-1 allowed=" + m_iAllowedSlots)
 
     while true do
       local delta: float
@@ -169,6 +261,7 @@ maintask TEffect do
         m_fMessageCooldown = m_fMessageCooldown - delta
         if m_fMessageCooldown < 0 then m_fMessageCooldown = 0 end
       end
+      ProcessSpecialInventoryRemap()
       ProcessOverflowQueue()
     end
   end

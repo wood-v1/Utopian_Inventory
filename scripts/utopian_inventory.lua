@@ -1,5 +1,5 @@
 maintask UtopianInventoryUI do
-  local const c_sScriptVersion: string = "2026.07.29-snapshot-reconcile-1"
+  local const c_sScriptVersion: string = "2026.07.29-ui-preloader-2"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
@@ -35,6 +35,8 @@ maintask UtopianInventoryUI do
   local const c_iPageHoverLeave: int = -111
   local const c_fPageHoverDelay: float = 1.00
   local const c_iInitialSlotLoadBatch: int = 1
+  local const c_iPreloadCapacity: int = 64
+  local const c_fPreloadStep: float = 0.00
 
   local windowWidth: int
   local windowHeight: int
@@ -88,6 +90,11 @@ maintask UtopianInventoryUI do
   local initialSlotLoadDelay: float
   local equipmentCategoryCache: object
   local equipmentIndexCache: object
+  local preloadItemIDs: object
+  local preloadItemCount: int
+  local preloadItemIndex: int
+  local preloadCooldown: float
+  local preloadActive: bool
 
   function init() -> void
     native.Trace("UTOPIAN_INVENTORY_VERSION " + c_sScriptVersion + " screen=inventory")
@@ -129,6 +136,10 @@ maintask UtopianInventoryUI do
     initialEquipmentLoadNext = 0
     initialSlotLoadPending = true
     initialSlotLoadDelay = 0.05
+    preloadItemCount = 0
+    preloadItemIndex = 0
+    preloadCooldown = 0
+    preloadActive = false
     native.CreateInvItem(moneyTooltipItem)
     moneyTooltipItem->SetItemName("Money")
     native.CreateIntVector(backpackSnapshot)
@@ -140,6 +151,7 @@ maintask UtopianInventoryUI do
     native.CreateIntVector(usedLayoutCell)
     native.CreateIntVector(equipmentCategoryCache)
     native.CreateIntVector(equipmentIndexCache)
+    native.CreateIntVector(preloadItemIDs)
     for i = 0, c_iInventoryCapacity - 1 do
       backpackSnapshot->add(-1)
       currentBackpackSnapshot->add(-1)
@@ -153,6 +165,7 @@ maintask UtopianInventoryUI do
       equipmentCategoryCache->add(-1)
       equipmentIndexCache->add(-1)
     end
+    for i = 0, c_iPreloadCapacity - 1 do preloadItemIDs->add(-1) end
     lastBackpackItemCount = 0
     InitSlotOrder()
     UpdateLayout()
@@ -161,6 +174,7 @@ maintask UtopianInventoryUI do
     OrderFreeCellsByDisplay()
     UpdatePageControls()
     UpdateMoney()
+    InitializeUIPreloader()
     native.SetVariable("utopian_inventory_drag_item", -1)
     native.SetVariable("utopian_inventory_page_hover", 0)
     native.SetCursor("utopian_inventory")
@@ -1248,7 +1262,11 @@ maintask UtopianInventoryUI do
 
   function ContinueInitialSlotLoad() -> void
     if !initialSlotLoadActive then return end
-    for batch = 0, c_iInitialSlotLoadBatch - 1 do
+    local preloadReady: int = 0
+    local batchLimit: int = c_iInitialSlotLoadBatch
+    native.GetVariable("utopian_inventory_preload_ready", preloadReady)
+    if preloadReady == 1 then batchLimit = visibleSlots + 5 end
+    for batch = 0, batchLimit - 1 do
       if initialEquipmentLoadNext < 5 then
         UpdateCachedEquipmentSlot(initialEquipmentLoadNext)
         initialEquipmentLoadNext = initialEquipmentLoadNext + 1
@@ -1261,8 +1279,96 @@ maintask UtopianInventoryUI do
     end
     if initialEquipmentLoadNext >= 5 && initialSlotLoadNext >= visibleSlots then
       initialSlotLoadActive = false
-      native.Trace("utopian_inventory deferred initial slots complete")
+      if preloadReady == 0 then
+        native.SetVariable("utopian_inventory_preload_ready", 1)
+        native.Trace("UTOPIAN_PRELOADER visible page ready slots=" + visibleSlots)
+      end
+      native.Trace("utopian_inventory deferred initial slots complete preload=" + preloadReady +
+        " batch=" + batchLimit)
     end
+  end
+
+  function IsUIPreloadItemQueued(itemID: int) -> bool
+    for index = 0, preloadItemCount - 1 do
+      local queuedID: int
+      preloadItemIDs->get(queuedID, index)
+      if queuedID == itemID then return true end
+    end
+    return false
+  end
+
+  function QueueUIPreloadItem(itemID: int) -> void
+    if itemID < 0 || IsUIPreloadItemQueued(itemID) then return end
+    if preloadItemCount >= c_iPreloadCapacity then return end
+    preloadItemIDs->set(preloadItemCount, itemID)
+    preloadItemCount = preloadItemCount + 1
+  end
+
+  function InitializeUIPreloader() -> void
+    local preloadReady: int = 0
+    native.GetVariable("utopian_inventory_preload_ready", preloadReady)
+    if preloadReady == 1 then
+      preloadActive = false
+      native.Trace("UTOPIAN_PRELOADER UI cache reuse")
+      return
+    end
+
+    preloadItemCount = 0
+    preloadItemIndex = 0
+    preloadCooldown = 0
+    for index = 0, c_iPreloadCapacity - 1 do preloadItemIDs->set(index, -1) end
+    local player: object = GetPlayerContainer()
+    for category = 0, c_iCategoryCount - 1 do
+      local count: int
+      player->GetItemCount(count, category)
+      for index = 0, count - 1 do
+        local item: object
+        local itemID: int = -1
+        player->GetItem(item, index, category)
+        if item then
+          item->GetItemID(itemID)
+          QueueUIPreloadItem(itemID)
+        end
+      end
+    end
+    preloadActive = true
+    native.SetVariable("utopian_inventory_preload_loaded", 0)
+    native.SetVariable("utopian_inventory_preload_count", preloadItemCount)
+    native.Trace("UTOPIAN_PRELOADER UI start unique=" + preloadItemCount +
+      " highres=" + (windowWidth >= 1900))
+  end
+
+  function ProcessUIPreloader(delta: float) -> void
+    if initialSlotLoadPending || initialSlotLoadActive then return end
+    if !preloadActive then
+      local preloadReady: int = 0
+      native.GetVariable("utopian_inventory_preload_ready", preloadReady)
+      if preloadReady == 0 then InitializeUIPreloader() end
+      return
+    end
+
+    if preloadItemIndex >= preloadItemCount then
+      preloadActive = false
+      native.SetVariable("utopian_inventory_preload_ready", 1)
+      native.SetVariable("utopian_inventory_preload_loaded", preloadItemCount)
+      native.Trace("UTOPIAN_PRELOADER UI ready unique=" + preloadItemCount)
+      return
+    end
+
+    preloadCooldown = preloadCooldown - delta
+    if preloadCooldown > 0 then return end
+    preloadCooldown = c_fPreloadStep
+    local itemID: int
+    local sprite: string = ""
+    preloadItemIDs->get(itemID, preloadItemIndex)
+    if windowWidth >= 1900 then
+      native.GetInvItemSprite2(sprite, itemID)
+    else
+      native.GetInvItemSprite(sprite, itemID)
+    end
+    if sprite != "" then native.LoadImage(sprite) end
+    preloadItemIndex = preloadItemIndex + 1
+    native.SetVariable("utopian_inventory_preload_loaded", preloadItemIndex)
   end
 
   function UpdateSlots() -> void
@@ -2262,6 +2368,7 @@ maintask UtopianInventoryUI do
       end
     end
     ContinueInitialSlotLoad()
+    ProcessUIPreloader(delta)
     inventoryPollCooldown = inventoryPollCooldown - delta
     if inventoryPollCooldown <= 0 then
       inventoryPollCooldown = 0.25

@@ -1,5 +1,5 @@
 maintask UtopianContainerUI do
-  local const c_sScriptVersion: string = "2026.07.29-snapshot-reconcile-1"
+  local const c_sScriptVersion: string = "2026.07.29-ui-preloader-2"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
@@ -998,20 +998,34 @@ maintask UtopianContainerUI do
 
   function ContinueInitialSlotLoad() -> void
     if !initialSlotLoadActive then return end
-    for batch = 0, c_iInitialSlotLoadBatch - 1 do
-      if initialContainerSlotLoadNext < c_iContainerSlots then
-        UpdateContainerSlot(initialContainerSlotLoadNext)
-        initialContainerSlotLoadNext = initialContainerSlotLoadNext + 1
+    local preloadReady: int = 0
+    local batchLimit: int = c_iInitialSlotLoadBatch
+    native.GetVariable("utopian_inventory_preload_ready", preloadReady)
+    if preloadReady == 1 && initialPlayerSlotLoadNext < visibleSlots then batchLimit = visibleSlots end
+    for batch = 0, batchLimit - 1 do
+      if preloadReady == 1 && initialPlayerSlotLoadNext < visibleSlots then
+        UpdatePlayerSlot(initialPlayerSlotLoadNext)
+        initialPlayerSlotLoadNext = initialPlayerSlotLoadNext + 1
       else
-        if initialPlayerSlotLoadNext < visibleSlots then
+        if initialContainerSlotLoadNext < c_iContainerSlots then
+          UpdateContainerSlot(initialContainerSlotLoadNext)
+          initialContainerSlotLoadNext = initialContainerSlotLoadNext + 1
+        else
+          if initialPlayerSlotLoadNext < visibleSlots then
           UpdatePlayerSlot(initialPlayerSlotLoadNext)
           initialPlayerSlotLoadNext = initialPlayerSlotLoadNext + 1
+          end
         end
       end
     end
     if initialContainerSlotLoadNext >= c_iContainerSlots && initialPlayerSlotLoadNext >= visibleSlots then
       initialSlotLoadActive = false
-      native.Trace("utopian_container deferred initial slots complete")
+      if preloadReady == 0 then
+        native.SetVariable("utopian_inventory_preload_ready", 1)
+        native.Trace("UTOPIAN_PRELOADER container player page ready slots=" + visibleSlots)
+      end
+      native.Trace("utopian_container deferred initial slots complete preload=" + preloadReady +
+        " batch=" + batchLimit)
     end
   end
 

@@ -251,8 +251,11 @@ maintask TEffect do
     m_iAllowedSlots = GetBackpackItemCount()
     if m_iAllowedSlots < c_iInventoryCapacity then m_iAllowedSlots = c_iInventoryCapacity end
     InitializePersistentSnapshotIfMissing()
+    native.SetVariable("utopian_inventory_preload_ready", 0)
+    native.SetVariable("utopian_inventory_preload_loaded", 0)
+    native.SetVariable("utopian_inventory_preload_count", 0)
     native.SetVariable("utopian_special_inventory_remap_request", 0)
-    native.Trace("UTOPIAN_INVENTORY_GUARD_VERSION 2026.07.29-snapshot-reconcile-1 allowed=" + m_iAllowedSlots)
+    native.Trace("UTOPIAN_INVENTORY_GUARD_VERSION 2026.07.29-ui-preloader-2 allowed=" + m_iAllowedSlots)
 
     while true do
       local delta: float
@@ -269,6 +272,9 @@ maintask TEffect do
   function OnInventoryAddItem(item: object, id1: int, id2: int, category: int) -> void
     if m_bResolvingOverflow then return end
     if category < 0 || category >= c_iCategoryCount then return end
+    if item then
+      native.SetVariable("utopian_inventory_preload_ready", 0)
+    end
     local previousCount: int
     local currentCount: int
     local player: object = GetPlayer()

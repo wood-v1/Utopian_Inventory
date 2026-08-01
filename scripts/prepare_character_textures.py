@@ -11,6 +11,9 @@ DOLL_VISIBLE_SIZE = (410, 650)
 DOLL_GAME_SIZE = (205, 325)
 BACKGROUND_SOURCE_SIZE = (1536, 1024)
 BACKGROUND_GAME_SIZE = (800, 533)
+BACKGROUND_SOURCES = {
+    "clara": "clara_inventory_bg_.png",
+}
 LOOT_DOLL_SIZE = (205, 325)
 LOOT_DOLLS = {
     "container": "container.png",
@@ -38,15 +41,14 @@ for character in CHARACTERS:
 
 
 for character in CHARACTERS:
-    source = IMAGE_DIR / f"{character}_inventory_bg.png"
+    source = IMAGE_DIR / BACKGROUND_SOURCES.get(
+        character,
+        f"{character}_inventory_bg.png",
+    )
     png_target = UI_DIR / f"utopian_inventory_bg_{character}.png"
     tga_target = UI_DIR / f"utopian_inventory_bg_{character}.tga"
     with Image.open(source) as image:
         rgba = image.convert("RGBA")
-        if rgba.size != BACKGROUND_SOURCE_SIZE:
-            raise RuntimeError(
-                f"{source.name}: expected {BACKGROUND_SOURCE_SIZE}, got {rgba.size}"
-            )
         background = rgba.resize(BACKGROUND_GAME_SIZE, Image.Resampling.LANCZOS)
         background.save(png_target, format="PNG", optimize=True)
         background.convert("RGB").save(
@@ -54,7 +56,10 @@ for character in CHARACTERS:
             format="TGA",
             compression="tga_rle",
         )
-    print(f"prepared {png_target.name}: 800x533 RGBA PNG")
+    print(
+        f"prepared {png_target.name}: {rgba.size[0]}x{rgba.size[1]} source "
+        "-> 800x533 RGBA PNG"
+    )
     print(f"prepared {tga_target.name}: 800x533 RGB RLE TGA")
 
 

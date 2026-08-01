@@ -48,11 +48,18 @@ maintask UtopianCharacterDoll do
 
     local drawX: int = paddingX
     local drawY: int = 0
-    if characterBranch == c_iBranchKlara then
-      drawX = 0
-      drawY = claraOffsetY
+    local drawWidth: int = dollWidth - paddingX
+    local drawHeight: int = dollHeight - claraOffsetY
+    if characterBranch == c_iBranchBurah then
+      drawX = paddingX / 2
     end
-    native.StretchBlit(image, drawX, drawY, dollWidth - paddingX, dollHeight - claraOffsetY)
+    if characterBranch == c_iBranchKlara then
+      drawWidth = drawWidth * 9 / 10
+      drawHeight = drawHeight * 9 / 10
+      drawX = (dollWidth - drawWidth) / 2 - dollWidth * 3 / 40
+      drawY = dollHeight - drawHeight
+    end
+    native.StretchBlit(image, drawX, drawY, drawWidth, drawHeight)
   end
 
   function GetDollLeft() -> int
@@ -78,31 +85,81 @@ maintask UtopianCharacterDoll do
   end
 
   function GetTargetMessage(globalX: int, globalY: int) -> int
+    local clara: bool = characterBranch == c_iBranchKlara
+    local headOffset: int = 8
     if layoutWidth >= 1900 then
-      if HitsTarget(globalX, globalY, 715, 610) then return -50 end
+      headOffset = 15
+      if clara then headOffset = 52 end
+    else
+      if layoutWidth >= 1200 then
+        headOffset = 12
+        if clara then headOffset = 42 end
+      else
+        if layoutWidth >= 1000 then
+          headOffset = 9
+          if clara then headOffset = 32 end
+        else
+          if clara then headOffset = 26 end
+        end
+      end
+    end
+    if layoutWidth >= 1900 then
+      if clara then
+        if HitsTarget(globalX, globalY, 660, 560) then return -50 end
+      else
+        if HitsTarget(globalX, globalY, 660, 580) then return -50 end
+      end
       if HitsTarget(globalX, globalY, 590, 800) then return -51 end
-      if HitsTarget(globalX, globalY, 590, 300) then return -52 end
-      if HitsTarget(globalX, globalY, 590, 488) then return -53 end
+      if HitsTarget(globalX, globalY, 590, 300 + headOffset) then return -52 end
+      if clara then
+        if HitsTarget(globalX, globalY, 560, 488) then return -53 end
+      else
+        if HitsTarget(globalX, globalY, 590, 488) then return -53 end
+      end
       if HitsTarget(globalX, globalY, 445, 560) then return -54 end
     else
       if layoutWidth >= 1200 then
-        if HitsTarget(globalX, globalY, 395, 550) then return -50 end
+        if clara then
+          if HitsTarget(globalX, globalY, 375, 510) then return -50 end
+        else
+          if HitsTarget(globalX, globalY, 375, 528) then return -50 end
+        end
         if HitsTarget(globalX, globalY, 270, 740) then return -51 end
-        if HitsTarget(globalX, globalY, 270, 240) then return -52 end
-        if HitsTarget(globalX, globalY, 270, 428) then return -53 end
+        if HitsTarget(globalX, globalY, 270, 240 + headOffset) then return -52 end
+        if clara then
+          if HitsTarget(globalX, globalY, 250, 428) then return -53 end
+        else
+          if HitsTarget(globalX, globalY, 270, 428) then return -53 end
+        end
         if HitsTarget(globalX, globalY, 125, 500) then return -54 end
       else
         if layoutWidth >= 1000 then
-          if HitsTarget(globalX, globalY, 315, 438) then return -50 end
+          if clara then
+            if HitsTarget(globalX, globalY, 299, 403) then return -50 end
+          else
+            if HitsTarget(globalX, globalY, 299, 418) then return -50 end
+          end
           if HitsTarget(globalX, globalY, 207, 569) then return -51 end
-          if HitsTarget(globalX, globalY, 207, 188) then return -52 end
-          if HitsTarget(globalX, globalY, 207, 346) then return -53 end
+          if HitsTarget(globalX, globalY, 207, 188 + headOffset) then return -52 end
+          if clara then
+            if HitsTarget(globalX, globalY, 191, 346) then return -53 end
+          else
+            if HitsTarget(globalX, globalY, 207, 346) then return -53 end
+          end
           if HitsTarget(globalX, globalY, 86, 399) then return -54 end
         else
-          if HitsTarget(globalX, globalY, 234, 337) then return -50 end
+          if clara then
+            if HitsTarget(globalX, globalY, 222, 307) then return -50 end
+          else
+            if HitsTarget(globalX, globalY, 222, 323) then return -50 end
+          end
           if HitsTarget(globalX, globalY, 156, 429) then return -51 end
-          if HitsTarget(globalX, globalY, 156, 159) then return -52 end
-          if HitsTarget(globalX, globalY, 156, 271) then return -53 end
+          if HitsTarget(globalX, globalY, 156, 159 + headOffset) then return -52 end
+          if clara then
+            if HitsTarget(globalX, globalY, 144, 271) then return -53 end
+          else
+            if HitsTarget(globalX, globalY, 156, 271) then return -53 end
+          end
           if HitsTarget(globalX, globalY, 68, 311) then return -54 end
         end
       end

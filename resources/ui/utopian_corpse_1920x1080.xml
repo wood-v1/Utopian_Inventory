@@ -17,6 +17,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot02" x="551" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -26,6 +27,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot03" x="647" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -35,6 +37,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot04" x="455" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -44,6 +47,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot05" x="551" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -53,6 +57,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot06" x="647" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -62,6 +67,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot07" x="455" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -71,6 +77,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot08" x="551" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -80,6 +87,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot09" x="647" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -89,6 +97,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot10" x="455" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -98,6 +107,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot11" x="551" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -107,6 +117,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="cslot12" x="647" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -116,6 +127,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="money" x="1390" y="780" w="82" h="82" script="utopian_money_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
@@ -129,6 +141,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot02" x="921" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -138,6 +151,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot03" x="1017" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -147,6 +161,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot04" x="1113" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -156,6 +171,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot05" x="1209" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -165,6 +181,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot06" x="1305" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -174,6 +191,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot07" x="1401" y="245" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -183,6 +201,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot08" x="825" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -192,6 +211,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot09" x="921" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -201,6 +221,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot10" x="1017" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -210,6 +231,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot11" x="1113" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -219,6 +241,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot12" x="1209" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -228,6 +251,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot13" x="1305" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -237,6 +261,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot14" x="1401" y="341" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -246,6 +271,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot15" x="825" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -255,6 +281,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot16" x="921" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -264,6 +291,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot17" x="1017" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -273,6 +301,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot18" x="1113" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -282,6 +311,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot19" x="1209" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -291,6 +321,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot20" x="1305" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -300,6 +331,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot21" x="1401" y="437" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -309,6 +341,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot22" x="825" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -318,6 +351,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot23" x="921" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -327,6 +361,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot24" x="1017" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -336,6 +371,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot25" x="1113" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -345,6 +381,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot26" x="1209" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -354,6 +391,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot27" x="1305" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -363,6 +401,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot28" x="1401" y="533" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -372,6 +411,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot29" x="825" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -381,6 +421,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot30" x="921" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -390,6 +431,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot31" x="1017" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -399,6 +441,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot32" x="1113" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -408,6 +451,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot33" x="1209" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -417,6 +461,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot34" x="1305" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -426,6 +471,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="slot35" x="1401" y="629" w="82" h="82" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -435,6 +481,7 @@
     <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="container_page_prev" x="528" y="625" w="40" h="36" script="utopian_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
@@ -470,6 +517,9 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
+  <form name="quickslot_help" x="1130" y="824" w="36" h="36" script="utopian_quickslot_help.bin">
+    <image name="default" x="0" y="0" w="1" h="1">ui/utopian_quickslot_help.png</image>
+  </form>
   <form name="oslot01" x="469" y="780" w="57" h="57" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/utopian_slot_black.png</image>
@@ -479,6 +529,7 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <image name="blocked" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/utopian_organ_blocked.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="oslot02" x="536" y="780" w="57" h="57" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -489,6 +540,7 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <image name="blocked" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/utopian_organ_blocked.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="oslot03" x="603" y="780" w="57" h="57" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -499,6 +551,7 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <image name="blocked" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/utopian_organ_blocked.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <form name="oslot04" x="670" y="780" w="57" h="57" script="utopian_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/utopian_slot_empty.tga</image>
@@ -509,6 +562,7 @@
     <image name="hidden" x="0" y="0" w="1" h="1">ui/utopian_slot_transparent.png</image>
     <image name="blocked" x="0.015625" y="0.015625" w="0.8125" h="0.8125">ui/utopian_organ_blocked.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
+    <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
   <cursor name="utopian_inventory" script="utopian_inventory_cursor.bin" w="112" h="112">
     <image name="default" x="0" y="0" w="1" h="1">ui/ui_cursor.tga</image>

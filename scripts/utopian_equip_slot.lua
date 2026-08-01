@@ -11,6 +11,7 @@ maintask UtopianEquipSlot do
   local slotHeight: int
   local highResolutionSprite: bool
   local tooltipSuppressed: bool
+  local quickslot: int
 
   function init() -> void
     item = null
@@ -20,6 +21,7 @@ maintask UtopianEquipSlot do
     loadedItemID = -1
     highResolutionSprite = false
     tooltipSuppressed = false
+    quickslot = 0
     native.GetWindowSize(slotWidth, slotHeight)
     if slotWidth <= 0 then slotWidth = 52 end
     if slotHeight <= 0 then slotHeight = 52 end
@@ -64,6 +66,11 @@ maintask UtopianEquipSlot do
     else
       native.Print("default", 2, (slotHeight - 12) / 2, label)
     end
+    if item && quickslot > 0 then
+      local displayNumber: int = quickslot
+      if displayNumber == 10 then displayNumber = 0 end
+      native.Print("quickslot", slotWidth - 17, 3, displayNumber)
+    end
   end
 
   function OnMouseEnter() -> void
@@ -80,6 +87,7 @@ maintask UtopianEquipSlot do
     native.Trace("UTOPIAN_TOOLTIP_DIAG equip leave item=" + loadedItemID + " suppressed=" + tooltipSuppressed)
     if tooltipSuppressed then tooltipSuppressed = false end
     native.SetTooltip(c_iTooltipNone, "")
+    native.SendMessageToParent(-41)
   end
 
   function IsInsideSlot(x: int, y: int) -> bool
@@ -121,6 +129,16 @@ maintask UtopianEquipSlot do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == -140 then
+      quickslot = 0
+      return
+    end
+
+    if message <= -141 && message >= -150 then
+      quickslot = -message - 140
+      return
+    end
+
     if message == -26 then
       slotWidth = 82
       slotHeight = 82
@@ -184,6 +202,7 @@ maintask UtopianEquipSlot do
     end
     if message >= c_iSlotEmpty then
       item = null
+      quickslot = 0
       loadedItemID = -1
       UpdateBackground()
       native.SetTooltip(c_iTooltipNone, "")

@@ -24,6 +24,7 @@ maintask UtopianInventorySlot do
   local slotHeight: int
   local highResolutionSprite: bool
   local tooltipSuppressed: bool
+  local quickslot: int
 
   function init() -> void
     item = null
@@ -37,6 +38,7 @@ maintask UtopianInventorySlot do
     loadedItemID = -1
     highResolutionSprite = false
     tooltipSuppressed = false
+    quickslot = 0
     native.GetWindowSize(slotWidth, slotHeight)
     if slotWidth <= 0 then slotWidth = 52 end
     if slotHeight <= 0 then slotHeight = 52 end
@@ -111,6 +113,12 @@ maintask UtopianInventorySlot do
 
       if disabled then
         native.StretchBlit("disabled", 1, 1, slotWidth - 2, slotHeight - 2)
+      end
+
+      if quickslot > 0 then
+        local displayNumber: int = quickslot
+        if displayNumber == 10 then displayNumber = 0 end
+        native.Print("quickslot", slotWidth - 17, 3, displayNumber)
       end
     end
   end
@@ -199,6 +207,16 @@ maintask UtopianInventorySlot do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == -140 then
+      quickslot = 0
+      return
+    end
+
+    if message <= -141 && message >= -150 then
+      quickslot = -message - 140
+      return
+    end
+
     if message == -26 then
       slotWidth = 82
       slotHeight = 82
@@ -286,6 +304,7 @@ maintask UtopianInventorySlot do
 
     if message >= c_iSlotEmpty then
       item = null
+      quickslot = 0
       loadedItemID = -1
       selected = false
       UpdateBackground()

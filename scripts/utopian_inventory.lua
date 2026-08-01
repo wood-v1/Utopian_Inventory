@@ -1,5 +1,5 @@
 maintask UtopianInventoryUI do
-  local const c_sScriptVersion: string = "2026.07.29-ui-preloader-2"
+  local const c_sScriptVersion: string = "2026.08.02-child-window-safe-2"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
@@ -8,6 +8,8 @@ maintask UtopianInventoryUI do
   local const c_iSnapshotVersion: int = 1
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
+  local const c_iQuickslotCount: int = 10
+  local const c_iQuickslotVersion: int = 1
   local const c_iWMHelpMessage: int = 200
   local const c_iInventoryFullTextID: int = 1400
   local const c_iSlotSelected: int = 16384
@@ -31,12 +33,11 @@ maintask UtopianInventoryUI do
   local const c_iTargetDrop: int = 200
   local const c_iTargetMoney: int = 300
   local const c_iTargetPaging: int = 400
+  local const c_iTargetQuickslotHelp: int = 401
   local const c_iPageHoverEnter: int = -110
   local const c_iPageHoverLeave: int = -111
   local const c_fPageHoverDelay: float = 1.00
   local const c_iInitialSlotLoadBatch: int = 1
-  local const c_iPreloadCapacity: int = 64
-  local const c_fPreloadStep: float = 0.00
 
   local windowWidth: int
   local windowHeight: int
@@ -88,17 +89,15 @@ maintask UtopianInventoryUI do
   local initialEquipmentLoadNext: int
   local initialSlotLoadPending: bool
   local initialSlotLoadDelay: float
+  local childWindowsReady: bool
   local equipmentCategoryCache: object
   local equipmentIndexCache: object
-  local preloadItemIDs: object
-  local preloadItemCount: int
-  local preloadItemIndex: int
-  local preloadCooldown: float
-  local preloadActive: bool
+  local quickslotItemCache: object
+  local quickslotCategoryCache: object
 
   function init() -> void
     native.Trace("UTOPIAN_INVENTORY_VERSION " + c_sScriptVersion + " screen=inventory")
-    native.Trace("utopian_inventory script init diagnostics=18 clara-money-tooltip")
+    native.Trace("utopian_inventory script init diagnostics=19 child-window-ready")
     page = 0
     resolvedCategory = -1
     resolvedIndex = -1
@@ -136,10 +135,15 @@ maintask UtopianInventoryUI do
     initialEquipmentLoadNext = 0
     initialSlotLoadPending = true
     initialSlotLoadDelay = 0.05
-    preloadItemCount = 0
-    preloadItemIndex = 0
-    preloadCooldown = 0
-    preloadActive = false
+    childWindowsReady = false
+    native.CreateIntVector(quickslotItemCache)
+    native.CreateIntVector(quickslotCategoryCache)
+    for quickslot = 1, c_iQuickslotCount do
+      quickslotItemCache->add(-1)
+      quickslotCategoryCache->add(-1)
+    end
+    InitializeQuickslotBindings()
+    RefreshQuickslotCache()
     native.CreateInvItem(moneyTooltipItem)
     moneyTooltipItem->SetItemName("Money")
     native.CreateIntVector(backpackSnapshot)
@@ -151,7 +155,6 @@ maintask UtopianInventoryUI do
     native.CreateIntVector(usedLayoutCell)
     native.CreateIntVector(equipmentCategoryCache)
     native.CreateIntVector(equipmentIndexCache)
-    native.CreateIntVector(preloadItemIDs)
     for i = 0, c_iInventoryCapacity - 1 do
       backpackSnapshot->add(-1)
       currentBackpackSnapshot->add(-1)
@@ -165,16 +168,12 @@ maintask UtopianInventoryUI do
       equipmentCategoryCache->add(-1)
       equipmentIndexCache->add(-1)
     end
-    for i = 0, c_iPreloadCapacity - 1 do preloadItemIDs->add(-1) end
     lastBackpackItemCount = 0
     InitSlotOrder()
     UpdateLayout()
     LoadLayoutVariables()
     InitializePersistentBackpackSnapshot()
     OrderFreeCellsByDisplay()
-    UpdatePageControls()
-    UpdateMoney()
-    InitializeUIPreloader()
     native.SetVariable("utopian_inventory_drag_item", -1)
     native.SetVariable("utopian_inventory_page_hover", 0)
     native.SetCursor("utopian_inventory")
@@ -417,11 +416,13 @@ maintask UtopianInventoryUI do
     end
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight || visibleSlots != lastLayoutSlots then
       native.Trace("utopian_inventory layout window=" + windowWidth + "x" + windowHeight + " slots=" + visibleSlots)
-      native.SendMessage(windowWidth, "character_doll")
-      native.SendMessage(5000 + windowHeight, "character_doll")
-      native.SendMessage(windowWidth, "panel_background")
-      native.SendMessage(5000 + windowHeight, "panel_background")
-      ConfigureSlotRenderSize()
+      if childWindowsReady then
+        native.SendMessage(windowWidth, "character_doll")
+        native.SendMessage(5000 + windowHeight, "character_doll")
+        native.SendMessage(windowWidth, "panel_background")
+        native.SendMessage(5000 + windowHeight, "panel_background")
+        ConfigureSlotRenderSize()
+      end
       lastLayoutWidth = windowWidth
       lastLayoutHeight = windowHeight
       lastLayoutSlots = visibleSlots
@@ -590,34 +591,47 @@ maintask UtopianInventoryUI do
   end
 
   function GetSpecialTargetLeft(target: int) -> int
+    local clara: bool = GetBranch() == 2
     if windowWidth >= 1900 then
-      if target == c_iTargetWeapon then return 690 end
+      if target == c_iTargetWeapon then return 660 end
       if target == c_iTargetClothesBase + 1 then return 590 end
       if target == c_iTargetClothesBase + 2 then return 590 end
-      if target == c_iTargetClothesBase + 3 then return 590 end
+      if target == c_iTargetClothesBase + 3 then
+        if clara then return 560 end
+        return 590
+      end
       if target == c_iTargetClothesBase + 4 then return 445 end
       if target == c_iTargetDrop then return 825 end
     else
     if windowWidth >= 1200 then
-      if target == c_iTargetWeapon then return 395 end
+      if target == c_iTargetWeapon then return 375 end
       if target == c_iTargetClothesBase + 1 then return 270 end
       if target == c_iTargetClothesBase + 2 then return 270 end
-      if target == c_iTargetClothesBase + 3 then return 270 end
+      if target == c_iTargetClothesBase + 3 then
+        if clara then return 250 end
+        return 270
+      end
       if target == c_iTargetClothesBase + 4 then return 125 end
       if target == c_iTargetDrop then return 600 end
     else
       if windowWidth >= 1000 then
-        if target == c_iTargetWeapon then return 315 end
+        if target == c_iTargetWeapon then return 299 end
         if target == c_iTargetClothesBase + 1 then return 207 end
         if target == c_iTargetClothesBase + 2 then return 207 end
-        if target == c_iTargetClothesBase + 3 then return 207 end
+        if target == c_iTargetClothesBase + 3 then
+          if clara then return 191 end
+          return 207
+        end
         if target == c_iTargetClothesBase + 4 then return 86 end
         if target == c_iTargetDrop then return 468 end
       else
-        if target == c_iTargetWeapon then return 234 end
+        if target == c_iTargetWeapon then return 222 end
         if target == c_iTargetClothesBase + 1 then return 156 end
         if target == c_iTargetClothesBase + 2 then return 156 end
-        if target == c_iTargetClothesBase + 3 then return 156 end
+        if target == c_iTargetClothesBase + 3 then
+          if clara then return 144 end
+          return 156
+        end
         if target == c_iTargetClothesBase + 4 then return 68 end
         if target == c_iTargetDrop then return 359 end
       end
@@ -627,33 +641,63 @@ maintask UtopianInventoryUI do
   end
 
   function GetSpecialTargetTop(target: int) -> int
+    local clara: bool = GetBranch() == 2
+    local headOffset: int = 8
     if windowWidth >= 1900 then
-      if target == c_iTargetWeapon then return 610 end
+      headOffset = 15
+      if clara then headOffset = 52 end
+    else
+      if windowWidth >= 1200 then
+        headOffset = 12
+        if clara then headOffset = 42 end
+      else
+        if windowWidth >= 1000 then
+          headOffset = 9
+          if clara then headOffset = 32 end
+        else
+          if clara then headOffset = 26 end
+        end
+      end
+    end
+    if windowWidth >= 1900 then
+      if target == c_iTargetWeapon then
+        if clara then return 560 end
+        return 580
+      end
       if target == c_iTargetClothesBase + 1 then return 800 end
-      if target == c_iTargetClothesBase + 2 then return 300 end
+      if target == c_iTargetClothesBase + 2 then return 300 + headOffset end
       if target == c_iTargetClothesBase + 3 then return 488 end
       if target == c_iTargetClothesBase + 4 then return 560 end
       if target == c_iTargetDrop then return 780 end
     else
     if windowWidth >= 1200 then
-      if target == c_iTargetWeapon then return 550 end
+      if target == c_iTargetWeapon then
+        if clara then return 510 end
+        return 528
+      end
       if target == c_iTargetClothesBase + 1 then return 740 end
-      if target == c_iTargetClothesBase + 2 then return 240 end
+      if target == c_iTargetClothesBase + 2 then return 240 + headOffset end
       if target == c_iTargetClothesBase + 3 then return 428 end
       if target == c_iTargetClothesBase + 4 then return 500 end
       if target == c_iTargetDrop then return 770 end
     else
       if windowWidth >= 1000 then
-        if target == c_iTargetWeapon then return 438 end
+        if target == c_iTargetWeapon then
+          if clara then return 403 end
+          return 418
+        end
         if target == c_iTargetClothesBase + 1 then return 569 end
-        if target == c_iTargetClothesBase + 2 then return 188 end
+        if target == c_iTargetClothesBase + 2 then return 188 + headOffset end
         if target == c_iTargetClothesBase + 3 then return 346 end
         if target == c_iTargetClothesBase + 4 then return 399 end
         if target == c_iTargetDrop then return 616 end
       else
-        if target == c_iTargetWeapon then return 337 end
+        if target == c_iTargetWeapon then
+          if clara then return 307 end
+          return 323
+        end
         if target == c_iTargetClothesBase + 1 then return 429 end
-        if target == c_iTargetClothesBase + 2 then return 159 end
+        if target == c_iTargetClothesBase + 2 then return 159 + headOffset end
         if target == c_iTargetClothesBase + 3 then return 271 end
         if target == c_iTargetClothesBase + 4 then return 311 end
         if target == c_iTargetDrop then return 465 end
@@ -909,38 +953,67 @@ maintask UtopianInventoryUI do
       usedLayoutCell->set(i, 0)
     end
 
-    for oldOrdinal = 0, oldCount - 1 do
-      if oldOrdinal < newCount then
-        local previousID: int
-        local currentID: int
-        backpackSnapshot->get(previousID, oldOrdinal)
-        currentBackpackSnapshot->get(currentID, oldOrdinal)
-        if previousID == currentID then
+    local removalHintValid: int = 0
+    local removalHintOrdinal: int = -1
+    local removalHintOldCount: int = -1
+    native.GetVariable("utopian_inventory_removed_ordinal_valid", removalHintValid)
+    native.GetVariable("utopian_inventory_removed_ordinal_hint", removalHintOrdinal)
+    native.GetVariable("utopian_inventory_removed_ordinal_old_count", removalHintOldCount)
+    local removalHintApplies: bool =
+      removalHintValid == 1 &&
+      removalHintOldCount == oldCount &&
+      newCount == oldCount - 1 &&
+      removalHintOrdinal >= 0 &&
+      removalHintOrdinal < oldCount
+
+    if removalHintApplies then
+      for oldOrdinal = 0, oldCount - 1 do
+        if oldOrdinal < removalHintOrdinal then
           oldToNewOrder->set(oldOrdinal, oldOrdinal)
           claimedNewOrder->set(oldOrdinal, 1)
         end
+        if oldOrdinal > removalHintOrdinal then
+          oldToNewOrder->set(oldOrdinal, oldOrdinal - 1)
+          claimedNewOrder->set(oldOrdinal - 1, 1)
+        end
       end
-    end
-
-    for oldOrdinal = 0, oldCount - 1 do
-      local mapped: int = -1
-      oldToNewOrder->get(mapped, oldOrdinal)
-      if mapped < 0 then
-        local wantedID: int
-        backpackSnapshot->get(wantedID, oldOrdinal)
-        for newOrdinal = 0, newCount - 1 do
-          local claimed: int
-          claimedNewOrder->get(claimed, newOrdinal)
+      native.Trace("utopian_inventory applied removal hint ordinal=" + removalHintOrdinal +
+        " old=" + oldCount + " new=" + newCount)
+    else
+      for oldOrdinal = 0, oldCount - 1 do
+        if oldOrdinal < newCount then
+          local previousID: int
           local currentID: int
-          currentBackpackSnapshot->get(currentID, newOrdinal)
-          if claimed == 0 && currentID == wantedID then
-            oldToNewOrder->set(oldOrdinal, newOrdinal)
-            claimedNewOrder->set(newOrdinal, 1)
-            newOrdinal = newCount
+          backpackSnapshot->get(previousID, oldOrdinal)
+          currentBackpackSnapshot->get(currentID, oldOrdinal)
+          if previousID == currentID then
+            oldToNewOrder->set(oldOrdinal, oldOrdinal)
+            claimedNewOrder->set(oldOrdinal, 1)
+          end
+        end
+      end
+
+      for oldOrdinal = 0, oldCount - 1 do
+        local mapped: int = -1
+        oldToNewOrder->get(mapped, oldOrdinal)
+        if mapped < 0 then
+          local wantedID: int
+          backpackSnapshot->get(wantedID, oldOrdinal)
+          for newOrdinal = 0, newCount - 1 do
+            local claimed: int
+            claimedNewOrder->get(claimed, newOrdinal)
+            local currentID: int
+            currentBackpackSnapshot->get(currentID, newOrdinal)
+            if claimed == 0 && currentID == wantedID then
+              oldToNewOrder->set(oldOrdinal, newOrdinal)
+              claimedNewOrder->set(newOrdinal, 1)
+              newOrdinal = newCount
+            end
           end
         end
       end
     end
+    if removalHintValid == 1 then native.SetVariable("utopian_inventory_removed_ordinal_valid", 0) end
 
     for cell = 0, c_iInventoryCapacity - 1 do
       local oldOrder: int = GetOrderValue(cell)
@@ -1227,11 +1300,177 @@ maintask UtopianInventoryUI do
     container->GetProperty("money", money)
     native.SendMessage(money, "money")
   end
+
+  function GetQuickslotItemVariable(slot: int) -> string
+    return "utopian_quickslot_item_" + slot
+  end
+
+  function GetQuickslotCategoryVariable(slot: int) -> string
+    return "utopian_quickslot_category_" + slot
+  end
+
+  function GetQuickslotDepletedVariable(slot: int) -> string
+    return "utopian_quickslot_depleted_" + slot
+  end
+
+  function GetQuickslotOccurrenceVariable(slot: int) -> string
+    return "utopian_quickslot_occurrence_" + slot
+  end
+
+  function GetItemOccurrence(category: int, index: int, itemID: int) -> int
+    local container: object = GetPlayerContainer()
+    local occurrence: int = 0
+    for candidate = 0, index - 1 do
+      local candidateItem: object
+      local candidateID: int
+      container->GetItem(candidateItem, candidate, category)
+      if candidateItem then
+        candidateItem->GetItemID(candidateID)
+        if candidateID == itemID then occurrence = occurrence + 1 end
+      end
+    end
+    return occurrence
+  end
+
+  function InitializeQuickslotBindings() -> void
+    local version: int = 0
+    native.GetVariable("utopian_quickslot_version", version)
+    if version == c_iQuickslotVersion then return end
+    for slot = 1, c_iQuickslotCount do
+      native.SetVariable(GetQuickslotItemVariable(slot), -1)
+      native.SetVariable(GetQuickslotCategoryVariable(slot), -1)
+    end
+    native.SetVariable("utopian_quickslot_version", c_iQuickslotVersion)
+  end
+
+  function RefreshQuickslotCache() -> void
+    for slot = 1, c_iQuickslotCount do
+      local assignedCategory: int = -1
+      local assignedItem: int = -1
+      native.GetVariable(GetQuickslotCategoryVariable(slot), assignedCategory)
+      native.GetVariable(GetQuickslotItemVariable(slot), assignedItem)
+      quickslotCategoryCache->set(slot - 1, assignedCategory)
+      quickslotItemCache->set(slot - 1, assignedItem)
+    end
+  end
+
+  function GetItemQuickslot(category: int, itemID: int) -> int
+    for slot = 1, c_iQuickslotCount do
+      local assignedCategory: int = -1
+      local assignedItem: int = -1
+      quickslotCategoryCache->get(assignedCategory, slot - 1)
+      quickslotItemCache->get(assignedItem, slot - 1)
+      if assignedCategory == category && assignedItem == itemID then return slot end
+    end
+    return 0
+  end
+
+  function GetDisplayedQuickslot(category: int, index: int, itemID: int) -> int
+    local occurrence: int = GetItemOccurrence(category, index, itemID)
+    for slot = 1, c_iQuickslotCount do
+      local assignedCategory: int = -1
+      local assignedItem: int = -1
+      local assignedOccurrence: int = 0
+      quickslotCategoryCache->get(assignedCategory, slot - 1)
+      quickslotItemCache->get(assignedItem, slot - 1)
+      native.GetVariable(GetQuickslotOccurrenceVariable(slot), assignedOccurrence)
+      if assignedCategory == category && assignedItem == itemID &&
+        assignedOccurrence == occurrence then return slot end
+    end
+    return 0
+  end
+
+  function IsQuickslotEligible(category: int, itemID: int) -> bool
+    if category == c_iCWeapon then
+      local weapon: bool
+      native.HasInvItemProperty(weapon, itemID, "Weapon")
+      return weapon
+    end
+    if category == c_iCClothes then
+      local group: bool
+      native.HasInvItemProperty(group, itemID, "Group")
+      return group
+    end
+    return category >= 2 && category < c_iCategoryCount
+  end
+
+  function AssignQuickslot(slot: int, category: int, index: int) -> void
+    if slot < 1 || slot > c_iQuickslotCount then return end
+    local container: object = GetPlayerContainer()
+    local item: object
+    local itemID: int
+    container->GetItem(item, index, category)
+    if !item then return end
+    item->GetItemID(itemID)
+    if !IsQuickslotEligible(category, itemID) then return end
+    local occurrence: int = GetItemOccurrence(category, index, itemID)
+
+    local oldCategory: int = -1
+    local oldItem: int = -1
+    local oldOccurrence: int = 0
+    native.GetVariable(GetQuickslotCategoryVariable(slot), oldCategory)
+    native.GetVariable(GetQuickslotItemVariable(slot), oldItem)
+    native.GetVariable(GetQuickslotOccurrenceVariable(slot), oldOccurrence)
+    if oldCategory == category && oldItem == itemID && oldOccurrence == occurrence then
+      native.SetVariable(GetQuickslotCategoryVariable(slot), -1)
+      native.SetVariable(GetQuickslotItemVariable(slot), -1)
+      native.SetVariable(GetQuickslotDepletedVariable(slot), 0)
+      native.SetVariable(GetQuickslotOccurrenceVariable(slot), -1)
+      quickslotCategoryCache->set(slot - 1, -1)
+      quickslotItemCache->set(slot - 1, -1)
+      native.Trace("utopian_quickslot cleared slot=" + slot + " item=" + itemID)
+    else
+      for other = 1, c_iQuickslotCount do
+        local otherCategory: int = -1
+        local otherItem: int = -1
+        local otherOccurrence: int = 0
+        native.GetVariable(GetQuickslotCategoryVariable(other), otherCategory)
+        native.GetVariable(GetQuickslotItemVariable(other), otherItem)
+        native.GetVariable(GetQuickslotOccurrenceVariable(other), otherOccurrence)
+        if otherCategory == category && otherItem == itemID && otherOccurrence == occurrence then
+          native.SetVariable(GetQuickslotCategoryVariable(other), -1)
+          native.SetVariable(GetQuickslotItemVariable(other), -1)
+          native.SetVariable(GetQuickslotDepletedVariable(other), 0)
+          native.SetVariable(GetQuickslotOccurrenceVariable(other), -1)
+          quickslotCategoryCache->set(other - 1, -1)
+          quickslotItemCache->set(other - 1, -1)
+        end
+      end
+      native.SetVariable(GetQuickslotCategoryVariable(slot), category)
+      native.SetVariable(GetQuickslotItemVariable(slot), itemID)
+      native.SetVariable(GetQuickslotDepletedVariable(slot), 0)
+      native.SetVariable(GetQuickslotOccurrenceVariable(slot), occurrence)
+      quickslotCategoryCache->set(slot - 1, category)
+      quickslotItemCache->set(slot - 1, itemID)
+      native.Trace("utopian_quickslot assigned slot=" + slot + " category=" + category +
+        " item=" + itemID + " occurrence=" + occurrence)
+    end
+    UpdateSlots()
+  end
+
+  function GetQuickslotByKey(key: int) -> int
+    if key >= 49 && key <= 57 then return key - 48 end
+    if key == 48 then return 10 end
+    if key >= 97 && key <= 105 then return key - 96 end
+    if key == 96 then return 10 end
+    return 0
+  end
+
+  function AssignHoveredQuickslot(slot: int) -> void
+    if dragSourceSlot >= 0 then return end
+    local target: int = highlightedSlot
+    if target < 0 then target = panelTooltipTarget end
+    if ResolveDragSource(target) then
+      AssignQuickslot(slot, resolvedCategory, resolvedIndex)
+    end
+  end
+
   function UpdateSlot(slot: int) -> void
     local container: object = GetPlayerContainer()
     local wndName: string = GetSlotWndName(slot)
     if GetVisibleCell(slot) < 0 then
       native.SendMessage(c_iSlotEmpty, wndName)
+      native.SendMessage(-140, wndName)
       native.SendMessage(-22, wndName)
     else
       native.SendMessage(-23, wndName)
@@ -1242,8 +1481,14 @@ maintask UtopianInventoryUI do
         container->GetItemAmount(amount, resolvedIndex, resolvedCategory)
         native.SendMessage(0, wndName, item)
         native.SendMessage(amount + c_iSlotNumber, wndName)
+        local itemID: int
+        item->GetItemID(itemID)
+        local quickslot: int = GetDisplayedQuickslot(resolvedCategory, resolvedIndex, itemID)
+        native.SendMessage(-140, wndName)
+        if quickslot > 0 then native.SendMessage(-140 - quickslot, wndName) end
       else
         native.SendMessage(c_iSlotEmpty, wndName)
+        native.SendMessage(-140, wndName)
       end
     end
   end
@@ -1262,11 +1507,7 @@ maintask UtopianInventoryUI do
 
   function ContinueInitialSlotLoad() -> void
     if !initialSlotLoadActive then return end
-    local preloadReady: int = 0
-    local batchLimit: int = c_iInitialSlotLoadBatch
-    native.GetVariable("utopian_inventory_preload_ready", preloadReady)
-    if preloadReady == 1 then batchLimit = visibleSlots + 5 end
-    for batch = 0, batchLimit - 1 do
+    for batch = 0, c_iInitialSlotLoadBatch - 1 do
       if initialEquipmentLoadNext < 5 then
         UpdateCachedEquipmentSlot(initialEquipmentLoadNext)
         initialEquipmentLoadNext = initialEquipmentLoadNext + 1
@@ -1279,96 +1520,9 @@ maintask UtopianInventoryUI do
     end
     if initialEquipmentLoadNext >= 5 && initialSlotLoadNext >= visibleSlots then
       initialSlotLoadActive = false
-      if preloadReady == 0 then
-        native.SetVariable("utopian_inventory_preload_ready", 1)
-        native.Trace("UTOPIAN_PRELOADER visible page ready slots=" + visibleSlots)
-      end
-      native.Trace("utopian_inventory deferred initial slots complete preload=" + preloadReady +
-        " batch=" + batchLimit)
+      native.Trace("utopian_inventory sequential initial slots complete batch=" +
+        c_iInitialSlotLoadBatch)
     end
-  end
-
-  function IsUIPreloadItemQueued(itemID: int) -> bool
-    for index = 0, preloadItemCount - 1 do
-      local queuedID: int
-      preloadItemIDs->get(queuedID, index)
-      if queuedID == itemID then return true end
-    end
-    return false
-  end
-
-  function QueueUIPreloadItem(itemID: int) -> void
-    if itemID < 0 || IsUIPreloadItemQueued(itemID) then return end
-    if preloadItemCount >= c_iPreloadCapacity then return end
-    preloadItemIDs->set(preloadItemCount, itemID)
-    preloadItemCount = preloadItemCount + 1
-  end
-
-  function InitializeUIPreloader() -> void
-    local preloadReady: int = 0
-    native.GetVariable("utopian_inventory_preload_ready", preloadReady)
-    if preloadReady == 1 then
-      preloadActive = false
-      native.Trace("UTOPIAN_PRELOADER UI cache reuse")
-      return
-    end
-
-    preloadItemCount = 0
-    preloadItemIndex = 0
-    preloadCooldown = 0
-    for index = 0, c_iPreloadCapacity - 1 do preloadItemIDs->set(index, -1) end
-    local player: object = GetPlayerContainer()
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        local item: object
-        local itemID: int = -1
-        player->GetItem(item, index, category)
-        if item then
-          item->GetItemID(itemID)
-          QueueUIPreloadItem(itemID)
-        end
-      end
-    end
-    preloadActive = true
-    native.SetVariable("utopian_inventory_preload_loaded", 0)
-    native.SetVariable("utopian_inventory_preload_count", preloadItemCount)
-    native.Trace("UTOPIAN_PRELOADER UI start unique=" + preloadItemCount +
-      " highres=" + (windowWidth >= 1900))
-  end
-
-  function ProcessUIPreloader(delta: float) -> void
-    if initialSlotLoadPending || initialSlotLoadActive then return end
-    if !preloadActive then
-      local preloadReady: int = 0
-      native.GetVariable("utopian_inventory_preload_ready", preloadReady)
-      if preloadReady == 0 then InitializeUIPreloader() end
-      return
-    end
-
-    if preloadItemIndex >= preloadItemCount then
-      preloadActive = false
-      native.SetVariable("utopian_inventory_preload_ready", 1)
-      native.SetVariable("utopian_inventory_preload_loaded", preloadItemCount)
-      native.Trace("UTOPIAN_PRELOADER UI ready unique=" + preloadItemCount)
-      return
-    end
-
-    preloadCooldown = preloadCooldown - delta
-    if preloadCooldown > 0 then return end
-    preloadCooldown = c_fPreloadStep
-    local itemID: int
-    local sprite: string = ""
-    preloadItemIDs->get(itemID, preloadItemIndex)
-    if windowWidth >= 1900 then
-      native.GetInvItemSprite2(sprite, itemID)
-    else
-      native.GetInvItemSprite(sprite, itemID)
-    end
-    if sprite != "" then native.LoadImage(sprite) end
-    preloadItemIndex = preloadItemIndex + 1
-    native.SetVariable("utopian_inventory_preload_loaded", preloadItemIndex)
   end
 
   function UpdateSlots() -> void
@@ -1388,8 +1542,14 @@ maintask UtopianInventoryUI do
       local item: object
       container->GetItem(item, resolvedIndex, resolvedCategory)
       native.SendMessage(0, wndName, item)
+      local itemID: int
+      item->GetItemID(itemID)
+      local quickslot: int = GetDisplayedQuickslot(resolvedCategory, resolvedIndex, itemID)
+      native.SendMessage(-140, wndName)
+      if quickslot > 0 then native.SendMessage(-140 - quickslot, wndName) end
     else
       native.SendMessage(c_iSlotEmpty, wndName)
+      native.SendMessage(-140, wndName)
     end
     native.SendMessage(-30 - (target - c_iTargetWeapon), wndName)
   end
@@ -1457,8 +1617,14 @@ maintask UtopianInventoryUI do
       local item: object
       container->GetItem(item, index, category)
       native.SendMessage(0, wndName, item)
+      local itemID: int
+      item->GetItemID(itemID)
+      local quickslot: int = GetDisplayedQuickslot(category, index, itemID)
+      native.SendMessage(-140, wndName)
+      if quickslot > 0 then native.SendMessage(-140 - quickslot, wndName) end
     else
       native.SendMessage(c_iSlotEmpty, wndName)
+      native.SendMessage(-140, wndName)
     end
     native.SendMessage(-30 - cache, wndName)
   end
@@ -2347,6 +2513,16 @@ maintask UtopianInventoryUI do
   end
 
   function OnUpdate(delta: float) -> void
+    if !childWindowsReady then
+      childWindowsReady = true
+      lastLayoutWidth = -1
+      lastLayoutHeight = -1
+      lastLayoutSlots = -1
+      UpdateLayout()
+      UpdatePageControls()
+      UpdateMoney()
+      native.Trace("utopian_inventory child windows ready")
+    end
     if tooltipResumeDelay > 0 then
       ClearPanelTooltip()
       tooltipResumeDelay = tooltipResumeDelay - delta
@@ -2368,7 +2544,6 @@ maintask UtopianInventoryUI do
       end
     end
     ContinueInitialSlotLoad()
-    ProcessUIPreloader(delta)
     inventoryPollCooldown = inventoryPollCooldown - delta
     if inventoryPollCooldown <= 0 then
       inventoryPollCooldown = 0.25
@@ -2446,6 +2621,33 @@ maintask UtopianInventoryUI do
     native.SetVariable("utopian_inventory_tooltip_type", 5)
   end
 
+  function ShowQuickslotHelpPanelTooltip() -> void
+    panelTooltipTarget = c_iTargetQuickslotHelp
+    native.SetVariable("utopian_inventory_tooltip_item", -1)
+    native.SetVariable("utopian_inventory_tooltip_text_id", 1407)
+    native.SetVariable("utopian_inventory_tooltip_type", 5)
+  end
+
+  function IsInsideQuickslotHelp(x: int, y: int) -> bool
+    local helpX: int = 515
+    local helpY: int = 509
+    if windowWidth >= 1900 then
+      helpX = 1130
+      helpY = 824
+    else
+    if windowWidth >= 1200 then
+      helpX = 858
+      helpY = 814
+    else
+    if windowWidth >= 1000 then
+      helpX = 674
+      helpY = 660
+    end
+    end
+    end
+    return x >= helpX && x < helpX + 36 && y >= helpY && y < helpY + 36
+  end
+
   function IsInsidePlayerPaging(x: int, y: int) -> bool
     if GetMaxPage() <= 0 then return false end
     local controlX: int = 467
@@ -2469,6 +2671,10 @@ maintask UtopianInventoryUI do
     end
     if dragSourceSlot >= 0 then
       ClearPanelTooltip()
+      return
+    end
+    if IsInsideQuickslotHelp(x, y) then
+      ShowQuickslotHelpPanelTooltip()
       return
     end
     if IsInsidePlayerPaging(x, y) then
@@ -2686,6 +2892,8 @@ maintask UtopianInventoryUI do
           hoverSlot = -1
           ApplyPointerSlot(-1)
         end
+      else
+        SetHighlightedSlot(GetSpecialTargetBySender(sender))
       end
       return
     end
@@ -2719,6 +2927,8 @@ maintask UtopianInventoryUI do
       if dragSourceSlot >= 0 then
         hoverSlot = -1
         ApplyPointerSlot(-1)
+      else
+        SetHighlightedSlot(-1)
       end
       return
     end
@@ -2873,6 +3083,7 @@ maintask UtopianInventoryUI do
   end
 
   function OnChar(char: int) -> void
+    if char >= 48 && char <= 57 then return end
     native.Trace("utopian_inventory OnChar close")
     PersistCurrentBackpackSnapshot()
     native.DestroyWindow()
@@ -2882,6 +3093,11 @@ maintask UtopianInventoryUI do
     native.Trace("utopian_inventory OnKeyDown " + key)
     if key == c_iVKShift then shiftHeld = true end
     if key == c_iVKControl then controlHeld = true end
+    local quickslot: int = GetQuickslotByKey(key)
+    if quickslot > 0 then
+      AssignHoveredQuickslot(quickslot)
+      return
+    end
     if key == 27 || key == 73 || key == 105 then
       PersistCurrentBackpackSnapshot()
       native.DestroyWindow()

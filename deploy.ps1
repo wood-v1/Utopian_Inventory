@@ -141,7 +141,9 @@ if (!$SkipLuaCompile) {
         "inv_overhaul_apparatus.bin",
         "inv_overhaul_dapparatus.bin",
         "inv_overhaul_microscope.bin",
-        "inv_overhaul_container_probe.bin"
+        "inv_overhaul_container_probe.bin",
+        "inv_overhaul_quickslot_restore.bin",
+        "inv_overhaul_player_context.bin"
     )) {
         Remove-DeployedFile -Path (Join-Path $LuaOutDir $staleScript)
     }
@@ -163,7 +165,9 @@ foreach ($staleScript in @(
     "inv_overhaul_apparatus.bin",
     "inv_overhaul_dapparatus.bin",
     "inv_overhaul_microscope.bin",
-    "inv_overhaul_container_probe.bin"
+    "inv_overhaul_container_probe.bin",
+    "inv_overhaul_quickslot_restore.bin",
+    "inv_overhaul_player_context.bin"
 )) {
     Remove-DeployedFile -Path (Join-Path $GameScriptsDir $staleScript)
 }
@@ -177,7 +181,9 @@ foreach ($staleXml in @(
     "inv_overhaul_microscope.xml",
     "inv_overhaul_microscope_1024x768.xml",
     "inv_overhaul_microscope_1280x1024.xml",
-    "inv_overhaul_container_probe.xml"
+    "inv_overhaul_container_probe.xml",
+    "inv_overhaul_quickslot_restore.xml",
+    "inv_overhaul_player_context.xml"
 )) {
     Remove-DeployedFile -Path (Join-Path $GameUiDir $staleXml)
 }
@@ -187,6 +193,12 @@ Copy-DeployedFile -Source (Join-Path $BuildDir "$Configuration\InventoryOverhaul
 Copy-DeployedFile -Source (Join-Path $RepoRoot "InventoryOverhaul.ini") -Destination (Join-Path $GameModsDir "InventoryOverhaul.ini")
 Copy-DeployedFile -Source (Join-Path $RepoRoot "release-assets\InventoryOverhaul.manifest.ini") -Destination (Join-Path $GameModsDir "InventoryOverhaul.manifest.ini")
 foreach ($bin in Get-ChildItem -LiteralPath $LuaOutDir -Filter "inv_overhaul_*.bin" -File) {
+    if ($bin.Name -in @(
+        "inv_overhaul_quickslot_restore.bin",
+        "inv_overhaul_player_context.bin"
+    )) {
+        continue
+    }
     Copy-DeployedFile -Source $bin.FullName -Destination (Join-Path $GameScriptsDir $bin.Name)
 }
 

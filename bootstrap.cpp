@@ -53,6 +53,7 @@ std::atomic<int> g_pendingQuickslot{ 0 };
 std::atomic<DWORD> g_lastQuickslotRequestTick{ 0 };
 std::atomic<DWORD> g_handCombatKey{ 'X' };
 std::atomic<bool> g_quickslotsReady{ false };
+std::atomic<int> g_quickslotsGeneration{ 0 };
 std::atomic<DWORD> g_runtimeTextureEpoch{ 1 };
 int g_publishedPageHover = -1;
 float g_emptySlotOpacity = 1.0f;
@@ -126,25 +127,39 @@ bool PublishQuickslotRequest(int quickslot, const char* source)
         }
     }
 
-    char command[64] = {};
+    char effectName[64] = {};
     std::snprintf(
-        command,
-        sizeof(command),
-        "setvar inv_overhaul_quickslot_request %d",
+        effectName,
+        sizeof(effectName),
+        "inv_overhaul_quickslot_request_%d.bin",
         quickslot);
-    if (!OynonExecCommand(command)) {
-        g_lastQuickslotRequestTick.store(last, std::memory_order_release);
-        Log("quick-slot input command failed");
-        return false;
+    const bool nativeApplied = OynonApplyObservedPlayerEffect(effectName) != FALSE;
+    if (!nativeApplied) {
+        // Save loading replaces the player before OynonTools can observe a new
+        // direct ApplyEffect call.  The engine's own `effect` command resolves
+        // the current player by name, so it is a safe one-shot transport that
+        // does not retain or dereference a player pointer across worlds.
+        char command[96] = {};
+        std::snprintf(
+            command,
+            sizeof(command),
+            "effect player %s",
+            effectName);
+        if (!OynonExecCommand(command)) {
+            g_lastQuickslotRequestTick.store(last, std::memory_order_release);
+            Log("quick-slot input transports unavailable");
+            return false;
+        }
     }
 
     char line[128] = {};
     std::snprintf(
         line,
         sizeof(line),
-        "quick-slot request published slot=%d source=%s",
+        "quick-slot request published slot=%d source=%s transport=%s",
         quickslot,
-        source ? source : "unknown");
+        source ? source : "unknown",
+        nativeApplied ? "native" : "engine-command");
     Log(line);
     return true;
 }
@@ -179,11 +194,35 @@ void __stdcall OnConsoleMessage(const char* message, void*)
     constexpr const char* effectLifecyclePrefix = "INV_OVERHAUL_EFFECT_LIFECYCLE ";
     const char* effectLifecycleMessage = std::strstr(message, effectLifecyclePrefix);
     if (effectLifecycleMessage) {
-        if (std::strstr(effectLifecycleMessage, "quickslots start")) {
+        int effectGeneration = 0;
+        const char* generationText = std::strstr(effectLifecycleMessage, "generation=");
+        if (generationText) {
+            effectGeneration = static_cast<int>(std::strtol(
+                generationText + std::strlen("generation="),
+                nullptr,
+                10));
+        }
+        if (std::strstr(effectLifecycleMessage, "quickslots start") ||
+            std::strstr(effectLifecycleMessage, "quickslots resume")) {
+            g_quickslotsGeneration.store(effectGeneration, std::memory_order_release);
             g_quickslotsReady.store(true, std::memory_order_release);
         }
         else if (std::strstr(effectLifecycleMessage, "quickslots stop")) {
-            g_quickslotsReady.store(false, std::memory_order_release);
+            const int activeGeneration =
+                g_quickslotsGeneration.load(std::memory_order_acquire);
+            if (effectGeneration <= 0 || effectGeneration == activeGeneration) {
+                g_quickslotsReady.store(false, std::memory_order_release);
+            }
+            else {
+                char staleLine[144] = {};
+                std::snprintf(
+                    staleLine,
+                    sizeof(staleLine),
+                    "quickslots stale stop ignored generation=%d active=%d",
+                    effectGeneration,
+                    activeGeneration);
+                Log(staleLine);
+            }
         }
         Log(effectLifecycleMessage);
         return;
@@ -193,6 +232,13 @@ void __stdcall OnConsoleMessage(const char* message, void*)
     const char* handsDropMessage = std::strstr(message, handsDropPrefix);
     if (handsDropMessage) {
         Log(handsDropMessage);
+        return;
+    }
+
+    constexpr const char* quickslotTracePrefix = "inv_overhaul_quickslot ";
+    const char* quickslotTraceMessage = std::strstr(message, quickslotTracePrefix);
+    if (quickslotTraceMessage) {
+        Log(quickslotTraceMessage);
         return;
     }
 
@@ -817,6 +863,8 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
         // confirming the already validated five-category player here, the
         // bootstrap script can publish the character branch before the first
         // inventory redirect is resolved.
+        g_quickslotsReady.store(false, std::memory_order_release);
+        OynonRearmPlayerBootstrapEffect();
         if (OynonConfirmPlayerBootstrapReady()) {
             Log("player bootstrap gameplay readiness confirmed by playerstat window");
         }
@@ -1047,18 +1095,16 @@ void __stdcall OnKeyboardInput(DWORD virtualKey, BOOL pressed, void*)
         return;
     }
 
-    if (!g_quickslotsReady.load(std::memory_order_acquire)) {
+    if (!PublishQuickslotRequest(quickslot, "keyboard")) {
         g_pendingQuickslot.store(quickslot, std::memory_order_release);
-        char queuedLine[96] = {};
+        char queuedLine[112] = {};
         std::snprintf(
             queuedLine,
             sizeof(queuedLine),
-            "quick-slot request deferred slot=%d until effect is ready",
+            "quick-slot request deferred slot=%d until native player context is ready",
             quickslot);
         Log(queuedLine);
-        return;
     }
-    PublishQuickslotRequest(quickslot, "keyboard");
 }
 
 BOOL __stdcall OnConsoleCommand(const char* command, void*)
@@ -1212,7 +1258,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     g_performanceDiagnostics = ReadPerformanceDiagnostics(module);
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
     RefreshHandCombatKey(true);
-    Log("INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.14-rubbish-reentrancy-9");
+    Log("INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.16-quickslot-save-command-1");
     if (!WriteEmptySlotTexture(module)) {
         Log("failed to create empty slot opacity texture");
     }
@@ -1305,8 +1351,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
         const int pendingQuickslot = g_pendingQuickslot.load(std::memory_order_acquire);
         if (pendingQuickslot > 0 &&
             !g_inventoryOpen.load(std::memory_order_acquire) &&
-            OynonUIInventoryGetOverlayKind() == OYNON_INVENTORY_OVERLAY_NONE &&
-            g_quickslotsReady.load(std::memory_order_acquire)) {
+            OynonUIInventoryGetOverlayKind() == OYNON_INVENTORY_OVERLAY_NONE) {
             if (PublishQuickslotRequest(pendingQuickslot, "deferred")) {
                 int expected = pendingQuickslot;
                 g_pendingQuickslot.compare_exchange_strong(

@@ -2,9 +2,12 @@ param(
     [string]$Configuration = "Release",
     [string]$OutputDir = "",
     [string]$OynonToolsRoot = "",
+    [string]$BuildDir = "",
+    [string]$OynonToolsBuildDir = "",
     [string]$LuaCompilerRoot = "",
     [string]$PathologicReRoot = "",
     [string]$LauncherRoot = "",
+    [string]$LauncherBuildDir = "",
     [switch]$SkipBuild,
     [switch]$SkipOynonToolsBuild,
     [switch]$SkipLuaCompile
@@ -19,6 +22,12 @@ $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 if ([string]::IsNullOrEmpty($OynonToolsRoot)) {
     $OynonToolsRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot "..\OynonTools"))
 }
+if ([string]::IsNullOrEmpty($BuildDir)) {
+    $BuildDir = Join-Path $RepoRoot "build-win32"
+}
+if ([string]::IsNullOrEmpty($OynonToolsBuildDir)) {
+    $OynonToolsBuildDir = Join-Path $OynonToolsRoot "build-win32"
+}
 if ([string]::IsNullOrEmpty($LuaCompilerRoot)) {
     $LuaCompilerRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot "..\pathologic_lua_compiler"))
 }
@@ -28,11 +37,16 @@ if ([string]::IsNullOrEmpty($PathologicReRoot)) {
 if ([string]::IsNullOrEmpty($LauncherRoot)) {
     $LauncherRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot "..\UtopianLauncher"))
 }
+if ([string]::IsNullOrEmpty($LauncherBuildDir)) {
+    $LauncherBuildDir = Join-Path $LauncherRoot "build"
+}
 
 $DeployScript = Join-Path $RepoRoot "deploy.ps1"
-$LauncherExe = Join-Path $LauncherRoot "build\$Configuration\GameModLauncher.exe"
+$LauncherExe = Join-Path $LauncherBuildDir "$Configuration\GameModLauncher.exe"
 $LauncherIni = Join-Path $RepoRoot "release-assets\GameModLauncher.ini"
-$Manifest = Join-Path $RepoRoot "release-assets\UtopianInventory.manifest.ini"
+$Manifest = Join-Path $RepoRoot "release-assets\InventoryOverhaul.manifest.ini"
+$Readme = Join-Path $RepoRoot "README.md"
+$InstallInstructions = Join-Path $RepoRoot "release-assets\INSTALL.txt"
 
 function Write-Step([string]$Message) { Write-Host "[release] $Message" }
 function Assert-PathExists([string]$Path, [string]$Description) {
@@ -42,7 +56,7 @@ function Assert-ReleaseOutputPath {
     $expectedPrefix = $RepoRoot + [System.IO.Path]::DirectorySeparatorChar
     if ($OutputDir -eq $RepoRoot -or
         !$OutputDir.StartsWith($expectedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Release output must stay inside the UtopianInventory repository: $OutputDir"
+        throw "Release output must stay inside the project repository: $OutputDir"
     }
 }
 function Copy-PackageFile([string]$Source, [string]$Destination) {
@@ -71,6 +85,8 @@ Assert-PathExists -Path $DeployScript -Description "deploy script"
 Assert-PathExists -Path $LauncherExe -Description "UtopianLauncher executable"
 Assert-PathExists -Path $LauncherIni -Description "release launcher config"
 Assert-PathExists -Path $Manifest -Description "mod manifest"
+Assert-PathExists -Path $Readme -Description "README"
+Assert-PathExists -Path $InstallInstructions -Description "install instructions"
 
 if (Test-Path -LiteralPath $OutputDir) {
     Write-Step "clean `"$OutputDir`""
@@ -78,24 +94,39 @@ if (Test-Path -LiteralPath $OutputDir) {
 }
 New-Item -ItemType Directory -Path $OutputDir | Out-Null
 
+# deploy.ps1 updates the game's string registry. Seed a temporary minimal
+# config for staging, then remove it so a release never overwrites the user's
+# data\config.ini.
+$stagingConfig = Join-Path $OutputDir "data\config.ini"
+New-Item -ItemType Directory -Path (Split-Path -Parent $stagingConfig) -Force | Out-Null
+[System.IO.File]::WriteAllText(
+    $stagingConfig,
+    "[Strings]`r`nmain = txt, 0`r`n",
+    [System.Text.Encoding]::ASCII)
+
 Write-Step "build and stage mod files"
 & $DeployScript `
     -GameRoot $OutputDir `
     -Configuration $Configuration `
+    -BuildDir $BuildDir `
     -OynonToolsRoot $OynonToolsRoot `
+    -OynonToolsBuildDir $OynonToolsBuildDir `
     -LuaCompilerRoot $LuaCompilerRoot `
     -PathologicReRoot $PathologicReRoot `
     -SkipBuild:$SkipBuild `
     -SkipOynonToolsBuild:$SkipOynonToolsBuild `
     -SkipLuaCompile:$SkipLuaCompile
 if (!$?) { throw "deploy.ps1 failed" }
+Remove-Item -LiteralPath $stagingConfig -Force
 
 $FinalDir = Join-Path $OutputDir "bin\Final"
 Copy-PackageFile -Source $LauncherExe -Destination (Join-Path $FinalDir "GameModLauncher.exe")
 Copy-PackageFile -Source $LauncherIni -Destination (Join-Path $FinalDir "GameModLauncher.ini")
-Copy-PackageFile -Source $Manifest -Destination (Join-Path $FinalDir "mods\UtopianInventory.manifest.ini")
+Copy-PackageFile -Source $Manifest -Destination (Join-Path $FinalDir "mods\InventoryOverhaul.manifest.ini")
+Copy-PackageFile -Source $Readme -Destination (Join-Path $OutputDir "README.md")
+Copy-PackageFile -Source $InstallInstructions -Destination (Join-Path $OutputDir "INSTALL.txt")
 
-$zipPath = Join-Path $OutputDir "Pathologic_Utopian_Inventory_0_1.zip"
+$zipPath = Join-Path $OutputDir "Pathologic_Inventory_Overhaul_0_1.zip"
 if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force
 }

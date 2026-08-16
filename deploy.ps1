@@ -10,6 +10,7 @@
     [switch]$SkipBuild,
     [switch]$SkipOynonToolsBuild,
     [switch]$SkipLuaCompile,
+    [switch]$SkipAssetGeneration,
     [switch]$DryRun
 )
 
@@ -76,19 +77,25 @@ function Remove-DeployedFile([string]$Path) {
     Write-Step "remove stale `"$Path`""
     if (!$DryRun) { Remove-Item -LiteralPath $Path -Force }
 }
+function Remove-DeployedFilesMatching([string]$Directory, [string]$Filter) {
+    if (!(Test-Path -LiteralPath $Directory)) { return }
+    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter $Filter -File) {
+        Remove-DeployedFile -Path $file.FullName
+    }
+}
 function Register-InventoryStringResource([string]$ConfigPath) {
     Assert-PathExists -Path $ConfigPath -Description "Game config"
     $content = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::ASCII)
     $newline = if ($content.Contains("`r`n")) { "`r`n" } else { "`n" }
     $resource = if ($content -match '(?im)^\s*pgog_ru\s*=') {
-        "utopian_inventory_ru"
+        "inv_overhaul_inventory_ru"
     }
     else {
-        "utopian_inventory"
+        "inv_overhaul_inventory"
     }
     $content = [System.Text.RegularExpressions.Regex]::Replace(
         $content,
-        '(?im)^[ \t]*utopian_inventory(?:_ru)?[ \t]*=.*(?:\r?\n)?',
+        '(?im)^[ \t]*inv_overhaul_inventory(?:_ru)?[ \t]*=.*(?:\r?\n)?',
         '')
     $stringsSection = [System.Text.RegularExpressions.Regex]::new('(?im)^\[Strings\][ \t]*\r?$')
     if (!$stringsSection.IsMatch($content)) {
@@ -107,6 +114,15 @@ function Register-InventoryStringResource([string]$ConfigPath) {
 Assert-PathExists -Path $GameRoot -Description "Pathologic Classic HD root"
 Assert-PathExists -Path $OynonToolsRoot -Description "OynonTools root"
 
+if (!$SkipAssetGeneration) {
+    Invoke-External -WorkingDirectory $RepoRoot -FilePath "powershell" -Arguments @(
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        (Join-Path $RepoRoot "scripts\generate_inventory_layouts.ps1"))
+}
+
 if (!$SkipOynonToolsBuild) {
     Ensure-CMakeBuildDir -SourceDir $OynonToolsRoot -CMakeBuildDir $OynonToolsBuildDir -ExtraArgs @()
     Invoke-External -WorkingDirectory $OynonToolsRoot -FilePath "cmake" -Arguments @("--build", $OynonToolsBuildDir, "--config", $Configuration)
@@ -122,9 +138,10 @@ if (!$SkipLuaCompile) {
         New-Item -ItemType Directory -Path $LuaOutDir | Out-Null
     }
     foreach ($staleScript in @(
-        "utopian_apparatus.bin",
-        "utopian_dapparatus.bin",
-        "utopian_microscope.bin"
+        "inv_overhaul_apparatus.bin",
+        "inv_overhaul_dapparatus.bin",
+        "inv_overhaul_microscope.bin",
+        "inv_overhaul_container_probe.bin"
     )) {
         Remove-DeployedFile -Path (Join-Path $LuaOutDir $staleScript)
     }
@@ -139,48 +156,47 @@ if (!$SkipLuaCompile) {
     }
 }
 
+Remove-DeployedFilesMatching -Directory $GameUiTexturesDir -Filter "inv_overhaul_*.png"
+Remove-DeployedFilesMatching -Directory $GameUiTexturesDir -Filter "inv_overhaul_*.tga"
+
 foreach ($staleScript in @(
-    "utopian_apparatus.bin",
-    "utopian_dapparatus.bin",
-    "utopian_microscope.bin"
+    "inv_overhaul_apparatus.bin",
+    "inv_overhaul_dapparatus.bin",
+    "inv_overhaul_microscope.bin",
+    "inv_overhaul_container_probe.bin"
 )) {
     Remove-DeployedFile -Path (Join-Path $GameScriptsDir $staleScript)
 }
 foreach ($staleXml in @(
-    "utopian_apparatus.xml",
-    "utopian_apparatus_1024x768.xml",
-    "utopian_apparatus_1280x1024.xml",
-    "utopian_dapparatus.xml",
-    "utopian_dapparatus_1024x768.xml",
-    "utopian_dapparatus_1280x1024.xml",
-    "utopian_microscope.xml",
-    "utopian_microscope_1024x768.xml",
-    "utopian_microscope_1280x1024.xml"
+    "inv_overhaul_apparatus.xml",
+    "inv_overhaul_apparatus_1024x768.xml",
+    "inv_overhaul_apparatus_1280x1024.xml",
+    "inv_overhaul_dapparatus.xml",
+    "inv_overhaul_dapparatus_1024x768.xml",
+    "inv_overhaul_dapparatus_1280x1024.xml",
+    "inv_overhaul_microscope.xml",
+    "inv_overhaul_microscope_1024x768.xml",
+    "inv_overhaul_microscope_1280x1024.xml",
+    "inv_overhaul_container_probe.xml"
 )) {
     Remove-DeployedFile -Path (Join-Path $GameUiDir $staleXml)
 }
 
 Copy-DeployedFile -Source (Join-Path $OynonToolsRoot "bin\Win32\$Configuration\OynonTools.dll") -Destination (Join-Path $GameModsDir "OynonTools.dll")
-Copy-DeployedFile -Source (Join-Path $BuildDir "$Configuration\UtopianInventory.dll") -Destination (Join-Path $GameModsDir "UtopianInventory.dll")
-Copy-DeployedFile -Source (Join-Path $RepoRoot "UtopianInventory.ini") -Destination (Join-Path $GameModsDir "UtopianInventory.ini")
-Copy-DeployedFile -Source (Join-Path $RepoRoot "release-assets\UtopianInventory.manifest.ini") -Destination (Join-Path $GameModsDir "UtopianInventory.manifest.ini")
-foreach ($bin in Get-ChildItem -LiteralPath $LuaOutDir -Filter "*.bin" -File) {
+Copy-DeployedFile -Source (Join-Path $BuildDir "$Configuration\InventoryOverhaul.dll") -Destination (Join-Path $GameModsDir "InventoryOverhaul.dll")
+Copy-DeployedFile -Source (Join-Path $RepoRoot "InventoryOverhaul.ini") -Destination (Join-Path $GameModsDir "InventoryOverhaul.ini")
+Copy-DeployedFile -Source (Join-Path $RepoRoot "release-assets\InventoryOverhaul.manifest.ini") -Destination (Join-Path $GameModsDir "InventoryOverhaul.manifest.ini")
+foreach ($bin in Get-ChildItem -LiteralPath $LuaOutDir -Filter "inv_overhaul_*.bin" -File) {
     Copy-DeployedFile -Source $bin.FullName -Destination (Join-Path $GameScriptsDir $bin.Name)
 }
 
-foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.xml" -File) {
+foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "inv_overhaul_*.xml" -File) {
     Copy-DeployedFile -Source $xml.FullName -Destination (Join-Path $GameUiDir $xml.Name)
 }
-foreach ($png in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.png" -File) {
-    Copy-DeployedFile -Source $png.FullName -Destination (Join-Path $GameUiTexturesDir $png.Name)
-}
-foreach ($tga in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tga" -File) {
-    Copy-DeployedFile -Source $tga.FullName -Destination (Join-Path $GameUiTexturesDir $tga.Name)
-}
-foreach ($tex in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "utopian_*.tex" -File) {
+foreach ($tex in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "inv_overhaul_*.tex" -File) {
     Copy-DeployedFile -Source $tex.FullName -Destination (Join-Path $GameUiTexturesDir $tex.Name)
 }
-foreach ($strings in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\strings") -Filter "utopian_*.txt" -File) {
+foreach ($strings in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\strings") -Filter "inv_overhaul_*.txt" -File) {
     Copy-DeployedFile -Source $strings.FullName -Destination (Join-Path $GameStringsDir $strings.Name)
 }
 Register-InventoryStringResource -ConfigPath (Join-Path $GameRoot "data\config.ini")

@@ -9,10 +9,12 @@ CHARACTERS = ("bachelor", "haruspex", "clara")
 ATLAS_SIZE = (512, 1024)
 DOLL_VISIBLE_SIZE = (410, 650)
 DOLL_GAME_SIZE = (205, 325)
-BACKGROUND_SOURCE_SIZE = (1536, 1024)
 BACKGROUND_GAME_SIZE = (800, 533)
+BACKGROUND_GAME_SIZE_OVERRIDES = {}
 BACKGROUND_SOURCES = {
-    "clara": "clara_inventory_bg_.png",
+    # This source has the correct 3:2 composition, full-resolution details,
+    # and no hanging hooks in the right inventory panel.
+    "clara": "clara_inventory_bg.png",
 }
 LOOT_DOLL_SIZE = (205, 325)
 LOOT_DOLLS = {
@@ -20,24 +22,53 @@ LOOT_DOLLS = {
     "corpse": "doll.png",
 }
 
-Image.new("RGB", (64, 64), (0, 0, 0)).save(
-    UI_DIR / "utopian_slot_black.png",
-    format="PNG",
-    optimize=True,
+
+def save_tex(image: Image.Image, target: Path, pixel_format: str) -> None:
+    """Save a Pathologic .tex file (a DDS container with DXT compression)."""
+    prepared = image.convert("RGBA" if pixel_format == "DXT5" else "RGB")
+    prepared.save(target, format="DDS", pixel_format=pixel_format)
+    print(
+        f"prepared {target.name}: {prepared.width}x{prepared.height} "
+        f"{pixel_format} TEX"
+    )
+
+
+save_tex(
+    Image.new("RGB", (64, 64), (0, 0, 0)),
+    UI_DIR / "inv_overhaul_slot_black.tex",
+    "DXT1",
 )
+save_tex(
+    Image.new("RGB", (64, 64), (0, 0, 0)),
+    UI_DIR / "inv_overhaul_slot_empty.tex",
+    "DXT1",
+)
+save_tex(
+    Image.new("RGBA", (4, 4), (0, 0, 0, 0)),
+    UI_DIR / "inv_overhaul_slot_transparent.tex",
+    "DXT5",
+)
+
+for name in ("slot_occupied", "slot_target", "quickslot_help"):
+    source = IMAGE_DIR / f"inv_overhaul_{name}_source.png"
+    with Image.open(source) as image:
+        save_tex(
+            image.convert("RGBA"),
+            UI_DIR / f"inv_overhaul_{name}.tex",
+            "DXT5",
+        )
 
 
 for character in CHARACTERS:
-    source = UI_DIR / f"utopian_doll_{character}.png"
-    target = UI_DIR / f"utopian_doll_{character}.tga"
+    source = IMAGE_DIR / f"inv_overhaul_doll_{character}_source.png"
+    target = UI_DIR / f"inv_overhaul_doll_{character}.tex"
     with Image.open(source) as image:
         rgba = image.convert("RGBA")
         if rgba.size != ATLAS_SIZE:
             raise RuntimeError(f"{source.name}: expected {ATLAS_SIZE}, got {rgba.size}")
         visible = rgba.crop((0, 0, DOLL_VISIBLE_SIZE[0], DOLL_VISIBLE_SIZE[1]))
         doll = visible.resize(DOLL_GAME_SIZE, Image.Resampling.LANCZOS)
-        doll.save(target, format="TGA", compression="tga_rle")
-    print(f"prepared {target.name}: 205x325 RGBA RLE TGA")
+        save_tex(doll, target, "DXT5")
 
 
 for character in CHARACTERS:
@@ -45,35 +76,25 @@ for character in CHARACTERS:
         character,
         f"{character}_inventory_bg.png",
     )
-    png_target = UI_DIR / f"utopian_inventory_bg_{character}.png"
-    tga_target = UI_DIR / f"utopian_inventory_bg_{character}.tga"
+    target = UI_DIR / f"inv_overhaul_inventory_bg_{character}.tex"
     with Image.open(source) as image:
-        rgba = image.convert("RGBA")
-        background = rgba.resize(BACKGROUND_GAME_SIZE, Image.Resampling.LANCZOS)
-        background.save(png_target, format="PNG", optimize=True)
-        background.convert("RGB").save(
-            tga_target,
-            format="TGA",
-            compression="tga_rle",
+        background = image.convert("RGB").resize(
+            BACKGROUND_GAME_SIZE_OVERRIDES.get(character, BACKGROUND_GAME_SIZE),
+            Image.Resampling.LANCZOS,
         )
-    print(
-        f"prepared {png_target.name}: {rgba.size[0]}x{rgba.size[1]} source "
-        "-> 800x533 RGBA PNG"
-    )
-    print(f"prepared {tga_target.name}: 800x533 RGB RLE TGA")
+        save_tex(background, target, "DXT1")
 
 
 for kind, source_name in LOOT_DOLLS.items():
     source = IMAGE_DIR / source_name
-    png_target = UI_DIR / f"utopian_loot_{kind}.png"
-    tga_target = UI_DIR / f"utopian_loot_{kind}.tga"
+    target = UI_DIR / f"inv_overhaul_loot_{kind}.tex"
     with Image.open(source) as image:
         rgba = image.convert("RGBA")
         source_alpha = rgba.getchannel("A")
         if source_alpha.getextrema() == (255, 255):
-            # The supplied PNGs contain a baked near-white/checkerboard
-            # background rather than transparency. Both subjects are dark, so
-            # a luminance matte removes it while retaining antialiased edges.
+            # Supplied images contain a baked near-white/checkerboard
+            # background. The subjects are dark, so a luminance matte removes
+            # it while retaining antialiased edges.
             luminance = ImageOps.grayscale(rgba)
             alpha_lut = []
             for value in range(256):
@@ -113,10 +134,4 @@ for kind, source_name in LOOT_DOLLS.items():
                 alpha,
             ),
         )
-        prepared.save(png_target, format="PNG", optimize=True)
-        # The legacy UI.dll RLE decoder crashes on some transparent pixel runs
-        # before the form script is initialized. These two small overlays are
-        # stored as plain type-2 RGBA TGA for deterministic loading.
-        prepared.save(tga_target, format="TGA")
-    print(f"prepared {png_target.name}: 205x325 RGBA PNG")
-    print(f"prepared {tga_target.name}: 205x325 RGBA uncompressed TGA")
+        save_tex(prepared, target, "DXT5")

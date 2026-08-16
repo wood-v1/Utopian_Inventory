@@ -1,5 +1,0 @@
-<form name="utopian_quickslot_feedback" x="0" y="0" w="1280" h="1024" script="utopian_quickslot_feedback.bin">
-  <image name="slot" x="0" y="0" w="1" h="1">ui/ui_hud_item_slot.png</image>
-  <image name="target" x="0" y="0" w="1" h="1">ui/utopian_slot_target.png</image>
-  <font name="default" size="12" face="fritz_quadrata" />
-</form>

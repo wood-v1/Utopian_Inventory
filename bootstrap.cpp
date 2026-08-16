@@ -16,15 +16,15 @@
 
 namespace
 {
-constexpr const char* DEBUG_CHANNEL = "UtopianInventory";
-constexpr const char* CUSTOM_INVENTORY_XML = "utopian_inventory.xml";
-constexpr const char* CUSTOM_INVENTORY_XML_1920 = "utopian_inventory_1920x1080.xml";
-constexpr const char* CUSTOM_CLARA_INVENTORY_XML = "utopian_inventory_clara.xml";
-constexpr const char* CUSTOM_CLARA_INVENTORY_XML_1920 = "utopian_inventory_clara_1920x1080.xml";
-constexpr const char* CUSTOM_LOOT_XML = "utopian_container.xml";
-constexpr const char* CUSTOM_LOOT_XML_1920 = "utopian_container_1920x1080.xml";
-constexpr const char* CUSTOM_CORPSE_XML = "utopian_corpse.xml";
-constexpr const char* CUSTOM_CORPSE_XML_1920 = "utopian_corpse_1920x1080.xml";
+constexpr const char* DEBUG_CHANNEL = "InventoryOverhaul";
+constexpr const char* CUSTOM_INVENTORY_XML = "inv_overhaul_inventory.xml";
+constexpr const char* CUSTOM_INVENTORY_XML_1920 = "inv_overhaul_inventory_1920x1080.xml";
+constexpr const char* CUSTOM_CLARA_INVENTORY_XML = "inv_overhaul_inventory_clara.xml";
+constexpr const char* CUSTOM_CLARA_INVENTORY_XML_1920 = "inv_overhaul_inventory_clara_1920x1080.xml";
+constexpr const char* CUSTOM_LOOT_XML = "inv_overhaul_container.xml";
+constexpr const char* CUSTOM_LOOT_XML_1920 = "inv_overhaul_container_1920x1080.xml";
+constexpr const char* CUSTOM_CORPSE_XML = "inv_overhaul_corpse.xml";
+constexpr const char* CUSTOM_CORPSE_XML_1920 = "inv_overhaul_corpse_1920x1080.xml";
 constexpr int PAGE_BUTTON_WIDTH = 40;
 constexpr int PAGE_BUTTON_HEIGHT = 36;
 constexpr int PAGE_NEXT_OFFSET = 92;
@@ -48,14 +48,118 @@ constexpr std::array<DWORD, 27> DOCTOR_APPARATUS_PRIORITY_IDS = {
 };
 
 std::atomic<bool> g_inventoryOpen{ false };
-std::atomic<DWORD> g_handCombatKey{ 'X' };
 std::atomic<int> g_playerBranch{ -1 };
+std::atomic<int> g_pendingQuickslot{ 0 };
+std::atomic<DWORD> g_lastQuickslotRequestTick{ 0 };
+std::atomic<DWORD> g_handCombatKey{ 'X' };
+std::atomic<bool> g_quickslotsReady{ false };
+std::atomic<DWORD> g_runtimeTextureEpoch{ 1 };
 int g_publishedPageHover = -1;
 float g_emptySlotOpacity = 1.0f;
+bool g_performanceDiagnostics = true;
 std::string g_inputConfigPath;
+
+struct InventoryOpenPerformance
+{
+    bool active = false;
+    ULONGLONG startedMicroseconds = 0;
+    DWORD createWndMicroseconds = 0;
+    DWORD childReadyMicroseconds = 0;
+    DWORD layoutReadyMicroseconds = 0;
+    DWORD firstItemMicroseconds = 0;
+    DWORD lastStepMicroseconds = 0;
+    std::string originalXml;
+    std::string resolvedXml;
+};
+
+InventoryOpenPerformance g_inventoryPerformance;
 
 void Log(const char* line);
 const char* ResolveInventoryXml();
+
+ULONGLONG PerformanceNowMicroseconds()
+{
+    static LARGE_INTEGER frequency = []() {
+        LARGE_INTEGER value = {};
+        ::QueryPerformanceFrequency(&value);
+        return value;
+    }();
+    LARGE_INTEGER counter = {};
+    ::QueryPerformanceCounter(&counter);
+    if (frequency.QuadPart <= 0) {
+        return static_cast<ULONGLONG>(::GetTickCount64()) * 1000ull;
+    }
+    const ULONGLONG ticks = static_cast<ULONGLONG>(counter.QuadPart);
+    const ULONGLONG ticksPerSecond =
+        static_cast<ULONGLONG>(frequency.QuadPart);
+    return (ticks / ticksPerSecond) * 1000000ull +
+        ((ticks % ticksPerSecond) * 1000000ull) / ticksPerSecond;
+}
+
+DWORD InventoryPerformanceElapsed()
+{
+    if (!g_inventoryPerformance.active) {
+        return 0;
+    }
+    const ULONGLONG now = PerformanceNowMicroseconds();
+    const ULONGLONG elapsed = now > g_inventoryPerformance.startedMicroseconds
+        ? now - g_inventoryPerformance.startedMicroseconds
+        : 0;
+    return elapsed > MAXDWORD ? MAXDWORD : static_cast<DWORD>(elapsed);
+}
+
+bool PublishQuickslotRequest(int quickslot, const char* source)
+{
+    constexpr DWORD QUICK_SLOT_COOLDOWN_MS = 200;
+    const DWORD now = ::GetTickCount();
+    DWORD last = g_lastQuickslotRequestTick.load(std::memory_order_acquire);
+    while (last != 0 && now - last < QUICK_SLOT_COOLDOWN_MS) {
+        return false;
+    }
+    while (!g_lastQuickslotRequestTick.compare_exchange_weak(
+        last,
+        now,
+        std::memory_order_acq_rel,
+        std::memory_order_acquire)) {
+        if (last != 0 && now - last < QUICK_SLOT_COOLDOWN_MS) {
+            return false;
+        }
+    }
+
+    char command[64] = {};
+    std::snprintf(
+        command,
+        sizeof(command),
+        "setvar inv_overhaul_quickslot_request %d",
+        quickslot);
+    if (!OynonExecCommand(command)) {
+        g_lastQuickslotRequestTick.store(last, std::memory_order_release);
+        Log("quick-slot input command failed");
+        return false;
+    }
+
+    char line[128] = {};
+    std::snprintf(
+        line,
+        sizeof(line),
+        "quick-slot request published slot=%d source=%s",
+        quickslot,
+        source ? source : "unknown");
+    Log(line);
+    return true;
+}
+
+bool PublishRuntimeTextureEpoch()
+{
+    char command[96] = {};
+    std::snprintf(
+        command,
+        sizeof(command),
+        "setvar inv_overhaul_runtime_texture_epoch %lu",
+        static_cast<unsigned long>(
+            g_runtimeTextureEpoch.load(std::memory_order_acquire)));
+    return OynonExecCommand(command) != FALSE;
+}
 
 void __stdcall OnConsoleMessage(const char* message, void*)
 {
@@ -63,9 +167,138 @@ void __stdcall OnConsoleMessage(const char* message, void*)
         return;
     }
 
-    constexpr const char* branchPrefix = "UTOPIAN_PLAYER_BRANCH ";
+    constexpr const char* cachePrefix = "INV_OVERHAUL_UI_CACHE_";
+    const char* cacheMessage = std::strstr(message, cachePrefix);
+    if (cacheMessage) {
+        if (g_performanceDiagnostics) {
+            Log(cacheMessage);
+        }
+        return;
+    }
+
+    constexpr const char* effectLifecyclePrefix = "INV_OVERHAUL_EFFECT_LIFECYCLE ";
+    const char* effectLifecycleMessage = std::strstr(message, effectLifecyclePrefix);
+    if (effectLifecycleMessage) {
+        if (std::strstr(effectLifecycleMessage, "quickslots start")) {
+            g_quickslotsReady.store(true, std::memory_order_release);
+        }
+        else if (std::strstr(effectLifecycleMessage, "quickslots stop")) {
+            g_quickslotsReady.store(false, std::memory_order_release);
+        }
+        Log(effectLifecycleMessage);
+        return;
+    }
+
+    constexpr const char* handsDropPrefix = "inv_overhaul_drop_hands ";
+    const char* handsDropMessage = std::strstr(message, handsDropPrefix);
+    if (handsDropMessage) {
+        Log(handsDropMessage);
+        return;
+    }
+
+    constexpr const char* performanceStepPrefix = "INV_OVERHAUL_PERF_STEP ";
+    const char* performanceStepMessage = std::strstr(message, performanceStepPrefix);
+    if (performanceStepMessage) {
+        if (g_performanceDiagnostics && g_inventoryPerformance.active) {
+            const DWORD elapsed = InventoryPerformanceElapsed();
+            const DWORD delta = elapsed >= g_inventoryPerformance.lastStepMicroseconds
+                ? elapsed - g_inventoryPerformance.lastStepMicroseconds
+                : 0;
+            char line[384] = {};
+            std::snprintf(
+                line,
+                sizeof(line),
+                "inventory perf step elapsed_us=%lu delta_us=%lu %s",
+                static_cast<unsigned long>(elapsed),
+                static_cast<unsigned long>(delta),
+                performanceStepMessage + std::strlen(performanceStepPrefix));
+            Log(line);
+            g_inventoryPerformance.lastStepMicroseconds = elapsed;
+        }
+        return;
+    }
+
+    constexpr const char* performancePrefix = "INV_OVERHAUL_PERF_PHASE ";
+    constexpr const char* performanceIconPrefix = "INV_OVERHAUL_PERF_ICON ";
+    const char* performanceIconMessage = std::strstr(message, performanceIconPrefix);
+    if (performanceIconMessage) {
+        if (g_performanceDiagnostics && g_inventoryPerformance.active) {
+            char line[768] = {};
+            std::snprintf(
+                line,
+                sizeof(line),
+                "inventory perf icon elapsed_us=%lu %s",
+                static_cast<unsigned long>(InventoryPerformanceElapsed()),
+                performanceIconMessage + std::strlen(performanceIconPrefix));
+            Log(line);
+        }
+        return;
+    }
+
+    const char* performanceMessage = std::strstr(message, performancePrefix);
+    if (performanceMessage) {
+        if (!g_performanceDiagnostics || !g_inventoryPerformance.active) {
+            return;
+        }
+        const char* phase = performanceMessage + std::strlen(performancePrefix);
+        const DWORD elapsed = InventoryPerformanceElapsed();
+        if (std::strncmp(phase, "child_ready", 11) == 0) {
+            g_inventoryPerformance.childReadyMicroseconds = elapsed;
+        }
+        else if (std::strncmp(phase, "layout_ready", 12) == 0) {
+            g_inventoryPerformance.layoutReadyMicroseconds = elapsed;
+        }
+        else if (std::strncmp(phase, "first_item", 10) == 0) {
+            g_inventoryPerformance.firstItemMicroseconds = elapsed;
+        }
+        else if (std::strncmp(phase, "complete", 8) == 0) {
+            int stacks = 0;
+            int equipment = 0;
+            int hits = 0;
+            int misses = 0;
+            int warmed = 0;
+            int warmStart = 0;
+            std::sscanf(
+                phase,
+                "complete stacks=%d equipment=%d hits=%d misses=%d warmed=%d warm_start=%d",
+                &stacks,
+                &equipment,
+                &hits,
+                &misses,
+                &warmed,
+                &warmStart);
+            char line[512] = {};
+            std::snprintf(
+                line,
+                sizeof(line),
+                "inventory perf branch=%d original=%s resolved=%s stacks=%d equipment=%d cache_hits=%d cache_misses=%d warmed=%d warm_start=%d create_us=%lu child_us=%lu layout_us=%lu first_item_us=%lu complete_us=%lu",
+                g_playerBranch.load(std::memory_order_acquire),
+                g_inventoryPerformance.originalXml.c_str(),
+                g_inventoryPerformance.resolvedXml.c_str(),
+                stacks,
+                equipment,
+                hits,
+                misses,
+                warmed,
+                warmStart,
+                static_cast<unsigned long>(g_inventoryPerformance.createWndMicroseconds),
+                static_cast<unsigned long>(g_inventoryPerformance.childReadyMicroseconds),
+                static_cast<unsigned long>(g_inventoryPerformance.layoutReadyMicroseconds),
+                static_cast<unsigned long>(g_inventoryPerformance.firstItemMicroseconds),
+                static_cast<unsigned long>(elapsed));
+            Log(line);
+            g_inventoryPerformance.active = false;
+        }
+        return;
+    }
+
+    constexpr const char* branchPrefix = "INV_OVERHAUL_PLAYER_BRANCH ";
     const char* branchRequest = std::strstr(message, branchPrefix);
     if (branchRequest) {
+        // The branch marker belongs to the freshly constructed bootstrap task.
+        // Its quickslot effect is applied immediately afterwards; invalidate
+        // readiness only for this narrow, real player-transition interval.
+        g_quickslotsReady.store(false, std::memory_order_release);
         char* end = nullptr;
         const long branch = std::strtol(
             branchRequest + std::strlen(branchPrefix),
@@ -91,7 +324,7 @@ void __stdcall OnConsoleMessage(const char* message, void*)
         return;
     }
 
-    constexpr const char* prefix = "UTOPIAN_QUICKSLOT_NATIVE_HANDS ";
+    constexpr const char* prefix = "INV_OVERHAUL_QUICKSLOT_NATIVE_HANDS ";
     const char* request = std::strstr(message, prefix);
     if (!request) {
         return;
@@ -150,21 +383,81 @@ bool IsInventoryWindowName(const char* xml)
         std::strcmp(xml, CUSTOM_CORPSE_XML_1920) == 0;
 }
 
+bool IsPlayerInventoryWindowName(const char* xml)
+{
+    if (!xml) {
+        return false;
+    }
+    return std::strcmp(xml, "inventory.xml") == 0 ||
+        std::strcmp(xml, CUSTOM_INVENTORY_XML) == 0 ||
+        std::strcmp(xml, CUSTOM_INVENTORY_XML_1920) == 0 ||
+        std::strcmp(xml, CUSTOM_CLARA_INVENTORY_XML) == 0 ||
+        std::strcmp(xml, CUSTOM_CLARA_INVENTORY_XML_1920) == 0;
+}
+
+bool IsCorpseWindowName(const char* xml)
+{
+    if (!xml) {
+        return false;
+    }
+    return std::strcmp(xml, "corpse.xml") == 0 ||
+        std::strcmp(xml, CUSTOM_CORPSE_XML) == 0 ||
+        std::strcmp(xml, CUSTOM_CORPSE_XML_1920) == 0;
+}
+
+bool IsContainerWindowName(const char* xml)
+{
+    if (!xml) {
+        return false;
+    }
+    return std::strcmp(xml, "container.xml") == 0 ||
+        std::strcmp(xml, CUSTOM_LOOT_XML) == 0 ||
+        std::strcmp(xml, CUSTOM_LOOT_XML_1920) == 0;
+}
+
+bool IsStorageContainerUseScript(const char* scriptName)
+{
+    if (!scriptName || scriptName[0] == '\0') {
+        return false;
+    }
+
+    const char* baseName = scriptName;
+    for (const char* cursor = scriptName; *cursor != '\0'; ++cursor) {
+        if (*cursor == '/' || *cursor == '\\') {
+            baseName = cursor + 1;
+        }
+    }
+
+    // Vanilla world containers, including the dropped-item bag, use the
+    // container*.bin family. Bachelor/Clara corpses open the same
+    // container.xml from their NPC script (citizen_*.bin, etc.). Classifying
+    // at this already validated player-use boundary avoids calling actor-only
+    // methods on generic container actors, which caused the rubbish softlock.
+    constexpr char prefix[] = "container";
+    for (std::size_t index = 0; index + 1 < sizeof(prefix); ++index) {
+        if (baseName[index] == '\0' ||
+            std::tolower(static_cast<unsigned char>(baseName[index])) != prefix[index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::string GetIniPath(HMODULE module)
 {
     char path[MAX_PATH] = {};
     const DWORD length = ::GetModuleFileNameA(module, path, MAX_PATH);
     if (length == 0 || length >= MAX_PATH) {
-        return "UtopianInventory.ini";
+        return "InventoryOverhaul.ini";
     }
 
     std::string result(path, length);
     const std::string::size_type separator = result.find_last_of("\\/");
     if (separator == std::string::npos) {
-        return "UtopianInventory.ini";
+        return "InventoryOverhaul.ini";
     }
     result.resize(separator + 1);
-    result += "UtopianInventory.ini";
+    result += "InventoryOverhaul.ini";
     return result;
 }
 
@@ -196,9 +489,7 @@ std::string GetInputConfigPath(HMODULE module)
 std::string LowerAscii(std::string value)
 {
     std::transform(
-        value.begin(),
-        value.end(),
-        value.begin(),
+        value.begin(), value.end(), value.begin(),
         [](unsigned char character) {
             return static_cast<char>(std::tolower(character));
         });
@@ -214,7 +505,6 @@ DWORD ResolveVirtualKeyName(const std::string& rawName)
             return static_cast<DWORD>(mapped & 0xff);
         }
     }
-
     if (name.size() >= 2 && name[0] == 'f') {
         const int number = std::atoi(name.c_str() + 1);
         if (number >= 1 && number <= 24) {
@@ -222,10 +512,7 @@ DWORD ResolveVirtualKeyName(const std::string& rawName)
         }
     }
 
-    struct NamedKey {
-        const char* name;
-        DWORD virtualKey;
-    };
+    struct NamedKey { const char* name; DWORD virtualKey; };
     static constexpr NamedKey namedKeys[] = {
         { "tab", VK_TAB }, { "space", VK_SPACE },
         { "escape", VK_ESCAPE }, { "esc", VK_ESCAPE },
@@ -284,13 +571,10 @@ void RefreshHandCombatKey(bool forceLog)
     if (!forceLog && previous == resolved) {
         return;
     }
-    char line[160] = {};
+    char line[192] = {};
     std::snprintf(
-        line,
-        sizeof(line),
-        "handcombat binding key=%lu config=%s",
-        static_cast<unsigned long>(resolved),
-        g_inputConfigPath.c_str());
+        line, sizeof(line), "handcombat binding key=%lu config=%s",
+        static_cast<unsigned long>(resolved), g_inputConfigPath.c_str());
     Log(line);
 }
 
@@ -320,6 +604,16 @@ float ReadEmptySlotOpacity(HMODULE module)
     return value;
 }
 
+bool ReadPerformanceDiagnostics(HMODULE module)
+{
+    const std::string iniPath = GetIniPath(module);
+    return ::GetPrivateProfileIntA(
+        "Performance",
+        "Diagnostics",
+        1,
+        iniPath.c_str()) != 0;
+}
+
 bool WriteEmptySlotTexture(HMODULE module)
 {
     wchar_t modulePath[MAX_PATH] = {};
@@ -334,7 +628,11 @@ bool WriteEmptySlotTexture(HMODULE module)
         return false;
     }
     texturePath.resize(separator + 1);
-    texturePath += L"..\\..\\..\\data\\Textures\\UI\\utopian_slot_empty.tga";
+    // The opacity texture is generated as an uncompressed TGA at runtime.
+    // Never write these bytes over the packaged DDS/TEX resource: doing so
+    // makes UI.dll parse a TGA payload as a DDS texture and eventually corrupts
+    // its texture cache when slot states are changed repeatedly.
+    texturePath += L"..\\..\\..\\data\\Textures\\UI\\inv_overhaul_slot_empty_runtime.tga";
 
     wchar_t normalizedPath[MAX_PATH] = {};
     const DWORD normalizedLength =
@@ -455,6 +753,11 @@ void Log(const char* line)
 void __stdcall OnInventoryStateChanged(BOOL opened, void*)
 {
     g_inventoryOpen.store(opened != FALSE);
+    if (opened) {
+        // A deferred gameplay activation must never fire after the player has
+        // entered the assignment UI.
+        g_pendingQuickslot.store(0, std::memory_order_release);
+    }
     if (!opened) {
         // Do not publish console variables while the game is loading a world.
         // OynonExecCommand invokes the engine directly and is only safe here
@@ -466,10 +769,103 @@ void __stdcall OnInventoryStateChanged(BOOL opened, void*)
 
 void __stdcall OnUIWindowPrepare(const char* xml, void*)
 {
+    // Do not execute console commands while the engine is constructing an
+    // external-inventory override. Re-entering the loop-transition machinery
+    // here can leave a static station active without its first UI update.
+    // Corpse layouts carry an explicit child marker, while ordinary container
+    // layouts intentionally do not, so no global kind variable is required.
+    if (IsCorpseWindowName(xml)) {
+        Log("loot window kind selected corpse layout");
+    }
+    else if (IsContainerWindowName(xml)) {
+        char activeUseScript[260] = {};
+        if (OynonGetActivePlayerUseScript(activeUseScript, sizeof(activeUseScript))) {
+            const bool originalContainerWindow = std::strcmp(xml, "container.xml") == 0;
+            const bool corpseOpenedAsContainer =
+                originalContainerWindow && !IsStorageContainerUseScript(activeUseScript);
+            if (corpseOpenedAsContainer) {
+                if (OynonUISetOneShotWindowRedirect("container.xml", ResolveCorpseXml())) {
+                    char line[384] = {};
+                    std::snprintf(
+                        line,
+                        sizeof(line),
+                        "loot window kind promoted to corpse layout active_use=%s",
+                        activeUseScript);
+                    Log(line);
+                }
+                else {
+                    Log("loot window corpse one-shot redirect failed");
+                }
+                return;
+            }
+
+            char line[384] = {};
+            std::snprintf(
+                line,
+                sizeof(line),
+                "loot window kind selected container layout active_use=%s",
+                activeUseScript);
+            Log(line);
+        }
+        else {
+            Log("loot window kind selected container layout active_use=<none>");
+        }
+    }
+
+    if (xml && std::strcmp(xml, "playerstat.xml") == 0) {
+        // playerstat is created before the first controllable inventory. By
+        // confirming the already validated five-category player here, the
+        // bootstrap script can publish the character branch before the first
+        // inventory redirect is resolved.
+        if (OynonConfirmPlayerBootstrapReady()) {
+            Log("player bootstrap gameplay readiness confirmed by playerstat window");
+        }
+    }
+
+    if (xml && std::strcmp(xml, "daychange.xml") == 0) {
+        if (OynonConfirmPlayerBootstrapReady()) {
+            Log("player bootstrap gameplay readiness confirmed by daychange window");
+        }
+        else {
+            Log("player bootstrap daychange confirmation arrived before player observation");
+        }
+    }
+
     if (IsInventoryWindowName(xml)) {
         // Close the small interval between CreateWnd and the inventory-state
         // callback so a digit used to assign a slot cannot also activate it.
         g_inventoryOpen.store(true);
+    }
+
+    if (IsPlayerInventoryWindowName(xml)) {
+        // Some branches expose their first playable inventory after the
+        // day-change callback ran against a still-transitional player. The
+        // inventory itself is a stronger gameplay-ready signal, so repeat the
+        // confirmation here and let OynonTools attach the persistent guard and
+        // quickslot effects to the current player object.
+        if (OynonConfirmPlayerBootstrapReady()) {
+            Log("player bootstrap gameplay readiness confirmed by inventory window");
+        }
+        // World loading resets console variables. Republish the process-local
+        // epoch immediately before the root inventory script is created so
+        // per-item warm markers survive window close/open but never leak into
+        // a later game process through a save.
+        if (!PublishRuntimeTextureEpoch()) {
+            Log("InventoryOverhaul failed to republish runtime texture epoch");
+        }
+        char diagnosticsCommand[64] = {};
+        std::snprintf(
+            diagnosticsCommand,
+            sizeof(diagnosticsCommand),
+            "setvar inv_overhaul_perf_diagnostics %d",
+            g_performanceDiagnostics ? 1 : 0);
+        OynonExecCommand(diagnosticsCommand);
+        if (g_performanceDiagnostics) {
+            g_inventoryPerformance = {};
+            g_inventoryPerformance.active = true;
+            g_inventoryPerformance.startedMicroseconds = PerformanceNowMicroseconds();
+            g_inventoryPerformance.originalXml = xml ? xml : "";
+        }
     }
 
     const DWORD* priorityIds = nullptr;
@@ -532,7 +928,7 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
             std::snprintf(
                 command,
                 sizeof(command),
-                "setvar utopian_special_inventory_count_%lu 0",
+                "setvar inv_overhaul_special_inventory_count_%lu 0",
                 static_cast<unsigned long>(category));
             published = OynonExecCommand(command) && published;
             continue;
@@ -542,7 +938,7 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
         std::snprintf(
             command,
             sizeof(command),
-            "setvar utopian_special_inventory_count_%lu %lu",
+            "setvar inv_overhaul_special_inventory_count_%lu %lu",
             static_cast<unsigned long>(category),
             static_cast<unsigned long>(categoryCounts[category]));
         published = OynonExecCommand(command) && published;
@@ -551,7 +947,7 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
             std::snprintf(
                 command,
                 sizeof(command),
-                "setvar utopian_special_inventory_map_%lu_%lu %lu",
+                "setvar inv_overhaul_special_inventory_map_%lu_%lu %lu",
                 static_cast<unsigned long>(category),
                 static_cast<unsigned long>(oldIndex),
                 static_cast<unsigned long>(oldToNew[mappingBase + oldIndex]));
@@ -564,10 +960,10 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
         std::snprintf(
             command,
             sizeof(command),
-            "setvar utopian_special_inventory_remap_mask %lu",
+            "setvar inv_overhaul_special_inventory_remap_mask %lu",
             static_cast<unsigned long>(changedCategoryMask));
         published = OynonExecCommand(command) &&
-            OynonExecCommand("setvar utopian_special_inventory_remap_request 1");
+            OynonExecCommand("setvar inv_overhaul_special_inventory_remap_request 1");
     }
     if (!published) {
         Log("special inventory physical priority succeeded but layout remap publish failed");
@@ -581,6 +977,36 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
         xml,
         static_cast<unsigned long>(changedCategoryMask));
     Log(line);
+}
+
+void __stdcall OnUIWindowCreated(
+    const char* originalXml,
+    const char* resolvedXml,
+    BOOL succeeded,
+    DWORD elapsedMicroseconds,
+    void*)
+{
+    if (!g_performanceDiagnostics ||
+        !g_inventoryPerformance.active ||
+        !IsPlayerInventoryWindowName(originalXml)) {
+        return;
+    }
+
+    g_inventoryPerformance.createWndMicroseconds = elapsedMicroseconds;
+    g_inventoryPerformance.originalXml = originalXml ? originalXml : "";
+    g_inventoryPerformance.resolvedXml = resolvedXml ? resolvedXml : "";
+    if (!succeeded) {
+        char line[256] = {};
+        std::snprintf(
+            line,
+            sizeof(line),
+            "inventory perf create failed original=%s resolved=%s create_us=%lu",
+            g_inventoryPerformance.originalXml.c_str(),
+            g_inventoryPerformance.resolvedXml.c_str(),
+            static_cast<unsigned long>(elapsedMicroseconds));
+        Log(line);
+        g_inventoryPerformance.active = false;
+    }
 }
 
 void __stdcall OnKeyboardInput(DWORD virtualKey, BOOL pressed, void*)
@@ -608,8 +1034,8 @@ void __stdcall OnKeyboardInput(DWORD virtualKey, BOOL pressed, void*)
         return;
     }
 
-    if (virtualKey == g_handCombatKey.load()) {
-        if (!OynonExecCommand("setvar utopian_handcombat_request 1")) {
+    if (virtualKey == g_handCombatKey.load(std::memory_order_acquire)) {
+        if (!OynonExecCommand("setvar inv_overhaul_handcombat_request 1")) {
             Log("handcombat input command failed");
         }
         else {
@@ -621,27 +1047,44 @@ void __stdcall OnKeyboardInput(DWORD virtualKey, BOOL pressed, void*)
         return;
     }
 
-    const bool daychangeBusy =
-        OynonUIDaychangeIsVanillaActive(::GetTickCount()) != FALSE;
-    char command[64] = {};
-    std::snprintf(
-        command,
-        sizeof(command),
-        "setvar utopian_quickslot_request %d",
-        quickslot);
-    if (!OynonExecCommand(command)) {
-        Log("quick-slot input command failed");
+    if (!g_quickslotsReady.load(std::memory_order_acquire)) {
+        g_pendingQuickslot.store(quickslot, std::memory_order_release);
+        char queuedLine[96] = {};
+        std::snprintf(
+            queuedLine,
+            sizeof(queuedLine),
+            "quick-slot request deferred slot=%d until effect is ready",
+            quickslot);
+        Log(queuedLine);
         return;
     }
+    PublishQuickslotRequest(quickslot, "keyboard");
+}
 
-    char publishedLine[128] = {};
-    std::snprintf(
-        publishedLine,
-        sizeof(publishedLine),
-        "quick-slot request published slot=%d daychangeBusy=%d",
-        quickslot,
-        daychangeBusy ? 1 : 0);
-    Log(publishedLine);
+BOOL __stdcall OnConsoleCommand(const char* command, void*)
+{
+    if (!command || g_inventoryOpen.load(std::memory_order_acquire) ||
+        OynonUIInventoryGetOverlayKind() != OYNON_INVENTORY_OVERLAY_NONE ||
+        g_playerBranch.load(std::memory_order_acquire) < 0) {
+        return FALSE;
+    }
+
+    while (*command && std::isspace(static_cast<unsigned char>(*command))) {
+        ++command;
+    }
+    std::string action;
+    while (*command && !std::isspace(static_cast<unsigned char>(*command))) {
+        action.push_back(static_cast<char>(
+            std::tolower(static_cast<unsigned char>(*command))));
+        ++command;
+    }
+    if (action != "handcombat") {
+        return FALSE;
+    }
+
+    OynonExecCommand("setvar inv_overhaul_handcombat_request 1");
+    Log("handcombat command observed; drop scheduled after vanilla holster");
+    return FALSE;
 }
 
 bool IsPointInside(const POINT& point, int x, int y)
@@ -691,13 +1134,13 @@ int ResolvePageHoverTarget()
 
     if (kind == OYNON_INVENTORY_OVERLAY_PLAYER) {
         if (width == 1920 && height == 1080) {
-            return HitPagePair(cursor, 1082, 780, 1, 2);
+            return HitPagePair(cursor, 1082, 826, 1, 2);
         }
         if (width == 1024 && height == 768) {
-            return HitPagePair(cursor, 626, 616, 1, 2);
+            return HitPagePair(cursor, 626, 632, 1, 2);
         }
         if (width < 1000) {
-            return HitPagePair(cursor, 467, 465, 1, 2);
+            return HitPagePair(cursor, 467, 481, 1, 2);
         }
         return 0;
     }
@@ -706,7 +1149,7 @@ int ResolvePageHoverTarget()
         kind == OYNON_INVENTORY_OVERLAY_CORPSE) {
         int target = 0;
         if (width == 1920 && height == 1080) {
-            target = HitPagePair(cursor, 1082, 780, 1, 2);
+            target = HitPagePair(cursor, 1082, 826, 1, 2);
             if (target == 0) {
                 target = HitPagePair(cursor, 528, 625, 5, 6);
             }
@@ -716,13 +1159,13 @@ int ResolvePageHoverTarget()
             return HitPagePair(cursor, 198, 434, 5, 6);
         }
         if (width == 1024 && height == 768) {
-            target = HitPagePair(cursor, 626, 616, 1, 2);
+            target = HitPagePair(cursor, 626, 632, 1, 2);
             if (target == 0) {
                 target = HitPagePair(cursor, 149, 506, 5, 6);
             }
             return target;
         }
-        target = HitPagePair(cursor, 467, 465, 1, 2);
+        target = HitPagePair(cursor, 467, 481, 1, 2);
         if (target == 0) {
             target = HitPagePair(cursor, 107, 453, 5, 6);
         }
@@ -748,7 +1191,7 @@ void PollPageHover()
     std::snprintf(
         command,
         sizeof(command),
-        "setvar utopian_inventory_page_hover %d",
+        "setvar inv_overhaul_inventory_page_hover %d",
         hoverTarget);
     if (!OynonExecCommand(command)) {
         return;
@@ -765,22 +1208,23 @@ DWORD WINAPI MainThread(LPVOID parameter)
 {
     const HMODULE module = static_cast<HMODULE>(parameter);
     g_inputConfigPath = GetInputConfigPath(module);
-    RefreshHandCombatKey(true);
     g_emptySlotOpacity = ReadEmptySlotOpacity(module);
+    g_performanceDiagnostics = ReadPerformanceDiagnostics(module);
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
-    Log("UTOPIAN_INVENTORY_NATIVE_VERSION 2026.08.01-early-load-safe-clara-3");
+    RefreshHandCombatKey(true);
+    Log("INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.14-rubbish-reentrancy-9");
     if (!WriteEmptySlotTexture(module)) {
         Log("failed to create empty slot opacity texture");
     }
 
-    if (!OynonSetPlayerBootstrapEffect("utopian_inventory_bootstrap.bin")) {
-        Log("UtopianInventory failed to configure inventory bootstrap effect");
+    if (!OynonSetPlayerBootstrapEffect("inv_overhaul_inventory_bootstrap.bin")) {
+        Log("InventoryOverhaul failed to configure inventory bootstrap effect");
     }
     if (!OynonSetPlayerInventoryCategoryCapacity(64)) {
-        Log("UtopianInventory failed to configure player category capacity");
+        Log("InventoryOverhaul failed to configure player category capacity");
     }
     if (!OynonSetWorldContainerCapacity(128)) {
-        Log("UtopianInventory failed to configure world container capacity");
+        Log("InventoryOverhaul failed to configure world container capacity");
     }
     const DWORD hookFlags =
         OYNON_HOOK_PLAYER_EFFECT_CALLBACK |
@@ -789,14 +1233,18 @@ DWORD WINAPI MainThread(LPVOID parameter)
         OYNON_HOOK_PLAYER_INVENTORY_CAPACITY |
         OYNON_HOOK_UI_INVENTORY_STATE |
         OYNON_HOOK_UI_INVENTORY_REDIRECT |
-        OYNON_HOOK_UI_WINDOW_PREPARE;
+        OYNON_HOOK_UI_WINDOW_PREPARE |
+        OYNON_HOOK_PLAYER_USE_CALLBACK;
 
     if (!OynonInitializeHooksWhenReady(hookFlags)) {
-        Log("UtopianInventory failed to initialize OynonTools hooks");
+        Log("InventoryOverhaul failed to initialize OynonTools hooks");
         return 0;
     }
     if (!OynonRegisterConsoleMessageCallback(&OnConsoleMessage, nullptr)) {
-        Log("UtopianInventory failed to register console message callback");
+        Log("InventoryOverhaul failed to register console message callback");
+    }
+    if (!OynonRegisterConsoleCommandFilter(&OnConsoleCommand, nullptr)) {
+        Log("InventoryOverhaul failed to register console command filter");
     }
 
     const char* inventoryXml = ResolveInventoryXml();
@@ -804,22 +1252,36 @@ DWORD WINAPI MainThread(LPVOID parameter)
     const char* corpseXml = ResolveCorpseXml();
     OynonUIInventorySetRedirect(inventoryXml);
     OynonUILootSetRedirects(lootXml, corpseXml);
+    g_runtimeTextureEpoch.store(
+        (::GetTickCount() & 0x3fffffffu) + 1u,
+        std::memory_order_release);
+    if (!PublishRuntimeTextureEpoch()) {
+        Log("InventoryOverhaul failed to publish runtime texture epoch");
+    }
+    Log("InventoryOverhaul persistent UI texture cache disabled");
     OynonRegisterInventoryStateCallback(&OnInventoryStateChanged, nullptr);
     if (!OynonRegisterKeyboardCallback(&OnKeyboardInput, nullptr)) {
-        Log("UtopianInventory failed to register keyboard callback");
+        Log("InventoryOverhaul failed to register keyboard callback");
     }
     if (!OynonRegisterUIWindowPrepareCallback(&OnUIWindowPrepare, nullptr)) {
-        Log("UtopianInventory failed to register pre-window callback");
+        Log("InventoryOverhaul failed to register pre-window callback");
     }
+    if (!OynonRegisterUIWindowCreatedCallback(&OnUIWindowCreated, nullptr)) {
+        Log("InventoryOverhaul failed to register post-window callback");
+    }
+    Log(g_performanceDiagnostics
+        ? "InventoryOverhaul performance diagnostics enabled"
+        : "InventoryOverhaul performance diagnostics disabled");
     LogEmptySlotOpacity();
     Log(inventoryXml == CUSTOM_INVENTORY_XML_1920
-        ? "UtopianInventory initialized (centered 1920x1080 layout)"
-        : "UtopianInventory initialized (standard layout)");
+        ? "InventoryOverhaul initialized (centered 1920x1080 layout)"
+        : "InventoryOverhaul initialized (standard layout)");
     Log(lootXml == CUSTOM_LOOT_XML_1920
-        ? "UtopianInventory loot redirect initialized (centered 1920x1080 layout)"
-        : "UtopianInventory loot redirect initialized (standard layout)");
-    Log("UtopianInventory vanilla special inventory physical priority initialized");
+        ? "InventoryOverhaul loot redirect initialized (centered 1920x1080 layout)"
+        : "InventoryOverhaul loot redirect initialized (standard layout)");
+    Log("InventoryOverhaul vanilla special inventory physical priority initialized");
 
+    DWORD lastBootstrapConfirmation = 0;
     DWORD lastBindingRefresh = ::GetTickCount();
     while (true) {
         OynonUIPoll();
@@ -830,6 +1292,28 @@ DWORD WINAPI MainThread(LPVOID parameter)
         if (now - lastBindingRefresh >= 1000) {
             RefreshHandCombatKey(false);
             lastBindingRefresh = now;
+        }
+        if (now - lastBootstrapConfirmation >= 250) {
+            // The module can be injected after playerstat.xml was created, so
+            // a window callback alone cannot initialize the character branch
+            // before the first inventory. The Oynon side still requires a
+            // complete five-category inventory and makes repeated confirms a
+            // no-op for an already bootstrapped player.
+            OynonConfirmPlayerBootstrapReady();
+            lastBootstrapConfirmation = now;
+        }
+        const int pendingQuickslot = g_pendingQuickslot.load(std::memory_order_acquire);
+        if (pendingQuickslot > 0 &&
+            !g_inventoryOpen.load(std::memory_order_acquire) &&
+            OynonUIInventoryGetOverlayKind() == OYNON_INVENTORY_OVERLAY_NONE &&
+            g_quickslotsReady.load(std::memory_order_acquire)) {
+            if (PublishQuickslotRequest(pendingQuickslot, "deferred")) {
+                int expected = pendingQuickslot;
+                g_pendingQuickslot.compare_exchange_strong(
+                    expected,
+                    0,
+                    std::memory_order_acq_rel);
+            }
         }
         ::Sleep(16);
     }

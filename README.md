@@ -1,8 +1,8 @@
-# Utopian Inventory
+# Inventory Overhaul
 
 A complete inventory and loot-interface overhaul for Pathologic Classic HD.
 
-Utopian Inventory keeps the game's item definitions, saves, categories, trade,
+Inventory Overhaul keeps the game's item definitions, saves, categories, trade,
 loot, and quest scripts compatible, while replacing the player inventory,
 container, and corpse windows. The native twelve-stack limit of each player
 category is lifted through OynonTools and replaced by one backpack limit of 56
@@ -38,24 +38,34 @@ consume backpack capacity. Adding to an existing stack remains possible when all
   inventory's visual layout is reconciled without shuffling.
 - English and Russian strings, item/drop/page hints, money display, clock, and
   configurable empty-slot opacity.
+- TEX-only runtime textures. PNG files are retained only in `resources/image`
+  as editable source artwork and are not included in the game package.
 
 ## Configuration
 
-`bin\Final\mods\UtopianInventory.ini`:
+`bin\Final\mods\InventoryOverhaul.ini`:
 
 ```ini
 [General]
 Enabled=1
 EmptySlotOpacity=0.78
+
+[Performance]
+Diagnostics=0
 ```
 
 `EmptySlotOpacity` accepts a floating-point value from `0` (fully transparent)
 to `1` (fully opaque). The packaged default is `0.78`.
 
+`Diagnostics=1` enables aggregated inventory-opening performance records in
+`mods\Debug.log`. The packaged default is `0`; enable it only while profiling.
+Inventory resources are loaded incrementally by the active UI so opening or
+closing the inventory does not leave a persistent background texture loader.
+
 ## Installation with Utopian Launcher
 
 Install the game-root-layout folder or archive through **Install Mod** and select
-`UtopianInventory.dll` as the primary DLL. The package contains the required
+`InventoryOverhaul.dll` as the primary DLL. The package contains the required
 `OynonTools.dll`, compiled scripts, UI layouts, textures, strings, INI, and
 uninstall manifest. A clean installation does not require replacing vanilla
 inventory or apparatus scripts manually.
@@ -63,18 +73,18 @@ inventory or apparatus scripts manually.
 The package layout starts with:
 
 ```text
-bin\Final\mods\UtopianInventory.dll
-bin\Final\mods\UtopianInventory.ini
-bin\Final\mods\UtopianInventory.manifest.ini
+bin\Final\mods\InventoryOverhaul.dll
+bin\Final\mods\InventoryOverhaul.ini
+bin\Final\mods\InventoryOverhaul.manifest.ini
 bin\Final\mods\OynonTools.dll
-data\Scripts\utopian_*.bin
-data\UI\utopian_*.xml
-data\Textures\UI\utopian_*
-data\Strings\utopian_inventory*.txt
+data\Scripts\inv_overhaul_*.bin
+data\UI\inv_overhaul_*.xml
+data\Textures\UI\inv_overhaul_*.tex
+data\Strings\inv_overhaul_inventory*.txt
 ```
 
-The launcher must register either `utopian_inventory` or
-`utopian_inventory_ru` in the game's `[Strings]` section. The repository
+The launcher must register either `inv_overhaul_inventory` or
+`inv_overhaul_inventory_ru` in the game's `[Strings]` section. The repository
 `deploy.ps1` does this automatically for development deployments.
 
 ## Regenerating layouts
@@ -86,8 +96,9 @@ coordinate tables in one script:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate_inventory_layouts.ps1
 ```
 
-UI XML is installed in `data\UI`; assets referenced as `ui/...` are installed in
-`data\Textures\UI`, matching the game's texture resolver.
+UI XML is installed in `data\UI`. Runtime artwork is converted to the game's
+DDS-based `.tex` format and installed in `data\Textures\UI`; source PNG files
+remain outside the package.
 
 ## Build
 

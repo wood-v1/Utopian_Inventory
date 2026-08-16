@@ -44,6 +44,7 @@ maintask InvOverhaulCharacterDoll do
   end
 
   function OnDraw() -> void
+    if !imageLoaded then return end
     if !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP doll_first_draw_begin") end
     local paddingX: int = 15
     local claraOffsetY: int = 12
@@ -240,8 +241,11 @@ maintask InvOverhaulCharacterDoll do
   function OnUIMessage(message: int, sender: string, data: object) -> void
     if message == c_iReleaseResources then
       if imageLoaded then
-        native.ReleaseImage(image)
+        -- The parent window is destroyed after this message returns.  Disable
+        -- owner drawing first so no final frame references the released doll.
+        native.SetOwnerDraw(false)
         imageLoaded = false
+        native.ReleaseImage(image)
         native.Trace("INV_OVERHAUL_DOLL_RESOURCE_RELEASED branch=" + characterBranch)
       end
       return

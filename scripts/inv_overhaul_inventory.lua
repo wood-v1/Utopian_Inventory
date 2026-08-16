@@ -120,6 +120,7 @@ maintask InventoryOverhaulUI do
   local gridRendererReady: bool
   local warmGridLoaded: bool
   local warmStartAttempted: bool
+  local closingWindow: bool
 
   function init() -> void
     native.Trace("INV_OVERHAUL_PERF_STEP root_init_begin")
@@ -177,6 +178,7 @@ maintask InventoryOverhaulUI do
     gridRendererReady = false
     warmGridLoaded = false
     warmStartAttempted = false
+    closingWindow = false
     native.GetVariable("inv_overhaul_perf_diagnostics", perfDiagnostics)
     if perfDiagnostics == 1 then
       local warmed: int = 0
@@ -3469,9 +3471,13 @@ maintask InventoryOverhaulUI do
   end
 
   function CloseInventoryWindow() -> void
+    if closingWindow then return end
+    closingWindow = true
+    native.SetNeedUpdate(false)
+    native.SetVariable("inv_overhaul_inventory_drag_item", -1)
+    native.SetVariable("inv_overhaul_inventory_page_hover", 0)
     native.SendMessage(-200, "panel_background")
     native.SendMessage(-200, "character_doll")
-    native.SetCursor("default")
     native.DestroyWindow()
   end
 

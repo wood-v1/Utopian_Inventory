@@ -1258,7 +1258,7 @@ DWORD WINAPI MainThread(LPVOID parameter)
     g_performanceDiagnostics = ReadPerformanceDiagnostics(module);
     OynonDebugConfigureLauncherChannel(DEBUG_CHANNEL, FALSE);
     RefreshHandCombatKey(true);
-    Log("INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.16-quickslot-save-command-1");
+    Log("INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.16-quickslot-weapon-select-1");
     if (!WriteEmptySlotTexture(module)) {
         Log("failed to create empty slot opacity texture");
     }

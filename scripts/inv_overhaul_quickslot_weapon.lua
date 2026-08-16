@@ -99,15 +99,18 @@ maintask InvOverhaulQuickslotWeaponEffect do
         ShowMessage(c_iInventoryFullTextID)
         return
       end
-      native.Trace("INV_OVERHAUL_QUICKSLOT_NATIVE_HANDS -1")
       player->SelectItem(index, false, c_iCWeapon)
+      -- SelectWeapon is the vanilla player-object path used after inventory
+      -- restoration. It synchronizes the physical hands with the selected
+      -- weapon entries and does not depend on an initialized UI context.
+      player->SelectWeapon()
       MarkInventoryChanged()
       ShowFeedback(itemID)
-      native.Trace("inv_overhaul_quickslot weapon unequipped item=" + itemID)
+      native.Trace("inv_overhaul_quickslot weapon unequipped item=" + itemID +
+        " transport=player-select-weapon")
       return
     end
 
-    native.Trace("INV_OVERHAUL_QUICKSLOT_NATIVE_HANDS " + itemID)
     local count: int
     player->GetItemCount(count, c_iCWeapon)
     for other = 0, count - 1 do
@@ -116,9 +119,10 @@ maintask InvOverhaulQuickslotWeaponEffect do
       if otherSelected then player->SelectItem(other, false, c_iCWeapon) end
     end
     player->SelectItem(index, true, c_iCWeapon)
+    player->SelectWeapon()
     MarkInventoryChanged()
     ShowFeedback(itemID)
     native.Trace("inv_overhaul_quickslot weapon equipped item=" + itemID +
-      " index=" + index)
+      " index=" + index + " transport=player-select-weapon")
   end
 end

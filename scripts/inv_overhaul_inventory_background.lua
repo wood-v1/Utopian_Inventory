@@ -55,7 +55,13 @@ maintask InventoryOverhaulBackground do
 
   function ReleaseTrackedImages() -> void
     if resourcesReleased then return end
+    -- DestroyWindow is deferred until the current UI event has finished.  Stop
+    -- owner drawing before releasing the dynamically loaded images, otherwise
+    -- the renderer can execute one last OnDraw with already invalid handles.
     resourcesReleased = true
+    gridEnabled = false
+    helpHoverActive = false
+    native.SetOwnerDraw(false)
     local count: int
     loadedImages->size(count)
     local index: int = count - 1
@@ -231,6 +237,7 @@ maintask InventoryOverhaulBackground do
   end
 
   function OnDraw() -> void
+    if resourcesReleased then return end
     if !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_begin") end
     native.StretchBlit(image, 0, 0, panelWidth, panelHeight)
     if gridEnabled && rootWidth > 0 then

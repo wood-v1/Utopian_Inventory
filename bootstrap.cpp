@@ -111,7 +111,7 @@ DWORD InventoryPerformanceElapsed()
 
 bool PublishQuickslotRequest(int quickslot, const char* source)
 {
-    constexpr DWORD QUICK_SLOT_COOLDOWN_MS = 200;
+    constexpr DWORD QUICK_SLOT_COOLDOWN_MS = 500;
     const DWORD now = ::GetTickCount();
     DWORD last = g_lastQuickslotRequestTick.load(std::memory_order_acquire);
     while (last != 0 && now - last < QUICK_SLOT_COOLDOWN_MS) {
@@ -864,6 +864,12 @@ void __stdcall OnUIWindowPrepare(const char* xml, void*)
         // bootstrap script can publish the character branch before the first
         // inventory redirect is resolved.
         g_quickslotsReady.store(false, std::memory_order_release);
+        // A DLL survives save-to-save transitions, while the character branch
+        // belongs to the newly loaded player. Never let Clara's specialized
+        // layout leak into a Bachelor/Haruspex save while the fresh bootstrap
+        // effect is still publishing its branch marker.
+        g_playerBranch.store(-1, std::memory_order_release);
+        OynonUIInventorySetRedirect(ResolveInventoryXml());
         OynonRearmPlayerBootstrapEffect();
         if (OynonConfirmPlayerBootstrapReady()) {
             Log("player bootstrap gameplay readiness confirmed by playerstat window");

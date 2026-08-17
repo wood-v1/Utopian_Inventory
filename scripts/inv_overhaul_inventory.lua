@@ -1,5 +1,5 @@
 maintask InventoryOverhaulUI do
-  local const c_sScriptVersion: string = "2026.08.11-open-image-cadence-40ms-1"
+  local const c_sScriptVersion: string = "2026.08.17-fast-open-generation-poll-1"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
@@ -46,7 +46,7 @@ maintask InventoryOverhaulUI do
   local const c_iPageHoverEnter: int = -110
   local const c_iPageHoverLeave: int = -111
   local const c_fPageHoverDelay: float = 1.00
-  local const c_fInitialItemLoadInterval: float = 0.04
+  local const c_fInitialItemLoadInterval: float = 0.00
   local const c_iInitialSlotLoadBatch: int = 1
 
   local windowWidth: int
@@ -90,6 +90,7 @@ maintask InventoryOverhaulUI do
   local shiftHeld: bool
   local controlHeld: bool
   local inventoryPollCooldown: float
+  local observedContentGeneration: int
   local dragPageHoverAction: int
   local dragPageHoverElapsed: float
   local dragPageHoverConsumed: bool
@@ -153,6 +154,8 @@ maintask InventoryOverhaulUI do
     shiftHeld = false
     controlHeld = false
     inventoryPollCooldown = 0.25
+    observedContentGeneration = 0
+    native.GetVariable("inv_overhaul_inventory_content_generation", observedContentGeneration)
     dragPageHoverAction = 0
     dragPageHoverElapsed = 0
     dragPageHoverConsumed = false
@@ -2941,11 +2944,16 @@ maintask InventoryOverhaulUI do
     if inventoryPollCooldown <= 0 then
       inventoryPollCooldown = 0.25
       UpdateMoney()
-      local currentBackpackCount: int = CaptureBackpackItems(currentBackpackSnapshot)
-      if dragSourceSlot < 0 && BackpackSnapshotDiffers(currentBackpackCount) then
-        ReconcileBackpackSnapshot(currentBackpackCount)
-        UpdateSlots()
-        SavePersistentBackpackSnapshot()
+      local currentGeneration: int = 0
+      native.GetVariable("inv_overhaul_inventory_content_generation", currentGeneration)
+      if currentGeneration != observedContentGeneration then
+        observedContentGeneration = currentGeneration
+        local currentBackpackCount: int = CaptureBackpackItems(currentBackpackSnapshot)
+        if dragSourceSlot < 0 && BackpackSnapshotDiffers(currentBackpackCount) then
+          ReconcileBackpackSnapshot(currentBackpackCount)
+          UpdateSlots()
+          SavePersistentBackpackSnapshot()
+        end
       end
     end
     if deferredInventoryRefresh > 0 then

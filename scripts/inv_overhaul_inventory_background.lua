@@ -49,6 +49,13 @@ maintask InventoryOverhaulBackground do
 
   function LoadTrackedImage(path: string) -> void
     if path == "" || resourcesReleased then return end
+    local loadedCount: int
+    loadedImages->size(loadedCount)
+    for index = 0, loadedCount - 1 do
+      local loadedPath: string
+      loadedImages->get(loadedPath, index)
+      if loadedPath == path then return end
+    end
     native.LoadImage(path)
     loadedImages->add(path)
   end

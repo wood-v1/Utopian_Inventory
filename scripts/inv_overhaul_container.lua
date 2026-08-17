@@ -1,5 +1,5 @@
 maintask InvOverhaulContainerUI do
-  local const c_sScriptVersion: string = "2026.08.15-safe-container-kind-5"
+  local const c_sScriptVersion: string = "2026.08.17-native-occupied-slot-exchange-1"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
@@ -52,6 +52,10 @@ maintask InvOverhaulContainerUI do
   local visibleSlots: int
   local playerPage: int
   local containerPage: int
+  local renderedPlayerPage: int
+  local renderedContainerPage: int
+  local quickTransferPreviousPlayerPage: int
+  local quickTransferPreviousContainerPage: int
   local resolvedCategory: int
   local resolvedIndex: int
   local resolvedContainerIndex: int
@@ -61,6 +65,7 @@ maintask InvOverhaulContainerUI do
   local playerOrdinalMap: object
   local playerCategoryCache: object
   local playerIndexCache: object
+  local cachedBackpackItemCount: int
   local persistentUsedLayoutCell: object
   local containerOrder: object
   local containerIndexCache: object
@@ -114,15 +119,23 @@ maintask InvOverhaulContainerUI do
   local layoutSavePending: bool
   local layoutSaveNextCell: int
   local initialMetadataStage: int
+  local pendingPlayerEntryCategory: int
+  local pendingPlayerEntryIndex: int
+  local pendingPlayerEntryScanSlot: int
 
   function init() -> void
     native.Trace("INV_OVERHAUL_INVENTORY_VERSION " + c_sScriptVersion + " screen=container")
     playerPage = 0
     containerPage = 0
+    renderedPlayerPage = -1
+    renderedContainerPage = -1
+    quickTransferPreviousPlayerPage = -1
+    quickTransferPreviousContainerPage = -1
     resolvedCategory = -1
     resolvedIndex = -1
     resolvedContainerIndex = -1
     resolvedContainerOrdinal = -1
+    cachedBackpackItemCount = -1
     dragSource = -1
     dragKind = -1
     dragItemID = -1
@@ -164,6 +177,9 @@ maintask InvOverhaulContainerUI do
     layoutSavePending = false
     layoutSaveNextCell = -1
     initialMetadataStage = 0
+    pendingPlayerEntryCategory = -1
+    pendingPlayerEntryIndex = -1
+    pendingPlayerEntryScanSlot = 0
     native.CreateIntVector(quickslotItemCache)
     native.CreateIntVector(quickslotCategoryCache)
     native.CreateIntVector(quickslotOccurrenceCache)
@@ -692,7 +708,8 @@ maintask InvOverhaulContainerUI do
   end
 
   function CanPlayerAcceptItem(item: object, category: int) -> bool
-    if GetBackpackItemCount() < c_iInventoryCapacity then return true end
+    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
+    if cachedBackpackItemCount < c_iInventoryCapacity then return true end
     if !item then return false end
 
     local itemID: int
@@ -759,6 +776,147 @@ maintask InvOverhaulContainerUI do
         end
       end
     end
+    cachedBackpackItemCount = ordinal
+  end
+
+  function GetAppendedCategoryBackpackOrdinal(category: int, beforeCount: int) -> int
+    local insertedOrdinal: int = 0
+    for ordinal = 0, beforeCount - 1 do
+      local cachedCategory: int
+      playerCategoryCache->get(cachedCategory, ordinal)
+      if cachedCategory <= category then insertedOrdinal = insertedOrdinal + 1 end
+    end
+    return insertedOrdinal
+  end
+
+  function InsertPlayerIndexCacheAt(
+    insertedOrdinal: int,
+    beforeCount: int,
+    category: int,
+    index: int
+  ) -> void
+    local ordinal: int = beforeCount
+    while ordinal > insertedOrdinal do
+      local previousCategory: int
+      local previousIndex: int
+      playerCategoryCache->get(previousCategory, ordinal - 1)
+      playerIndexCache->get(previousIndex, ordinal - 1)
+      playerCategoryCache->set(ordinal, previousCategory)
+      playerIndexCache->set(ordinal, previousIndex)
+      ordinal = ordinal - 1
+    end
+    playerCategoryCache->set(insertedOrdinal, category)
+    playerIndexCache->set(insertedOrdinal, index)
+    cachedBackpackItemCount = beforeCount + 1
+  end
+
+  function RemovePlayerIndexCacheAt(
+    removedOrdinal: int,
+    beforeCount: int,
+    removedCategory: int,
+    removedIndex: int
+  ) -> void
+    for ordinal = removedOrdinal, beforeCount - 2 do
+      local nextCategory: int
+      local nextIndex: int
+      playerCategoryCache->get(nextCategory, ordinal + 1)
+      playerIndexCache->get(nextIndex, ordinal + 1)
+      if nextCategory == removedCategory && nextIndex > removedIndex then
+        nextIndex = nextIndex - 1
+      end
+      playerCategoryCache->set(ordinal, nextCategory)
+      playerIndexCache->set(ordinal, nextIndex)
+    end
+    if beforeCount > 0 then
+      playerCategoryCache->set(beforeCount - 1, -1)
+      playerIndexCache->set(beforeCount - 1, -1)
+    end
+    cachedBackpackItemCount = beforeCount - 1
+  end
+
+  function FindPlayerMergeIndex(category: int, itemID: int) -> int
+    local maxStackSize: int
+    native.GetInvItemMaxStackSize(maxStackSize, itemID)
+    if maxStackSize <= 1 then return -1 end
+    local player: object = GetPlayerContainer()
+    local count: int
+    player->GetItemCount(count, category)
+    for index = 0, count - 1 do
+      if !IsEquippedItem(category, index) then
+        local candidate: object
+        local candidateID: int
+        local candidateAmount: int
+        player->GetItem(candidate, index, category)
+        candidate->GetItemID(candidateID)
+        player->GetItemAmount(candidateAmount, index, category)
+        if candidateID == itemID && candidateAmount < maxStackSize then return index end
+      end
+    end
+    return -1
+  end
+
+  function RefreshCachedPlayerEntry(category: int, index: int, fallbackSlot: int) -> void
+    if renderedPlayerPage != playerPage then
+      UpdatePlayerSlots()
+      return
+    end
+    for slot = 0, visibleSlots - 1 do
+      local ordinal: int = GetOrderValue(GetVisibleCell(slot))
+      if ordinal >= 0 && ordinal < cachedBackpackItemCount then
+        local cachedCategory: int
+        local cachedIndex: int
+        playerCategoryCache->get(cachedCategory, ordinal)
+        playerIndexCache->get(cachedIndex, ordinal)
+        if cachedCategory == category && cachedIndex == index then
+          UpdatePlayerSlot(slot)
+          UpdatePlayerPageControls()
+          return
+        end
+      end
+    end
+    if fallbackSlot >= 0 && fallbackSlot < visibleSlots then UpdatePlayerSlot(fallbackSlot) end
+    UpdatePlayerPageControls()
+  end
+
+  function QueueCachedPlayerEntryRefresh(category: int, index: int) -> void
+    pendingPlayerEntryCategory = category
+    pendingPlayerEntryIndex = index
+    pendingPlayerEntryScanSlot = 0
+  end
+
+  function ContinueCachedPlayerEntryRefresh() -> void
+    if pendingPlayerEntryCategory < 0 || pendingPlayerEntryIndex < 0 then return end
+    if pendingPlayerEntryScanSlot >= visibleSlots then
+      pendingPlayerEntryCategory = -1
+      pendingPlayerEntryIndex = -1
+      pendingPlayerEntryScanSlot = 0
+      UpdatePlayerPageControls()
+      return
+    end
+    local slot: int = pendingPlayerEntryScanSlot
+    pendingPlayerEntryScanSlot = pendingPlayerEntryScanSlot + 1
+    local ordinal: int = GetOrderValue(GetVisibleCell(slot))
+    if ordinal >= 0 && ordinal < cachedBackpackItemCount then
+      local cachedCategory: int
+      local cachedIndex: int
+      playerCategoryCache->get(cachedCategory, ordinal)
+      playerIndexCache->get(cachedIndex, ordinal)
+      if cachedCategory == pendingPlayerEntryCategory && cachedIndex == pendingPlayerEntryIndex then
+        UpdatePlayerSlot(slot)
+        pendingPlayerEntryCategory = -1
+        pendingPlayerEntryIndex = -1
+        pendingPlayerEntryScanSlot = 0
+        UpdatePlayerPageControls()
+      end
+    end
+  end
+
+  function GetVisibleSlotForCell(cell: int) -> int
+    if cell < 0 then return -1 end
+    for slot = 0, visibleSlots - 1 do
+      if GetVisibleCell(slot) == cell then return slot end
+    end
+    return -1
   end
 
   function IsOrganItem(item: object) -> bool
@@ -1067,6 +1225,10 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetDisplayedQuickslot(category: int, index: int, itemID: int) -> int
+    -- Most items are not bound to any quick-slot. Avoid walking the native
+    -- category (one GetItem call per preceding entry) unless a binding can
+    -- actually match this item.
+    if GetItemQuickslot(category, itemID) <= 0 then return 0 end
     local occurrence: int = GetItemOccurrence(category, index, itemID)
     for slot = 1, c_iQuickslotCount do
       local assignedCategory: int = -1
@@ -1199,6 +1361,7 @@ maintask InvOverhaulContainerUI do
     ClampPlayerPage()
     BuildPlayerIndexCache()
     for slot = 0, visibleSlots - 1 do UpdatePlayerSlot(slot) end
+    renderedPlayerPage = playerPage
     UpdatePlayerPageControls()
   end
 
@@ -1221,6 +1384,7 @@ maintask InvOverhaulContainerUI do
     BuildContainerIndexCache()
     ClampContainerPage()
     for slot = 0, c_iContainerSlots - 1 do UpdateContainerSlot(slot) end
+    renderedContainerPage = containerPage
     UpdateContainerPageControls()
   end
 
@@ -1260,6 +1424,10 @@ maintask InvOverhaulContainerUI do
 
   function RefreshVisiblePlayerItem(itemID: int, fallbackSlot: int) -> void
     initialSlotLoadActive = false
+    if renderedPlayerPage != playerPage then
+      UpdatePlayerSlots()
+      return
+    end
     BuildPlayerIndexCache()
     local fallbackUpdated: bool = false
     for slot = 0, visibleSlots - 1 do
@@ -1284,6 +1452,10 @@ maintask InvOverhaulContainerUI do
 
   function RefreshVisibleContainerItem(itemID: int, fallbackSlot: int) -> void
     initialSlotLoadActive = false
+    if renderedContainerPage != containerPage then
+      UpdateContainerSlots()
+      return
+    end
     BuildContainerIndexCache()
     local fallbackUpdated: bool = false
     for slot = 0, c_iContainerSlots - 1 do
@@ -1389,7 +1561,6 @@ maintask InvOverhaulContainerUI do
         if order > removedOrder && order < beforeCount then SetOrderValue(slot, order - 1) end
       end
     end
-    NormalizeSlotOrder()
     QueueLayoutSave()
   end
 
@@ -1933,7 +2104,13 @@ maintask InvOverhaulContainerUI do
   function InsertOrderOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
     if insertedOrder < 0 then return false end
     if beforeCount >= c_iInventoryCapacity then return false end
-    local insertedSlot: int = FindFirstFreePlayerVisual(beforeCount)
+    -- The cell carrying exactly beforeCount is the first free ordinal. Using
+    -- that exact cell keeps slotOrder a permutation after the ordinal shift;
+    -- a full NormalizeSlotOrder/OrderFreeCellsByDisplay pass is unnecessary.
+    local insertedSlot: int = -1
+    for slot = 0, c_iInventoryCapacity - 1 do
+      if GetOrderValue(slot) == beforeCount then insertedSlot = slot end
+    end
     if insertedSlot < 0 then return false end
     for slot = 0, c_iInventoryCapacity - 1 do
       local order: int = GetOrderValue(slot)
@@ -1946,8 +2123,6 @@ maintask InvOverhaulContainerUI do
       SetOrderValue(preferredCell, insertedOrder)
       SetOrderValue(insertedSlot, preferredOrder)
     end
-    NormalizeSlotOrder()
-    OrderFreeCellsByDisplay()
     QueueLayoutSave()
     return true
   end
@@ -2235,8 +2410,14 @@ maintask InvOverhaulContainerUI do
     local external: object = GetExternalContainer()
     if !external then return end
 
-    local beforeBackpack: int = GetBackpackItemCount()
-    local usedOrder: int = GetBackpackOrdinal(category, index)
+    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
+    local beforeBackpack: int = cachedBackpackItemCount
+    local sourceCell: int = GetVisibleCell(sourceSlot)
+    if dragKind == 0 && dragPlayerCell >= 0 then sourceCell = dragPlayerCell end
+    local usedOrder: int = GetOrderValue(sourceCell)
+    if usedOrder < 0 || usedOrder >= beforeBackpack then usedOrder = GetBackpackOrdinal(category, index) end
+    local beforeCategoryCount: int
+    player->GetItemCount(beforeCategoryCount, category)
     local beforeExternal: int
     if asOrgan then beforeExternal = GetOrganItemCount() else beforeExternal = GetNormalContainerItemCount() end
     if !asOrgan && beforeExternal >= c_iMaxContainerVisuals then
@@ -2254,7 +2435,6 @@ maintask InvOverhaulContainerUI do
     local itemID: int
     item->GetItemID(itemID)
     local beforeExternalAmount: int = GetExternalItemTotalAmount(itemID)
-    SnapshotExistingPlayerOrder()
 
     if asOrgan then
       item->RemoveProperty("InvOverhaulOrgan")
@@ -2283,28 +2463,140 @@ maintask InvOverhaulContainerUI do
     if addedAmount > transferAmount then addedAmount = transferAmount end
     player->RemoveItem(index, addedAmount, category)
 
-    local afterBackpack: int = GetBackpackItemCount()
+    local afterCategoryCount: int
+    player->GetItemCount(afterCategoryCount, category)
+    local afterBackpack: int = beforeBackpack - (beforeCategoryCount - afterCategoryCount)
     if afterBackpack < beforeBackpack then
-      if !RestorePlayerOrderAfterRemoveMapped(usedOrder, beforeBackpack, afterBackpack) then
-        RemoveOrderOrdinal(usedOrder, beforeBackpack)
-        native.Trace("inv_overhaul_container player remove fallback ordinal=" + usedOrder)
-      end
+      RemovePlayerIndexCacheAt(usedOrder, beforeBackpack, category, index)
+      RemoveOrderOrdinal(usedOrder, beforeBackpack)
     end
     local afterExternal: int
     if asOrgan then afterExternal = GetOrganItemCount() else afterExternal = GetNormalContainerItemCount() end
+    if !asOrgan && quickTransferPreviousContainerPage >= 0 && afterExternal == beforeExternal then
+      containerPage = quickTransferPreviousContainerPage
+    end
     if afterExternal > beforeExternal then
       if asOrgan then InsertOrganOrdinalAt(beforeExternal, beforeExternal, targetSlot) else InsertContainerOrdinalAt(beforeExternal, beforeExternal, targetSlot) end
     end
     if !asOrgan && beforeExternal <= c_iContainerSlots && afterExternal > c_iContainerSlots then
       native.Trace("inv_overhaul_container corpse/container page 2 activated count=" + afterExternal)
     end
-    RefreshVisiblePlayerItem(itemID, sourceSlot)
-    if asOrgan then UpdateOrganSlots() else RefreshVisibleContainerItem(itemID, targetSlot) end
+    local visibleSourceSlot: int = GetVisibleSlotForCell(sourceCell)
+    if visibleSourceSlot >= 0 then
+      UpdatePlayerSlot(visibleSourceSlot)
+      UpdatePlayerPageControls()
+    end
+    if asOrgan then
+      UpdateOrganSlots()
+    else
+      RefreshVisibleContainerItem(itemID, targetSlot)
+    end
     UpdateMoney()
   end
 
   function MovePlayerToContainer(sourceSlot: int, targetSlot: int, asOrgan: bool) -> void
     MovePlayerAmountToContainer(sourceSlot, targetSlot, asOrgan, 1)
+  end
+
+  function ExchangePlayerWithContainer(sourceSlot: int, targetSlot: int) -> void
+    if !ResolveContainerVisualSlot(targetSlot) then
+      MovePlayerToContainer(sourceSlot, targetSlot, false)
+      return
+    end
+
+    -- Preserve the real entry under the occupied visual cell. Adding the
+    -- player's item may append another native entry and changes only the
+    -- visual order; the original entry itself keeps this index/ordinal.
+    local exchangedContainerIndex: int = resolvedContainerIndex
+    local exchangedContainerOrdinal: int = resolvedContainerOrdinal
+    local external: object = GetExternalContainer()
+    local exchangedItem: object
+    local exchangedAmount: int
+    local externalCountBefore: int
+    external->GetItem(exchangedItem, exchangedContainerIndex)
+    external->GetItemAmount(exchangedAmount, exchangedContainerIndex)
+    external->GetItemCount(externalCountBefore)
+    if !exchangedItem then return end
+
+    local sourceCategory: int = -1
+    local sourceIndex: int = -1
+    if dragPlayerCategory >= 0 && dragPlayerIndex >= 0 then
+      sourceCategory = dragPlayerCategory
+      sourceIndex = dragPlayerIndex
+    else
+      if !ResolveVisibleSlot(sourceSlot) then return end
+      sourceCategory = resolvedCategory
+      sourceIndex = resolvedIndex
+    end
+    local player: object = GetPlayerContainer()
+    local sourceItem: object
+    local sourceAmount: int
+    player->GetItem(sourceItem, sourceIndex, sourceCategory)
+    player->GetItemAmount(sourceAmount, sourceIndex, sourceCategory)
+    if !sourceItem || sourceAmount <= 0 then return end
+    local sourceItemID: int
+    sourceItem->GetItemID(sourceItemID)
+    local beforeSourceAmount: int = GetPlayerItemTotalAmount(sourceCategory, sourceItemID)
+
+    -- If moving one unit does not free a backpack cell, the incoming stack
+    -- still has to fit normally. Never remove the container item first.
+    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
+    if cachedBackpackItemCount >= c_iInventoryCapacity && sourceAmount > 1 then
+      local exchangedItemID: int
+      local exchangedCategory: int
+      exchangedItem->GetItemID(exchangedItemID)
+      native.GetInvItemProperty(exchangedCategory, exchangedItemID, "Category")
+      if !CanPlayerAcceptItem(exchangedItem, exchangedCategory) then
+        ShowInventoryFull()
+        return
+      end
+    end
+
+    MovePlayerToContainer(sourceSlot, targetSlot, false)
+    local afterSourceAmount: int = GetPlayerItemTotalAmount(sourceCategory, sourceItemID)
+    if afterSourceAmount >= beforeSourceAmount then return end
+
+    -- AddItem appends a new non-stackable entry. Exchange that native entry
+    -- with the occupied target before removing the displaced item. The
+    -- physical container order then matches the visible order and survives
+    -- closing/reopening the loot window without a sidecar layout cache.
+    local externalCountAfter: int
+    external->GetItemCount(externalCountAfter)
+    local exchangedMovedToIndex: int = exchangedContainerIndex
+    local exchangedMovedToOrdinal: int = exchangedContainerOrdinal
+    if externalCountAfter == externalCountBefore + 1 then
+      local appendedIndex: int = externalCountAfter - 1
+      local appendedItem: object
+      local appendedAmount: int
+      local appendedItemID: int = -1
+      external->GetItem(appendedItem, appendedIndex)
+      external->GetItemAmount(appendedAmount, appendedIndex)
+      if appendedItem then appendedItem->GetItemID(appendedItemID) end
+      if appendedItem && appendedItemID == sourceItemID then
+        external->SetItem(appendedItem, appendedAmount, exchangedContainerIndex, 0)
+        external->SetItem(exchangedItem, exchangedAmount, appendedIndex, 0)
+        BuildContainerIndexCache()
+        for visual = 0, c_iMaxContainerVisuals - 1 do SetContainerOrderValue(visual, visual) end
+        exchangedMovedToIndex = appendedIndex
+        exchangedMovedToOrdinal = cachedNormalContainerCount - 1
+      end
+    end
+
+    -- Route the displaced native entry back into the player's vacated visual
+    -- cell. The direct indices prevent a page/order lookup from selecting one
+    -- of the many identical masks in this reproduction case.
+    local previousDragKind: int = dragKind
+    local previousContainerIndex: int = dragContainerIndex
+    local previousContainerOrdinal: int = dragContainerOrdinal
+    dragKind = 1
+    dragContainerIndex = exchangedMovedToIndex
+    dragContainerOrdinal = exchangedMovedToOrdinal
+    MoveExternalAmountToPlayer(false, targetSlot, sourceSlot, -1)
+    dragKind = previousDragKind
+    dragContainerIndex = previousContainerIndex
+    dragContainerOrdinal = previousContainerOrdinal
+    UpdateContainerSlots()
+    native.Trace("inv_overhaul_container exchanged occupied container slot=" + targetSlot)
   end
 
   function MoveExternalAmountToPlayer(organSource: bool, sourceSlot: int, targetSlot: int, requestedAmount: int) -> void
@@ -2326,7 +2618,8 @@ maintask InvOverhaulContainerUI do
     local player: object = GetPlayerContainer()
     local beforeNormal: int = GetNormalContainerItemCount()
     local beforeOrgans: int = GetOrganItemCount()
-    local beforeBackpack: int = GetBackpackItemCount()
+    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
+    local beforeBackpack: int = cachedBackpackItemCount
     local item: object
     local amount: int
     external->GetItem(item, sourceIndex)
@@ -2361,13 +2654,15 @@ maintask InvOverhaulContainerUI do
 
     local category: int
     native.GetInvItemProperty(category, itemID, "Category")
+    local mergeIndex: int = FindPlayerMergeIndex(category, itemID)
     if !CanPlayerAcceptItem(item, category) then
       ShowInventoryFull()
       native.Trace("inv_overhaul_container container-to-player refused: inventory full")
       return
     end
     local beforePlayerAmount: int = GetPlayerItemTotalAmount(category, itemID)
-    SnapshotExistingPlayerOrder()
+    local beforeCategoryCount: int
+    player->GetItemCount(beforeCategoryCount, category)
     if organSource then
       item->SetProperty("InvOverhaulOrgan", 1)
       item->RemoveProperty("Organ")
@@ -2404,16 +2699,32 @@ maintask InvOverhaulContainerUI do
       end
     end
 
-    local afterBackpack: int = GetBackpackItemCount()
+    local afterCategoryCount: int
+    player->GetItemCount(afterCategoryCount, category)
+    local afterBackpack: int = beforeBackpack + (afterCategoryCount - beforeCategoryCount)
+    if quickTransferPreviousPlayerPage >= 0 && afterBackpack == beforeBackpack then
+      playerPage = quickTransferPreviousPlayerPage
+    end
     if afterBackpack > beforeBackpack then
-      if !RestorePlayerOrderAfterInsert(beforeBackpack, afterBackpack, targetSlot) then
-        local insertedOrder: int = FindInsertedBackpackOrdinal(beforeBackpack)
-        InsertOrderOrdinalAt(insertedOrder, beforeBackpack, targetSlot)
-        native.Trace("inv_overhaul_container player insert fallback ordinal=" + insertedOrder + " target=" + targetSlot)
-      end
+      local insertedIndex: int = afterCategoryCount - 1
+      local insertedOrder: int = GetAppendedCategoryBackpackOrdinal(category, beforeBackpack)
+      InsertPlayerIndexCacheAt(insertedOrder, beforeBackpack, category, insertedIndex)
+      InsertOrderOrdinalAt(insertedOrder, beforeBackpack, targetSlot)
+      mergeIndex = insertedIndex
     end
     if organSource then native.PlaySound("take_organ") end
-    RefreshVisiblePlayerItem(itemID, targetSlot)
+    if afterBackpack > beforeBackpack then
+      -- InsertOrderOrdinalAt has already placed the new ordinal in the exact
+      -- requested visual cell. Do not rescan every visible cell to rediscover
+      -- information we already have.
+      UpdatePlayerSlot(targetSlot)
+      UpdatePlayerPageControls()
+    else
+      -- Finding the visual cell of an existing stack requires reading the
+      -- layout map. Spread that lookup across UI updates instead of blocking
+      -- the transfer frame with a full visible-grid scan.
+      QueueCachedPlayerEntryRefresh(category, mergeIndex)
+    end
     if organSource then UpdateOrganSlots() else RefreshVisibleContainerItem(itemID, sourceSlot) end
     UpdateMoney()
   end
@@ -2722,7 +3033,7 @@ maintask InvOverhaulContainerUI do
           end
         else
           if target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then
-            MovePlayerToContainer(source, target - c_iTargetContainerBase, false)
+            ExchangePlayerWithContainer(source, target - c_iTargetContainerBase)
           end
         end
       else
@@ -2757,12 +3068,14 @@ maintask InvOverhaulContainerUI do
         native.Trace("inv_overhaul_container quick player-to-container refused: no visual slot")
         return
       end
+      quickTransferPreviousContainerPage = containerPage
       containerPage = visual / c_iContainerSlots
       if shiftHeld then
         MovePlayerAmountToContainer(source, visual - containerPage * c_iContainerSlots, false, -1)
       else
         MovePlayerToContainer(source, visual - containerPage * c_iContainerSlots, false)
       end
+      quickTransferPreviousContainerPage = -1
       return
     end
 
@@ -2773,6 +3086,7 @@ maintask InvOverhaulContainerUI do
       playerLinear = playerVisual - 16
       if playerLinear < 0 then playerLinear = playerLinear + c_iInventoryCapacity end
     end
+    quickTransferPreviousPlayerPage = playerPage
     playerPage = playerLinear / visibleSlots
     local playerTarget: int = playerLinear - playerPage * visibleSlots
     if source >= c_iTargetContainerBase && source < c_iTargetContainerBase + c_iContainerSlots then
@@ -2781,6 +3095,7 @@ maintask InvOverhaulContainerUI do
       else
         MoveExternalToPlayer(false, source - c_iTargetContainerBase, playerTarget)
       end
+      quickTransferPreviousPlayerPage = -1
       return
     end
     if source >= c_iTargetOrganBase && source < c_iTargetOrganBase + c_iOrganSlots then
@@ -2789,6 +3104,7 @@ maintask InvOverhaulContainerUI do
       else
         MoveExternalToPlayer(true, source - c_iTargetOrganBase, playerTarget)
       end
+      quickTransferPreviousPlayerPage = -1
     end
   end
 
@@ -3293,6 +3609,7 @@ maintask InvOverhaulContainerUI do
       end
     end
     ContinueInitialSlotLoad()
+    ContinueCachedPlayerEntryRefresh()
     ContinueLayoutSave()
     moneyPollCooldown = moneyPollCooldown - delta
     if moneyPollCooldown <= 0 then

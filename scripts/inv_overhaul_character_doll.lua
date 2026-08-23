@@ -68,7 +68,7 @@ maintask InvOverhaulCharacterDoll do
     if characterBranch == c_iBranchKlara then
       drawWidth = drawWidth * 9 / 10
       drawHeight = drawHeight * 9 / 10
-      drawX = (dollWidth - drawWidth) / 2 - dollWidth * 3 / 40
+      drawX = (dollWidth - drawWidth) / 2 - dollWidth * 3 / 40 + 5
       drawY = dollHeight - drawHeight
     end
     native.StretchBlit(image, drawX, drawY, drawWidth, drawHeight)

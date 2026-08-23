@@ -47,9 +47,9 @@ $russianStrings += "`n" + [System.Text.Encoding]::UTF8.GetString(
     [System.Text.Encoding]::Unicode)
 
 $layouts = @(
-    @{ File = "inv_overhaul_inventory.xml"; ClaraFile = "inv_overhaul_inventory_clara.xml"; LootFile = "inv_overhaul_container.xml"; CorpseFile = "inv_overhaul_corpse.xml"; Width = 800; Height = 600; PanelX = 25; PanelY = 50; PanelW = 750; PanelH = 500; PhotoX = 50; PhotoY = 157; PhotoW = 250; PhotoH = 383; GridX = 359; GridY = 225; Step = 58; Columns = 6; Slots = 24; ContainerX = 79; ContainerY = 250; OrganX = 49; OrganY = 482; MoneyX = 655; MoneyY = 465; WeaponX = 222; WeaponY = 323; ClaraWeaponY = 255; FeetX = 156; FeetY = 429; HeadX = 156; HeadY = 159; HeadOffset = 15; ClaraHeadOffset = 78; BodyX = 156; ClaraBodyX = 144; BodyY = 271; HandsX = 68; HandsY = 311; DropX = 501; DropY = 455; TimeX = 294; TimeY = 54 },
-    @{ File = "inv_overhaul_inventory_1024x768.xml"; ClaraFile = "inv_overhaul_inventory_clara_1024x768.xml"; LootFile = "inv_overhaul_container_1024x768.xml"; CorpseFile = "inv_overhaul_corpse_1024x768.xml"; Width = 1024; Height = 768; PanelX = 32; PanelY = 64; PanelW = 960; PanelH = 640; PhotoX = 60; PhotoY = 187; PhotoW = 325; PhotoH = 499; GridX = 468; GridY = 266; Step = 61; Columns = 7; Slots = 35; ContainerX = 121; ContainerY = 300; OrganX = 90; OrganY = 570; MoneyX = 864; MoneyY = 616; WeaponX = 299; WeaponY = 418; ClaraWeaponY = 351; FeetX = 207; FeetY = 569; HeadX = 207; HeadY = 188; HeadOffset = 18; ClaraHeadOffset = 84; BodyX = 207; ClaraBodyX = 191; BodyY = 346; HandsX = 86; HandsY = 399; DropX = 650; DropY = 580; TimeX = 406; TimeY = 68 },
-    @{ File = "inv_overhaul_inventory_1280x1024.xml"; ClaraFile = "inv_overhaul_inventory_clara_1280x1024.xml"; LootFile = "inv_overhaul_container_1280x1024.xml"; CorpseFile = "inv_overhaul_corpse_1280x1024.xml"; RootY = 32; Width = 1280; Height = 960; PanelX = 40; PanelY = 80; PanelW = 1200; PanelH = 800; PhotoX = 75; PhotoY = 230; PhotoW = 405; PhotoH = 623; GridX = 600; GridY = 182; Step = 64; Columns = 8; Slots = 56; ContainerX = 170; ContainerY = 350; OrganX = 138; OrganY = 650; MoneyX = 1100; MoneyY = 770; WeaponX = 375; WeaponY = 528; ClaraWeaponY = 458; FeetX = 270; FeetY = 740; HeadX = 270; HeadY = 240; HeadOffset = 24; ClaraHeadOffset = 94; BodyX = 270; ClaraBodyX = 250; BodyY = 428; HandsX = 125; HandsY = 500; DropX = 806; DropY = 685; TimeX = 534; TimeY = 87 },
+    @{ File = "inv_overhaul_inventory.xml"; ClaraFile = "inv_overhaul_inventory_clara.xml"; LootFile = "inv_overhaul_container.xml"; CorpseFile = "inv_overhaul_corpse.xml"; Width = 800; Height = 600; PanelX = 25; PanelY = 50; PanelW = 750; PanelH = 500; PhotoX = 50; PhotoY = 157; PhotoW = 250; PhotoH = 383; GridX = 359; GridY = 225; Step = 58; Columns = 6; Slots = 24; MainGridX = 351; ContainerX = 79; ContainerY = 250; OrganX = 49; OrganY = 482; MoneyX = 655; MoneyY = 465; WeaponX = 222; WeaponY = 323; ClaraWeaponY = 255; FeetX = 156; FeetY = 429; HeadX = 156; HeadY = 159; HeadOffset = 15; ClaraHeadOffset = 78; BodyX = 156; ClaraBodyX = 144; BodyY = 271; HandsX = 68; HandsY = 311; DropX = 501; DropY = 455; TimeX = 294; TimeY = 54 },
+    @{ File = "inv_overhaul_inventory_1024x768.xml"; ClaraFile = "inv_overhaul_inventory_clara_1024x768.xml"; LootFile = "inv_overhaul_container_1024x768.xml"; CorpseFile = "inv_overhaul_corpse_1024x768.xml"; Width = 1024; Height = 768; PanelX = 32; PanelY = 64; PanelW = 960; PanelH = 640; PhotoX = 60; PhotoY = 187; PhotoW = 325; PhotoH = 499; GridX = 468; GridY = 266; Step = 61; Columns = 7; Slots = 35; MainGridX = 460; ContainerX = 121; ContainerY = 300; OrganX = 90; OrganY = 570; MoneyX = 864; MoneyY = 616; WeaponX = 299; WeaponY = 418; ClaraWeaponY = 351; FeetX = 207; FeetY = 569; HeadX = 207; HeadY = 188; HeadOffset = 18; ClaraHeadOffset = 84; BodyX = 207; ClaraBodyX = 191; BodyY = 346; HandsX = 86; HandsY = 399; DropX = 650; DropY = 580; TimeX = 406; TimeY = 68 },
+    @{ File = "inv_overhaul_inventory_1280x1024.xml"; ClaraFile = "inv_overhaul_inventory_clara_1280x1024.xml"; LootFile = "inv_overhaul_container_1280x1024.xml"; CorpseFile = "inv_overhaul_corpse_1280x1024.xml"; RootY = 32; Width = 1280; Height = 960; PanelX = 40; PanelY = 80; PanelW = 1200; PanelH = 800; PhotoX = 75; PhotoY = 230; PhotoW = 405; PhotoH = 623; GridX = 600; GridY = 182; Step = 64; Columns = 8; Slots = 56; MainGridX = 507; MainGridY = 182; MainStep = 96; MainColumns = 7; MainSlots = 35; MainSlotSize = 82; ContainerX = 170; ContainerY = 350; OrganX = 138; OrganY = 650; MoneyX = 1100; MoneyY = 770; WeaponX = 375; WeaponY = 528; ClaraWeaponY = 458; FeetX = 270; FeetY = 740; HeadX = 270; HeadY = 240; HeadOffset = 24; ClaraHeadOffset = 94; BodyX = 270; ClaraBodyX = 250; BodyY = 428; HandsX = 125; HandsY = 500; DropX = 806; DropY = 685; TimeX = 534; TimeY = 87 },
     @{ File = "inv_overhaul_inventory_1920x1080.xml"; ClaraFile = "inv_overhaul_inventory_clara_1920x1080.xml"; LootFile = "inv_overhaul_container_1920x1080.xml"; CorpseFile = "inv_overhaul_corpse_1920x1080.xml"; Width = 1920; Height = 1080; PanelX = 360; PanelY = 140; PanelW = 1200; PanelH = 800; PhotoX = 395; PhotoY = 290; PhotoW = 405; PhotoH = 623; GridX = 825; GridY = 245; Step = 96; SlotSize = 82; EquipSlotSize = 48; OrganSlotSize = 57; OrganStep = 67; Columns = 7; Slots = 35; ContainerX = 455; ContainerY = 410; OrganX = 469; OrganY = 780; MoneyX = 1390; MoneyY = 780; WeaponX = 660; WeaponY = 580; ClaraWeaponY = 512; FeetX = 590; FeetY = 800; HeadX = 590; HeadY = 300; HeadOffset = 30; ClaraHeadOffset = 100; BodyX = 590; ClaraBodyX = 560; BodyY = 488; HandsX = 445; HandsY = 560; DropX = 1067; DropY = 780; TimeX = 854; TimeY = 147 }
 )
 
@@ -171,14 +171,19 @@ foreach ($layout in $layouts) {
     $rootX = if ($layout.ContainsKey("RootX")) { $layout.RootX } else { 0 }
     $rootY = if ($layout.ContainsKey("RootY")) { $layout.RootY } else { 0 }
     $slotSize = if ($layout.ContainsKey("SlotSize")) { $layout.SlotSize } else { 52 }
+    $mainSlotSize = if ($layout.ContainsKey("MainSlotSize")) { $layout.MainSlotSize } else { $slotSize }
+    $mainGridX = if ($layout.ContainsKey("MainGridX")) { $layout.MainGridX } else { $layout.GridX }
+    $mainSlots = if ($layout.ContainsKey("MainSlots")) { $layout.MainSlots } else { $layout.Slots }
     $equipSlotSize = if ($layout.ContainsKey("EquipSlotSize")) { $layout.EquipSlotSize } else { $slotSize }
     $organSlotSize = if ($layout.ContainsKey("OrganSlotSize")) { $layout.OrganSlotSize } else { $slotSize }
     $organStep = if ($layout.ContainsKey("OrganStep")) { $layout.OrganStep } else { $layout.Step }
-    $dropX = $layout.GridX
+    $dropX = $mainGridX
     $lowerControlsY = $layout.MoneyY
-    $inventoryPagerX = [Math]::Floor(($dropX + $slotSize + $layout.MoneyX - 132) / 2)
+    $inventoryPagerX = [Math]::Floor(($dropX + $mainSlotSize + $layout.MoneyX - 132) / 2)
     $playerPagerX = $inventoryPagerX
-    $playerPagerY = $lowerControlsY + $slotSize - 36
+    $playerPagerY = $lowerControlsY + $mainSlotSize - 36
+    $containerPlayerPagerX = [Math]::Floor(($layout.GridX + $slotSize + $layout.MoneyX - 132) / 2)
+    $containerPlayerPagerY = $lowerControlsY + $slotSize - 36
     Add-Line $builder "<form name=`"inv_overhaul_inventory`" x=`"$rootX`" y=`"$rootY`" w=`"$($layout.Width)`" h=`"$($layout.Height)`" script=`"inv_overhaul_inventory.bin`">"
     Add-Frame $builder $layout
     Add-Line $builder "  <form name=`"time`" x=`"$($layout.TimeX)`" y=`"$($layout.TimeY)`" w=`"213`" h=`"24`" script=`"ui_inventory_time.bin`">"
@@ -195,18 +200,18 @@ foreach ($layout in $layouts) {
     Add-EquipSlot $builder "equip_feet" $layout.FeetX $layout.FeetY $equipSlotSize
     Add-EquipSlot $builder "equip_weapon" $layout.WeaponX $layout.WeaponY $equipSlotSize
 
-    Add-Line $builder "  <form name=`"money`" x=`"$($layout.MoneyX)`" y=`"$($layout.MoneyY)`" w=`"$slotSize`" h=`"$slotSize`" script=`"inv_overhaul_money_slot.bin`">"
+    Add-Line $builder "  <form name=`"money`" x=`"$($layout.MoneyX)`" y=`"$($layout.MoneyY)`" w=`"$mainSlotSize`" h=`"$mainSlotSize`" script=`"inv_overhaul_money_slot.bin`">"
     Add-Line $builder '    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>'
     Add-Line $builder '    <font name="default" size="8" face="fritz_quadrata" />'
     Add-Line $builder "  </form>"
 
-    Add-Line $builder "  <form name=`"drop_slot`" x=`"$dropX`" y=`"$lowerControlsY`" w=`"$slotSize`" h=`"$slotSize`" script=`"inv_overhaul_drop_slot.bin`">"
+    Add-Line $builder "  <form name=`"drop_slot`" x=`"$dropX`" y=`"$lowerControlsY`" w=`"$mainSlotSize`" h=`"$mainSlotSize`" script=`"inv_overhaul_drop_slot.bin`">"
     Add-Line $builder '    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>'
     Add-Line $builder '    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>'
     Add-Line $builder '    <font name="default" size="8" face="fritz_quadrata" />'
     Add-Line $builder "  </form>"
 
-    if ($layout.Slots -lt 56) {
+    if ($mainSlots -lt 56) {
         Add-Pagination $builder "" $inventoryPagerX $playerPagerY
     }
     Add-Cursors $builder
@@ -269,7 +274,7 @@ foreach ($layout in $layouts) {
     if ($layout.Width -ge 1900) { $containerPagerX = $layout.ContainerX + 73 }
     $containerPagerY = $layout.GridY + 4 * $layout.Step - 4
     Add-Pagination $lootBuilder "container_" $containerPagerX $containerPagerY
-    Add-Pagination $lootBuilder "player_" $playerPagerX $playerPagerY
+    Add-Pagination $lootBuilder "player_" $containerPlayerPagerX $containerPlayerPagerY
     for ($slot = 0; $slot -lt 4; $slot++) {
         Add-LootSlot $lootBuilder ("oslot{0:D2}" -f ($slot + 1)) ($layout.OrganX + $slot * $organStep) $layout.OrganY $true $organSlotSize
     }

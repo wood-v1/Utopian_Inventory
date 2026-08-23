@@ -485,7 +485,7 @@ maintask InventoryOverhaulUI do
   function ConfigureSlotRenderSize() -> void
     local sizeMessage: int = -27
     local equipSizeMessage: int = -27
-    if windowWidth >= 1900 then sizeMessage = -26 end
+    if windowWidth >= 1200 then sizeMessage = -26 end
     if windowWidth >= 1900 then equipSizeMessage = -28 end
     native.SendMessage(equipSizeMessage, "equip_head")
     native.SendMessage(equipSizeMessage, "equip_body")
@@ -501,18 +501,14 @@ maintask InventoryOverhaulUI do
     if windowWidth <= 0 || windowHeight <= 0 then
       native.GetScreenSize(windowWidth, windowHeight)
     end
-    if windowWidth >= 1900 then
-      visibleSlots = 35
-    else
     if windowWidth >= 1200 then
-      visibleSlots = c_iInventoryCapacity
+      visibleSlots = 35
     else
       if windowWidth >= 1000 then
         visibleSlots = 35
       else
         visibleSlots = 24
       end
-    end
     end
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight || visibleSlots != lastLayoutSlots then
       native.Trace("inv_overhaul_inventory layout window=" + windowWidth + "x" + windowHeight + " slots=" + visibleSlots)
@@ -570,12 +566,12 @@ maintask InventoryOverhaulUI do
       return 825
     end
     if windowWidth >= 1200 then
-      return 600
+      return 507
     end
     if windowWidth >= 1000 then
-      return 468
+      return 460
     end
-    return 359
+    return 351
   end
 
   function GetRootLeft() -> int
@@ -604,7 +600,7 @@ maintask InventoryOverhaulUI do
       return 96
     end
     if windowWidth >= 1200 then
-      return 64
+      return 96
     end
     if windowWidth >= 1000 then
       return 61
@@ -617,7 +613,7 @@ maintask InventoryOverhaulUI do
       return 7
     end
     if windowWidth >= 1200 then
-      return 8
+      return 7
     end
     if windowWidth >= 1000 then
       return 7
@@ -704,7 +700,7 @@ maintask InventoryOverhaulUI do
         return 270
       end
       if target == c_iTargetClothesBase + 4 then return 125 end
-      if target == c_iTargetDrop then return 600 end
+      if target == c_iTargetDrop then return 507 end
     else
       if windowWidth >= 1000 then
         if target == c_iTargetWeapon then return 299 end
@@ -715,7 +711,7 @@ maintask InventoryOverhaulUI do
           return 207
         end
         if target == c_iTargetClothesBase + 4 then return 86 end
-        if target == c_iTargetDrop then return 468 end
+        if target == c_iTargetDrop then return 460 end
       else
         if target == c_iTargetWeapon then return 222 end
         if target == c_iTargetClothesBase + 1 then return 156 end
@@ -725,7 +721,7 @@ maintask InventoryOverhaulUI do
           return 156
         end
         if target == c_iTargetClothesBase + 4 then return 68 end
-        if target == c_iTargetDrop then return 359 end
+        if target == c_iTargetDrop then return 351 end
       end
     end
     end
@@ -808,7 +804,7 @@ maintask InventoryOverhaulUI do
   end
 
   function GetSlotHotZone() -> int
-    if windowWidth >= 1900 then return 82 end
+    if windowWidth >= 1200 then return 82 end
     return c_iSlotHotZone
   end
 
@@ -1084,6 +1080,56 @@ maintask InventoryOverhaulUI do
       removalHintOrdinal >= 0 &&
       removalHintOrdinal < oldCount
 
+    local equipmentRemovalCount: int = 0
+    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", equipmentRemovalCount)
+    local equipmentRemovalApplies: bool =
+      equipmentRemovalCount > 0 &&
+      equipmentRemovalCount <= 8 &&
+      newCount == oldCount - equipmentRemovalCount
+    local expectedRemovalOldCount: int = oldCount
+    if equipmentRemovalApplies then
+      for hint = 0, equipmentRemovalCount - 1 do
+        local hintOrdinal: int = -1
+        local hintOldCount: int = -1
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
+          hintOrdinal)
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_old_count_" + hint,
+          hintOldCount)
+        if hintOldCount != expectedRemovalOldCount ||
+          hintOrdinal < 0 || hintOrdinal >= expectedRemovalOldCount then
+          equipmentRemovalApplies = false
+        end
+        expectedRemovalOldCount = expectedRemovalOldCount - 1
+      end
+    end
+
+    if equipmentRemovalApplies then
+      for oldOrdinal = 0, oldCount - 1 do oldToNewOrder->set(oldOrdinal, oldOrdinal) end
+      for hint = 0, equipmentRemovalCount - 1 do
+        local hintOrdinal: int = -1
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
+          hintOrdinal)
+        for oldOrdinal = 0, oldCount - 1 do
+          local mapped: int = -1
+          oldToNewOrder->get(mapped, oldOrdinal)
+          if mapped == hintOrdinal then
+            oldToNewOrder->set(oldOrdinal, -1)
+          else
+            if mapped > hintOrdinal then oldToNewOrder->set(oldOrdinal, mapped - 1) end
+          end
+        end
+      end
+      for oldOrdinal = 0, oldCount - 1 do
+        local mapped: int = -1
+        oldToNewOrder->get(mapped, oldOrdinal)
+        if mapped >= 0 then claimedNewOrder->set(mapped, 1) end
+      end
+      native.Trace("inv_overhaul_inventory applied equipment removal queue count=" +
+        equipmentRemovalCount + " old=" + oldCount + " new=" + newCount)
+    else
     if removalHintApplies then
       for oldOrdinal = 0, oldCount - 1 do
         if oldOrdinal < removalHintOrdinal then
@@ -1130,6 +1176,10 @@ maintask InventoryOverhaulUI do
           end
         end
       end
+    end
+    end
+    if equipmentRemovalCount > 0 then
+      native.SetVariable("inv_overhaul_inventory_equipment_removal_count", 0)
     end
     if removalHintValid == 1 then native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0) end
 
@@ -3049,18 +3099,23 @@ maintask InventoryOverhaulUI do
 
   function IsInsidePlayerPaging(x: int, y: int) -> bool
     if GetMaxPage() <= 0 then return false end
-    local controlX: int = 467
-    local controlY: int = 481
-    if windowWidth >= 1900 then
-      controlX = 1082
-      controlY = 826
-    else
-    if windowWidth >= 1000 then
-      controlX = 626
-      controlY = 632
-    end
-    end
+    local controlX: int = GetPageControlX()
+    local controlY: int = GetPageControlY()
     return x >= controlX && x < controlX + 132 && y >= controlY && y < controlY + 36
+  end
+
+  function GetPageControlX() -> int
+    if windowWidth >= 1900 then return 1082 end
+    if windowWidth >= 1200 then return 778 end
+    if windowWidth >= 1000 then return 622 end
+    return 463
+  end
+
+  function GetPageControlY() -> int
+    if windowWidth >= 1900 then return 826 end
+    if windowWidth >= 1200 then return 816 end
+    if windowWidth >= 1000 then return 632 end
+    return 481
   end
 
   function UpdatePanelTooltip(x: int, y: int) -> void
@@ -3197,17 +3252,8 @@ maintask InventoryOverhaulUI do
   function HandlePageControlAt(x: int, y: int) -> bool
     if visibleSlots >= c_iInventoryCapacity then return false end
 
-    local controlX: int = 467
-    local controlY: int = 481
-    if windowWidth >= 1900 then
-      controlX = 1082
-      controlY = 826
-    else
-    if windowWidth >= 1000 then
-      controlX = 626
-      controlY = 632
-    end
-    end
+    local controlX: int = GetPageControlX()
+    local controlY: int = GetPageControlY()
 
     if y < controlY || y >= controlY + 36 then return false end
     if x >= controlX && x < controlX + 40 then
@@ -3223,17 +3269,8 @@ maintask InventoryOverhaulUI do
 
   function UpdatePageControlHover(x: int, y: int) -> void
     if GetMaxPage() <= 0 then return end
-    local controlX: int = 467
-    local controlY: int = 481
-    if windowWidth >= 1900 then
-      controlX = 1082
-      controlY = 826
-    else
-    if windowWidth >= 1000 then
-      controlX = 626
-      controlY = 632
-    end
-    end
+    local controlX: int = GetPageControlX()
+    local controlY: int = GetPageControlY()
     if page > 0 && x >= controlX && x < controlX + 40 && y >= controlY && y < controlY + 36 then
       native.SendMessage(-94, "page_prev")
     else

@@ -22,12 +22,15 @@ maintask InvOverhaulPageButton do
     if !visible then
       native.SetBackground("hidden")
     else
-      if highlighted && enabled then native.SetBackground("target") else native.SetBackground("default") end
+      native.SetBackground("default")
     end
   end
 
   function OnDraw() -> void
-    if visible then native.Print("default", 15, 7, label) end
+    if visible then
+      native.Print("default", 15, 7, label)
+      if highlighted && enabled then native.StretchBlit("target", 0, 0, 42, 36) end
+    end
   end
 
   function OnMouseEnter() -> void

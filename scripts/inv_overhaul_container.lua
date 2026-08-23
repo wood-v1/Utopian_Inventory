@@ -202,6 +202,12 @@ maintask InvOverhaulContainerUI do
     moneyTooltipItem->GetItemID(moneyItemID)
     InitSlotOrder()
     InitContainerOrders()
+    -- Organ forms are created with the same black default background as the
+    -- other loot slots. Hide them before the first ProcessEvents call so a
+    -- normal container never renders four corpse slots for one frame.
+    for organSlot = 0, c_iOrganSlots - 1 do
+      native.SendMessage(-22, GetOrganSlotWndName(organSlot))
+    end
     UpdateLayout()
     native.SendMessage(-201, "panel_background")
     DetectContainerKind()
@@ -780,6 +786,10 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetAppendedCategoryBackpackOrdinal(category: int, beforeCount: int) -> int
+    -- The vectors contain exactly the 56 visible backpack entries. Saves
+    -- with overflow are intentionally preserved, but must never be used as
+    -- vector bounds by the incremental transfer path.
+    if beforeCount < 0 || beforeCount > c_iInventoryCapacity then return -1 end
     local insertedOrdinal: int = 0
     for ordinal = 0, beforeCount - 1 do
       local cachedCategory: int
@@ -794,7 +804,16 @@ maintask InvOverhaulContainerUI do
     beforeCount: int,
     category: int,
     index: int
-  ) -> void
+  ) -> bool
+    if beforeCount < 0 || beforeCount >= c_iInventoryCapacity ||
+      insertedOrdinal < 0 || insertedOrdinal > beforeCount ||
+      category < 0 || category >= c_iCategoryCount || index < 0 then
+      native.Trace("inv_overhaul_container cache insert rejected ordinal=" +
+        insertedOrdinal + " before=" + beforeCount + " category=" + category +
+        " index=" + index)
+      BuildPlayerIndexCache()
+      return false
+    end
     local ordinal: int = beforeCount
     while ordinal > insertedOrdinal do
       local previousCategory: int
@@ -808,6 +827,7 @@ maintask InvOverhaulContainerUI do
     playerCategoryCache->set(insertedOrdinal, category)
     playerIndexCache->set(insertedOrdinal, index)
     cachedBackpackItemCount = beforeCount + 1
+    return true
   end
 
   function RemovePlayerIndexCacheAt(
@@ -815,7 +835,16 @@ maintask InvOverhaulContainerUI do
     beforeCount: int,
     removedCategory: int,
     removedIndex: int
-  ) -> void
+  ) -> bool
+    if beforeCount <= 0 || beforeCount > c_iInventoryCapacity ||
+      removedOrdinal < 0 || removedOrdinal >= beforeCount ||
+      removedCategory < 0 || removedCategory >= c_iCategoryCount || removedIndex < 0 then
+      native.Trace("inv_overhaul_container cache remove rejected ordinal=" +
+        removedOrdinal + " before=" + beforeCount + " category=" + removedCategory +
+        " index=" + removedIndex)
+      BuildPlayerIndexCache()
+      return false
+    end
     for ordinal = removedOrdinal, beforeCount - 2 do
       local nextCategory: int
       local nextIndex: int
@@ -832,6 +861,7 @@ maintask InvOverhaulContainerUI do
       playerIndexCache->set(beforeCount - 1, -1)
     end
     cachedBackpackItemCount = beforeCount - 1
+    return true
   end
 
   function FindPlayerMergeIndex(category: int, itemID: int) -> int
@@ -862,7 +892,7 @@ maintask InvOverhaulContainerUI do
     end
     for slot = 0, visibleSlots - 1 do
       local ordinal: int = GetOrderValue(GetVisibleCell(slot))
-      if ordinal >= 0 && ordinal < cachedBackpackItemCount then
+      if ordinal >= 0 && ordinal < cachedBackpackItemCount && ordinal < c_iInventoryCapacity then
         local cachedCategory: int
         local cachedIndex: int
         playerCategoryCache->get(cachedCategory, ordinal)
@@ -896,7 +926,7 @@ maintask InvOverhaulContainerUI do
     local slot: int = pendingPlayerEntryScanSlot
     pendingPlayerEntryScanSlot = pendingPlayerEntryScanSlot + 1
     local ordinal: int = GetOrderValue(GetVisibleCell(slot))
-    if ordinal >= 0 && ordinal < cachedBackpackItemCount then
+    if ordinal >= 0 && ordinal < cachedBackpackItemCount && ordinal < c_iInventoryCapacity then
       local cachedCategory: int
       local cachedIndex: int
       playerCategoryCache->get(cachedCategory, ordinal)
@@ -1716,6 +1746,56 @@ maintask InvOverhaulContainerUI do
       removalHintOrdinal >= 0 &&
       removalHintOrdinal < oldCount
 
+    local equipmentRemovalCount: int = 0
+    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", equipmentRemovalCount)
+    local equipmentRemovalApplies: bool =
+      equipmentRemovalCount > 0 &&
+      equipmentRemovalCount <= 8 &&
+      currentCount == oldCount - equipmentRemovalCount
+    local expectedRemovalOldCount: int = oldCount
+    if equipmentRemovalApplies then
+      for hint = 0, equipmentRemovalCount - 1 do
+        local hintOrdinal: int = -1
+        local hintOldCount: int = -1
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
+          hintOrdinal)
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_old_count_" + hint,
+          hintOldCount)
+        if hintOldCount != expectedRemovalOldCount ||
+          hintOrdinal < 0 || hintOrdinal >= expectedRemovalOldCount then
+          equipmentRemovalApplies = false
+        end
+        expectedRemovalOldCount = expectedRemovalOldCount - 1
+      end
+    end
+
+    if equipmentRemovalApplies then
+      for oldOrdinal = 0, oldCount - 1 do playerOrdinalMap->set(oldOrdinal, oldOrdinal) end
+      for hint = 0, equipmentRemovalCount - 1 do
+        local hintOrdinal: int = -1
+        native.GetVariable(
+          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
+          hintOrdinal)
+        for oldOrdinal = 0, oldCount - 1 do
+          local mapped: int = -1
+          playerOrdinalMap->get(mapped, oldOrdinal)
+          if mapped == hintOrdinal then
+            playerOrdinalMap->set(oldOrdinal, -1)
+          else
+            if mapped > hintOrdinal then playerOrdinalMap->set(oldOrdinal, mapped - 1) end
+          end
+        end
+      end
+      for oldOrdinal = 0, oldCount - 1 do
+        local mapped: int = -1
+        playerOrdinalMap->get(mapped, oldOrdinal)
+        if mapped >= 0 then playerIndexCache->set(mapped, 1) end
+      end
+      native.Trace("inv_overhaul_container applied equipment removal queue count=" +
+        equipmentRemovalCount + " old=" + oldCount + " new=" + currentCount)
+    else
     if removalHintApplies then
       for oldOrdinal = 0, oldCount - 1 do
         if oldOrdinal < removalHintOrdinal then
@@ -1762,6 +1842,10 @@ maintask InvOverhaulContainerUI do
           end
         end
       end
+    end
+    end
+    if equipmentRemovalCount > 0 then
+      native.SetVariable("inv_overhaul_inventory_equipment_removal_count", 0)
     end
     if removalHintValid == 1 then native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0) end
 
@@ -2465,10 +2549,11 @@ maintask InvOverhaulContainerUI do
 
     local afterCategoryCount: int
     player->GetItemCount(afterCategoryCount, category)
-    local afterBackpack: int = beforeBackpack - (beforeCategoryCount - afterCategoryCount)
+    local afterBackpack: int = GetBackpackItemCount()
     if afterBackpack < beforeBackpack then
-      RemovePlayerIndexCacheAt(usedOrder, beforeBackpack, category, index)
-      RemoveOrderOrdinal(usedOrder, beforeBackpack)
+      if RemovePlayerIndexCacheAt(usedOrder, beforeBackpack, category, index) then
+        RemoveOrderOrdinal(usedOrder, beforeBackpack)
+      end
     end
     local afterExternal: int
     if asOrgan then afterExternal = GetOrganItemCount() else afterExternal = GetNormalContainerItemCount() end
@@ -2701,25 +2786,27 @@ maintask InvOverhaulContainerUI do
 
     local afterCategoryCount: int
     player->GetItemCount(afterCategoryCount, category)
-    local afterBackpack: int = beforeBackpack + (afterCategoryCount - beforeCategoryCount)
+    local afterBackpack: int = GetBackpackItemCount()
     if quickTransferPreviousPlayerPage >= 0 && afterBackpack == beforeBackpack then
       playerPage = quickTransferPreviousPlayerPage
     end
+    local insertedIntoPlayerCache: bool = false
     if afterBackpack > beforeBackpack then
       local insertedIndex: int = afterCategoryCount - 1
       local insertedOrder: int = GetAppendedCategoryBackpackOrdinal(category, beforeBackpack)
-      InsertPlayerIndexCacheAt(insertedOrder, beforeBackpack, category, insertedIndex)
-      InsertOrderOrdinalAt(insertedOrder, beforeBackpack, targetSlot)
+      insertedIntoPlayerCache = InsertPlayerIndexCacheAt(insertedOrder, beforeBackpack, category, insertedIndex)
+      if insertedIntoPlayerCache then InsertOrderOrdinalAt(insertedOrder, beforeBackpack, targetSlot) end
       mergeIndex = insertedIndex
     end
     if organSource then native.PlaySound("take_organ") end
-    if afterBackpack > beforeBackpack then
+    if afterBackpack > beforeBackpack && insertedIntoPlayerCache then
       -- InsertOrderOrdinalAt has already placed the new ordinal in the exact
       -- requested visual cell. Do not rescan every visible cell to rediscover
       -- information we already have.
       UpdatePlayerSlot(targetSlot)
       UpdatePlayerPageControls()
     else
+      if afterBackpack > beforeBackpack then UpdatePlayerSlots() end
       -- Finding the visual cell of an existing stack requires reading the
       -- layout map. Spread that lookup across UI updates instead of blocking
       -- the transfer frame with a full visible-grid scan.

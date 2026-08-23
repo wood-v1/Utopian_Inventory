@@ -27,6 +27,8 @@ maintask TEffect do
   local m_fMessageCooldown: float
   local m_iEffectGeneration: int
   local m_bResolvingOverflow: bool
+  local m_bResolvingStackMerge: bool
+  local m_bStackMergePending: bool
 
   function GetPlayer() -> object
     local player: object
@@ -600,6 +602,146 @@ maintask TEffect do
     native.SetVariable("inv_overhaul_inventory_content_generation", generation)
   end
 
+  function NormalizeMergedQuickslots(category: int, itemID: int) -> void
+    for slot = 1, c_iQuickslotCount do
+      local boundCategory: int = -1
+      local boundItemID: int = -1
+      native.GetVariable(GetQuickslotCategoryVariable(slot), boundCategory)
+      native.GetVariable(GetQuickslotItemVariable(slot), boundItemID)
+      if boundCategory == category && boundItemID == itemID then
+        native.SetVariable(GetQuickslotOccurrenceVariable(slot), 0)
+        native.SetVariable(GetQuickslotDepletedVariable(slot), 0)
+      end
+    end
+  end
+
+  function GetOtherStackAmount(player: object, category: int, keepIndex: int, itemID: int) -> int
+    local count: int
+    local total: int = 0
+    player->GetItemCount(count, category)
+    for index = 0, count - 1 do
+      if index != keepIndex then
+        local candidate: object
+        player->GetItem(candidate, index, category)
+        if candidate then
+          local candidateID: int
+          candidate->GetItemID(candidateID)
+          if candidateID == itemID then
+            local amount: int
+            player->GetItemAmount(amount, index, category)
+            total = total + amount
+          end
+        end
+      end
+    end
+    return total
+  end
+
+  function MergeItemStacks(player: object, category: int, keepIndex: int, itemID: int, count: int) -> bool
+    local keepAmount: int
+    local totalAmount: int
+    local duplicateCount: int = 0
+    player->GetItemAmount(keepAmount, keepIndex, category)
+    totalAmount = keepAmount
+
+    for index = keepIndex + 1, count - 1 do
+      local candidate: object
+      player->GetItem(candidate, index, category)
+      if candidate then
+        local candidateID: int
+        candidate->GetItemID(candidateID)
+        if candidateID == itemID then
+          local amount: int
+          player->GetItemAmount(amount, index, category)
+          totalAmount = totalAmount + amount
+          duplicateCount = duplicateCount + 1
+        end
+      end
+    end
+    if duplicateCount <= 0 then return false end
+
+    -- Prove that this engine build accepts an amount above the vanilla stack
+    -- size before deleting any duplicate entry.  If it does not, restore the
+    -- original amount and leave every item untouched.
+    player->SetItemAmount(totalAmount, keepIndex, category)
+    local verifiedAmount: int
+    player->GetItemAmount(verifiedAmount, keepIndex, category)
+    if verifiedAmount != totalAmount then
+      player->SetItemAmount(keepAmount, keepIndex, category)
+      native.Trace("inv_overhaul_inventory_guard stack merge rejected category=" +
+        category + " item=" + itemID + " requested=" + totalAmount +
+        " actual=" + verifiedAmount)
+      return false
+    end
+
+    local removeIndex: int = count - 1
+    while removeIndex > keepIndex do
+      local candidate: object
+      player->GetItem(candidate, removeIndex, category)
+      if candidate then
+        local candidateID: int
+        candidate->GetItemID(candidateID)
+        if candidateID == itemID then
+          local amount: int
+          player->GetItemAmount(amount, removeIndex, category)
+          if amount > 0 then player->RemoveItem(removeIndex, amount, category) end
+        end
+      end
+      removeIndex = removeIndex - 1
+    end
+
+    -- A failed RemoveItem must not duplicate the stack: subtract any
+    -- surviving duplicates from the primary entry so the total amount stays
+    -- exactly equal to what the player owned before consolidation.
+    local remainingOtherAmount: int = GetOtherStackAmount(
+      player, category, keepIndex, itemID)
+    if remainingOtherAmount > 0 then
+      player->SetItemAmount(totalAmount - remainingOtherAmount, keepIndex, category)
+    end
+    NormalizeMergedQuickslots(category, itemID)
+    return true
+  end
+
+  function ConsolidatePlayerStacks() -> void
+    if !m_bStackMergePending then return end
+    m_bStackMergePending = false
+    m_bResolvingStackMerge = true
+
+    local player: object = GetPlayer()
+    local changed: bool = false
+    for category = 0, c_iCategoryCount - 1 do
+      local count: int
+      player->GetItemCount(count, category)
+      local index: int = 0
+      while index < count do
+        local item: object
+        player->GetItem(item, index, category)
+        if item then
+          local itemID: int
+          local maxStackSize: int
+          item->GetItemID(itemID)
+          native.GetInvItemMaxStackSize(maxStackSize, itemID)
+          if maxStackSize > 1 && MergeItemStacks(
+            player, category, index, itemID, count) then
+            changed = true
+            player->GetItemCount(count, category)
+          end
+        end
+        index = index + 1
+      end
+      player->GetItemCount(count, category)
+      m_CategoryCounts->set(category, count)
+    end
+    m_bResolvingStackMerge = false
+
+    if changed then
+      AdvanceInventoryContentGeneration()
+      local generation: int = 0
+      native.GetVariable("inv_overhaul_inventory_reorder_generation", generation)
+      native.SetVariable("inv_overhaul_inventory_reorder_generation", generation + 1)
+    end
+  end
+
   function init() -> void
     native.CreateIntVector(m_QueueID1)
     native.CreateIntVector(m_QueueID2)
@@ -614,6 +756,10 @@ maintask TEffect do
     m_iQueueWrite = 0
     m_iQueueCount = 0
     m_bResolvingOverflow = false
+    m_bResolvingStackMerge = false
+    -- Migrate duplicate stacks already present in an older save as well as
+    -- new stacks subsequently delivered by any AddItem path.
+    m_bStackMergePending = true
     m_fMessageCooldown = 0
     m_iEffectGeneration = 0
     native.GetVariable("inv_overhaul_effect_generation", m_iEffectGeneration)
@@ -657,12 +803,13 @@ maintask TEffect do
         if m_fMessageCooldown < 0 then m_fMessageCooldown = 0 end
       end
       ProcessSpecialInventoryRemap()
+      ConsolidatePlayerStacks()
       ProcessOverflowQueue()
     end
   end
 
   function OnInventoryAddItem(item: object, id1: int, id2: int, category: int) -> void
-    if m_bResolvingOverflow then return end
+    if m_bResolvingOverflow || m_bResolvingStackMerge then return end
     if category < 0 || category >= c_iCategoryCount then return end
     local previousCount: int
     local currentCount: int
@@ -671,6 +818,13 @@ maintask TEffect do
     player->GetItemCount(currentCount, category)
     m_CategoryCounts->set(category, currentCount)
     if currentCount > previousCount then AdvanceInventoryContentGeneration() end
+    if item then
+      local addedItemID: int
+      local maxStackSize: int
+      item->GetItemID(addedItemID)
+      native.GetInvItemMaxStackSize(maxStackSize, addedItemID)
+      if maxStackSize > 1 then m_bStackMergePending = true end
+    end
     local quickslotDiag: int = 0
     native.GetVariable("inv_overhaul_quickslot_diag_active", quickslotDiag)
     if quickslotDiag == 1 then
@@ -689,7 +843,7 @@ maintask TEffect do
   end
 
   function OnInventoryRemoveItem(item: object, id1: int, id2: int, category: int) -> void
-    if m_bResolvingOverflow then return end
+    if m_bResolvingOverflow || m_bResolvingStackMerge then return end
     if category >= 0 && category < c_iCategoryCount then
       local previousCount: int
       local categoryCount: int

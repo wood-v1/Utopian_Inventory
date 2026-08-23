@@ -160,9 +160,9 @@ maintask InventoryOverhaulBackground do
 
   function GetGridStartX() -> int
     if rootWidth >= 1900 then return 825 end
-    if rootWidth >= 1200 then return 600 end
-    if rootWidth >= 1000 then return 468 end
-    return 359
+    if rootWidth >= 1200 then return 507 end
+    if rootWidth >= 1000 then return 460 end
+    return 351
   end
 
   function GetGridStartY() -> int
@@ -174,27 +174,27 @@ maintask InventoryOverhaulBackground do
 
   function GetGridStep() -> int
     if rootWidth >= 1900 then return 96 end
-    if rootWidth >= 1200 then return 64 end
+    if rootWidth >= 1200 then return 96 end
     if rootWidth >= 1000 then return 61 end
     return 58
   end
 
   function GetGridColumns() -> int
     if rootWidth >= 1900 then return 7 end
-    if rootWidth >= 1200 then return 8 end
+    if rootWidth >= 1200 then return 7 end
     if rootWidth >= 1000 then return 7 end
     return 6
   end
 
   function GetVisibleSlots() -> int
     if rootWidth >= 1900 then return 35 end
-    if rootWidth >= 1200 then return 56 end
+    if rootWidth >= 1200 then return 35 end
     if rootWidth >= 1000 then return 35 end
     return 24
   end
 
   function GetSlotSize() -> int
-    if rootWidth >= 1900 then return 82 end
+    if rootWidth >= 1200 then return 82 end
     return 52
   end
 
@@ -338,11 +338,7 @@ maintask InventoryOverhaulBackground do
       itemIDs->get(loadedItemID, slot)
       if loadedItemID != itemID then
         local sprite: string = ""
-        if rootWidth >= 1900 then
-          native.GetInvItemSprite2(sprite, itemID)
-        else
-          native.GetInvItemSprite(sprite, itemID)
-        end
+        native.GetInvItemSprite2(sprite, itemID)
         if sprite != "" then LoadTrackedImage(sprite) end
         sprites->set(slot, sprite)
         itemIDs->set(slot, itemID)

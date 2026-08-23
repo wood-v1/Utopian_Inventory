@@ -36,7 +36,7 @@ maintask InventoryOverhaulSlot do
     hidden = false
     blocked = false
     loadedItemID = -1
-    highResolutionSprite = false
+    highResolutionSprite = true
     tooltipSuppressed = false
     quickslot = 0
     native.GetWindowSize(slotWidth, slotHeight)
@@ -50,11 +50,6 @@ maintask InventoryOverhaulSlot do
   function UpdateBackground() -> void
     if hidden then
       native.SetBackground("hidden")
-      return
-    end
-
-    if highlighted then
-      native.SetBackground("target")
       return
     end
 
@@ -119,6 +114,11 @@ maintask InventoryOverhaulSlot do
         native.Print("quickslot", slotWidth - 17, 3, displayNumber)
       end
     end
+
+    -- Container/corpse grids use one child form per slot.  The target image
+    -- is a transparent frame, so it must be drawn over the normal empty or
+    -- occupied background instead of replacing that background.
+    if highlighted then native.StretchBlit("target", 0, 0, slotWidth, slotHeight) end
   end
 
   function OnLButtonDown(x: int, y: int) -> void
@@ -224,7 +224,7 @@ maintask InventoryOverhaulSlot do
     if message == -27 then
       slotWidth = 52
       slotHeight = 52
-      highResolutionSprite = false
+      highResolutionSprite = true
       loadedItemID = -1
       return
     end

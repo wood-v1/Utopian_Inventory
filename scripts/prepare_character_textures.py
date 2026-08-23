@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageOps
 
 
 UI_DIR = Path(__file__).resolve().parent.parent / "resources" / "ui"
@@ -14,7 +14,7 @@ BACKGROUND_GAME_SIZE_OVERRIDES = {}
 BACKGROUND_SOURCES = {
     # This source has the correct 3:2 composition, full-resolution details,
     # and no hanging hooks in the right inventory panel.
-    "clara": "clara_inventory_bg.png",
+    "clara": "inv_overhaul_inventory_bg_clara.png",
 }
 LOOT_DOLL_SIZE = (205, 325)
 LOOT_DOLLS = {
@@ -52,8 +52,20 @@ save_tex(
 for name in ("slot_occupied", "slot_target", "quickslot_help"):
     source = IMAGE_DIR / f"inv_overhaul_{name}_source.png"
     with Image.open(source) as image:
+        prepared = image.convert("RGBA")
+        if name == "slot_target":
+            # The target texture is drawn after the item sprite.  Keep only
+            # its two-pixel frame opaque; an opaque centre would cover the
+            # item underneath and turn an occupied drop target black.
+            alpha = Image.new("L", prepared.size, 0)
+            ImageDraw.Draw(alpha).rectangle(
+                (0, 0, prepared.width - 1, prepared.height - 1),
+                outline=255,
+                width=2,
+            )
+            prepared.putalpha(alpha)
         save_tex(
-            image.convert("RGBA"),
+            prepared,
             UI_DIR / f"inv_overhaul_{name}.tex",
             "DXT5",
         )

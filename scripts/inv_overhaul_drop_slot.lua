@@ -19,15 +19,15 @@ maintask InvOverhaulDropSlot do
   end
 
   function UpdateBackground() -> void
-    if highlighted then
-      native.SetBackground("target")
-    else
-      native.SetBackground("default")
-    end
+    -- Keep the black drop-slot surface visible while dragging. The target
+    -- texture contains only a translucent frame and is drawn on top below;
+    -- using it as the background makes the centre of the slot transparent.
+    native.SetBackground("default")
   end
 
   function OnDraw() -> void
     native.Print("default", (slotWidth - 32) / 2, (slotHeight - 12) / 2, "DROP")
+    if highlighted then native.StretchBlit("target", 0, 0, slotWidth, slotHeight) end
   end
 
   function OnMouseEnter() -> void

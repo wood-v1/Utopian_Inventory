@@ -19,7 +19,7 @@ maintask InvOverhaulEquipSlot do
     highlighted = false
     label = ""
     loadedItemID = -1
-    highResolutionSprite = false
+    highResolutionSprite = true
     tooltipSuppressed = false
     quickslot = 0
     native.GetWindowSize(slotWidth, slotHeight)
@@ -31,14 +31,10 @@ maintask InvOverhaulEquipSlot do
   end
 
   function UpdateBackground() -> void
-    if highlighted then
-      native.SetBackground("target")
+    if item then
+      native.SetBackground("occupied")
     else
-      if item then
-        native.SetBackground("occupied")
-      else
-        native.SetBackground("default")
-      end
+      native.SetBackground("default")
     end
   end
 
@@ -69,6 +65,10 @@ maintask InvOverhaulEquipSlot do
       if displayNumber == 10 then displayNumber = 0 end
       native.Print("quickslot", slotWidth - 17, 3, displayNumber)
     end
+    -- The target texture is a transparent frame.  Keep the normal black
+    -- background (and the equipped item) visible, then draw the hover/drop
+    -- indication on top instead of replacing the slot background with it.
+    if highlighted then native.StretchBlit("target", 0, 0, slotWidth, slotHeight) end
   end
 
   function OnMouseEnter() -> void
@@ -154,7 +154,7 @@ maintask InvOverhaulEquipSlot do
     if message == -27 then
       slotWidth = 52
       slotHeight = 52
-      highResolutionSprite = false
+      highResolutionSprite = true
       loadedItemID = -1
       return
     end

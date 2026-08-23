@@ -48,23 +48,23 @@
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="drop_slot" x="359" y="465" w="52" h="52" script="inv_overhaul_drop_slot.bin">
+  <form name="drop_slot" x="351" y="465" w="52" h="52" script="inv_overhaul_drop_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="page_prev" x="467" y="481" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="page_prev" x="463" y="481" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="page_counter" x="507" y="481" w="52" h="36" script="inv_overhaul_page_counter.bin">
+  <form name="page_counter" x="503" y="481" w="52" h="36" script="inv_overhaul_page_counter.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="16" face="fritz_quadrata" />
   </form>
-  <form name="page_next" x="559" y="481" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="page_next" x="555" y="481" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>

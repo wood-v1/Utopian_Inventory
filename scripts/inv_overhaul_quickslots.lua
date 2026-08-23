@@ -109,6 +109,46 @@ maintask InvOverhaulQuickslotPlayerEffect do
     native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 1)
   end
 
+  function PublishEquipmentRemovalHint(category: int, index: int) -> void
+    local ordinal: int = GetBackpackOrdinal(category, index)
+    if ordinal < 0 then return end
+
+    local currentCount: int = GetBackpackItemCount()
+    local queueCount: int = 0
+    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", queueCount)
+    if queueCount < 0 || queueCount >= 8 then queueCount = 0 end
+    if queueCount > 0 then
+      local previousCount: int = -1
+      native.GetVariable(
+        "inv_overhaul_inventory_equipment_removal_old_count_" + (queueCount - 1),
+        previousCount)
+      if currentCount != previousCount - 1 then queueCount = 0 end
+    end
+
+    native.SetVariable(
+      "inv_overhaul_inventory_equipment_removal_ordinal_" + queueCount,
+      ordinal)
+    native.SetVariable(
+      "inv_overhaul_inventory_equipment_removal_old_count_" + queueCount,
+      currentCount)
+    native.SetVariable(
+      "inv_overhaul_inventory_equipment_removal_count",
+      queueCount + 1)
+    native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0)
+    native.Trace("inv_overhaul_quickslot equipment removal queued ordinal=" + ordinal +
+      " old=" + currentCount + " queue=" + (queueCount + 1))
+  end
+
+  function CancelLastEquipmentRemovalHint() -> void
+    local queueCount: int = 0
+    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", queueCount)
+    if queueCount > 0 then
+      native.SetVariable(
+        "inv_overhaul_inventory_equipment_removal_count",
+        queueCount - 1)
+    end
+  end
+
   function GetUseEffect(itemID: int) -> string
     if itemID == 0 then return "item_alpha_pills.bin" end
     if itemID == 1 then return "item_beta_pills.bin" end
@@ -430,6 +470,13 @@ maintask InvOverhaulQuickslotPlayerEffect do
       return
     end
 
+    -- The persistent layout stores backpack ordinals.  Selecting equipment
+    -- removes exactly this ordinal from the backpack, but identical item IDs
+    -- are otherwise indistinguishable during the next snapshot reconcile.
+    -- Publish the ordinal before changing any selection state so the cell of
+    -- the item activated by the quickslot is the one that becomes empty.
+    PublishEquipmentRemovalHint(category, index)
+
     local group: int
     native.GetInvItemProperty(group, itemID, "Group")
     local count: int
@@ -449,7 +496,17 @@ maintask InvOverhaulQuickslotPlayerEffect do
         end
       end
     end
-    player->SelectItem(index, true, category)
+
+    -- Deselecting the previous item in this equipment group may reorder the
+    -- engine category.  Never reuse the numeric index captured before that
+    -- mutation.
+    local refreshedIndex: int = FindBoundItemIndex(category, itemID, occurrence)
+    if refreshedIndex < 0 then
+      CancelLastEquipmentRemovalHint()
+      ShowMessage(c_iQuickslotMissingTextID)
+      return
+    end
+    player->SelectItem(refreshedIndex, true, category)
     MarkInventoryChanged()
     ShowFeedback(itemID)
   end
@@ -583,7 +640,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
     native.SetVariable("inv_overhaul_handcombat_request", 0)
     UpdateTrackedWeapon(0)
     native.Trace("INV_OVERHAUL_EFFECT_LIFECYCLE quickslots start generation=" + m_iEffectGeneration)
-    native.Trace("INV_OVERHAUL_QUICKSLOT_PLAYER_EFFECT_VERSION 2026.08.12-ready-signal-1")
+    native.Trace("INV_OVERHAUL_QUICKSLOT_PLAYER_EFFECT_VERSION 2026.08.21-equipment-layout-hint-1")
     while true do
       native.Sleep(c_fRequestPollDelay)
       local currentGeneration: int = 0

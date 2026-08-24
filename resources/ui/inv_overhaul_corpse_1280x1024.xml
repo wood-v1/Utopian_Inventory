@@ -11,7 +11,7 @@
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <font name="default" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot01" x="170" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot01" x="170" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -21,7 +21,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot02" x="234" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot02" x="266" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -31,7 +31,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot03" x="298" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot03" x="362" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -41,7 +41,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot04" x="170" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot04" x="170" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -51,7 +51,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot05" x="234" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot05" x="266" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -61,7 +61,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot06" x="298" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot06" x="362" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -71,7 +71,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot07" x="170" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot07" x="170" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -81,7 +81,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot08" x="234" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot08" x="266" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -91,7 +91,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot09" x="298" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot09" x="362" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -101,7 +101,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot10" x="170" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot10" x="170" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -111,7 +111,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot11" x="234" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot11" x="266" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -121,7 +121,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="cslot12" x="298" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="cslot12" x="362" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -131,11 +131,11 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="money" x="1100" y="770" w="52" h="52" script="inv_overhaul_money_slot.bin">
+  <form name="money" x="1100" y="690" w="82" h="82" script="inv_overhaul_money_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <font name="default" size="8" face="fritz_quadrata" />
   </form>
-  <form name="slot01" x="600" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot01" x="507" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -145,7 +145,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot02" x="664" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot02" x="603" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -155,7 +155,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot03" x="728" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot03" x="699" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -165,7 +165,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot04" x="792" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot04" x="795" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -175,7 +175,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot05" x="856" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot05" x="891" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -185,7 +185,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot06" x="920" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot06" x="987" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -195,7 +195,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot07" x="984" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot07" x="1083" y="182" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -205,7 +205,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot08" x="1048" y="182" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot08" x="507" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -215,7 +215,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot09" x="600" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot09" x="603" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -225,7 +225,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot10" x="664" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot10" x="699" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -235,7 +235,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot11" x="728" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot11" x="795" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -245,7 +245,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot12" x="792" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot12" x="891" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -255,7 +255,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot13" x="856" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot13" x="987" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -265,7 +265,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot14" x="920" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot14" x="1083" y="278" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -275,7 +275,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot15" x="984" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot15" x="507" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -285,7 +285,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot16" x="1048" y="246" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot16" x="603" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -295,7 +295,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot17" x="600" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot17" x="699" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -305,7 +305,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot18" x="664" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot18" x="795" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -315,7 +315,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot19" x="728" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot19" x="891" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -325,7 +325,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot20" x="792" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot20" x="987" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -335,7 +335,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot21" x="856" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot21" x="1083" y="374" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -345,7 +345,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot22" x="920" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot22" x="507" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -355,7 +355,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot23" x="984" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot23" x="603" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -365,7 +365,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot24" x="1048" y="310" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot24" x="699" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -375,7 +375,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot25" x="600" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot25" x="795" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -385,7 +385,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot26" x="664" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot26" x="891" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -395,7 +395,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot27" x="728" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot27" x="987" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -405,7 +405,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot28" x="792" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot28" x="1083" y="470" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -415,7 +415,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot29" x="856" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot29" x="507" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -425,7 +425,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot30" x="920" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot30" x="603" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -435,7 +435,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot31" x="984" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot31" x="699" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -445,7 +445,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot32" x="1048" y="374" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot32" x="795" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -455,7 +455,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot33" x="600" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot33" x="891" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -465,7 +465,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot34" x="664" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot34" x="987" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -475,7 +475,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot35" x="728" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="slot35" x="1083" y="566" w="82" h="82" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -485,251 +485,41 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="slot36" x="792" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot37" x="856" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot38" x="920" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot39" x="984" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot40" x="1048" y="438" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot41" x="600" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot42" x="664" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot43" x="728" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot44" x="792" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot45" x="856" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot46" x="920" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot47" x="984" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot48" x="1048" y="502" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot49" x="600" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot50" x="664" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot51" x="728" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot52" x="792" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot53" x="856" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot54" x="920" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot55" x="984" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="slot56" x="1048" y="566" w="52" h="52" script="inv_overhaul_inv_slot.bin">
-    <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
-    <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
-    <image name="occupied" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_occupied.tex</image>
-    <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
-    <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
-    <font name="default" size="8" face="fritz_quadrata" />
-    <font name="quickslot" size="14" face="fritz_quadrata" />
-  </form>
-  <form name="container_page_prev" x="198" y="434" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="container_page_prev" x="241" y="562" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="container_page_counter" x="238" y="434" w="52" h="36" script="inv_overhaul_page_counter.bin">
+  <form name="container_page_counter" x="281" y="562" w="52" h="36" script="inv_overhaul_page_counter.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="16" face="fritz_quadrata" />
   </form>
-  <form name="container_page_next" x="290" y="434" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="container_page_next" x="333" y="562" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="player_page_prev" x="810" y="786" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="player_page_prev" x="778" y="736" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="player_page_counter" x="850" y="786" w="52" h="36" script="inv_overhaul_page_counter.bin">
+  <form name="player_page_counter" x="818" y="736" w="52" h="36" script="inv_overhaul_page_counter.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="16" face="fritz_quadrata" />
   </form>
-  <form name="player_page_next" x="902" y="786" w="40" h="36" script="inv_overhaul_page_button.bin">
+  <form name="player_page_next" x="870" y="736" w="40" h="36" script="inv_overhaul_page_button.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="target" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_target.tex</image>
     <image name="hidden" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_transparent.tex</image>
     <font name="default" size="18" face="fritz_quadrata" />
   </form>
-  <form name="oslot01" x="138" y="650" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="oslot01" x="138" y="690" w="52" h="52" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -740,7 +530,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="oslot02" x="202" y="650" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="oslot02" x="202" y="690" w="52" h="52" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -751,7 +541,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="oslot03" x="266" y="650" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="oslot03" x="266" y="690" w="52" h="52" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
@@ -762,7 +552,7 @@
     <font name="default" size="8" face="fritz_quadrata" />
     <font name="quickslot" size="14" face="fritz_quadrata" />
   </form>
-  <form name="oslot04" x="330" y="650" w="52" h="52" script="inv_overhaul_inv_slot.bin">
+  <form name="oslot04" x="330" y="690" w="52" h="52" script="inv_overhaul_inv_slot.bin">
     <image name="default" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_empty_runtime.tga</image>
     <image name="selected" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>
     <image name="disabled" x="0" y="0" w="1" h="1">ui/inv_overhaul_slot_black.tex</image>

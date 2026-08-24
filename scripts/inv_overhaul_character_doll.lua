@@ -115,7 +115,7 @@ maintask InvOverhaulCharacterDoll do
           headOffset = 9
           if clara then headOffset = 84 end
         else
-          if clara then headOffset = 78 end
+          if clara then headOffset = 54 end
         end
       end
     end
@@ -140,7 +140,7 @@ maintask InvOverhaulCharacterDoll do
         else
           if HitsTarget(globalX, globalY, 375, 528) then return -50 end
         end
-        if HitsTarget(globalX, globalY, 270, 740) then return -51 end
+        if HitsTarget(globalX, globalY, 270, 660) then return -51 end
         if HitsTarget(globalX, globalY, 270, 240 + headOffset) then return -52 end
         if clara then
           if HitsTarget(globalX, globalY, 250, 428) then return -53 end
@@ -155,7 +155,11 @@ maintask InvOverhaulCharacterDoll do
           else
             if HitsTarget(globalX, globalY, 299, 418) then return -50 end
           end
-          if HitsTarget(globalX, globalY, 207, 569) then return -51 end
+          if clara then
+            if HitsTarget(globalX, globalY, 207, 550) then return -51 end
+          else
+            if HitsTarget(globalX, globalY, 207, 569) then return -51 end
+          end
           if HitsTarget(globalX, globalY, 207, 188 + headOffset) then return -52 end
           if clara then
             if HitsTarget(globalX, globalY, 191, 346) then return -53 end
@@ -165,18 +169,27 @@ maintask InvOverhaulCharacterDoll do
           if HitsTarget(globalX, globalY, 86, 399) then return -54 end
         else
           if clara then
-            if HitsTarget(globalX, globalY, 222, 255) then return -50 end
+            if HitsTarget(globalX, globalY, 213, 283) then return -50 end
           else
             if HitsTarget(globalX, globalY, 222, 323) then return -50 end
           end
-          if HitsTarget(globalX, globalY, 156, 429) then return -51 end
-          if HitsTarget(globalX, globalY, 156, 159 + headOffset) then return -52 end
           if clara then
-            if HitsTarget(globalX, globalY, 144, 271) then return -53 end
+            if HitsTarget(globalX, globalY, 169, 440) then return -51 end
+            if HitsTarget(globalX, globalY, 169, 159 + headOffset) then return -52 end
+          else
+            if HitsTarget(globalX, globalY, 156, 429) then return -51 end
+            if HitsTarget(globalX, globalY, 156, 159 + headOffset) then return -52 end
+          end
+          if clara then
+            if HitsTarget(globalX, globalY, 150, 290) then return -53 end
           else
             if HitsTarget(globalX, globalY, 156, 271) then return -53 end
           end
-          if HitsTarget(globalX, globalY, 68, 311) then return -54 end
+          if clara then
+            if HitsTarget(globalX, globalY, 78, 313) then return -54 end
+          else
+            if HitsTarget(globalX, globalY, 68, 311) then return -54 end
+          end
         end
       end
     end

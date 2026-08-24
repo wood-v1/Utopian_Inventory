@@ -590,9 +590,9 @@ maintask InventoryOverhaulUI do
       return 182
     end
     if windowWidth >= 1000 then
-      return 266
+      return 186
     end
-    return 225
+    return 145
   end
 
   function GetGridStep() -> int
@@ -713,14 +713,26 @@ maintask InventoryOverhaulUI do
         if target == c_iTargetClothesBase + 4 then return 86 end
         if target == c_iTargetDrop then return 460 end
       else
-        if target == c_iTargetWeapon then return 222 end
-        if target == c_iTargetClothesBase + 1 then return 156 end
-        if target == c_iTargetClothesBase + 2 then return 156 end
-        if target == c_iTargetClothesBase + 3 then
-          if clara then return 144 end
+        if target == c_iTargetWeapon then
+          if clara then return 213 end
+          return 222
+        end
+        if target == c_iTargetClothesBase + 1 then
+          if clara then return 169 end
           return 156
         end
-        if target == c_iTargetClothesBase + 4 then return 68 end
+        if target == c_iTargetClothesBase + 2 then
+          if clara then return 169 end
+          return 156
+        end
+        if target == c_iTargetClothesBase + 3 then
+          if clara then return 150 end
+          return 156
+        end
+        if target == c_iTargetClothesBase + 4 then
+          if clara then return 78 end
+          return 68
+        end
         if target == c_iTargetDrop then return 351 end
       end
     end
@@ -743,7 +755,7 @@ maintask InventoryOverhaulUI do
           headOffset = 9
           if clara then headOffset = 84 end
         else
-          if clara then headOffset = 78 end
+          if clara then headOffset = 54 end
         end
       end
     end
@@ -763,32 +775,50 @@ maintask InventoryOverhaulUI do
         if clara then return 458 end
         return 528
       end
-      if target == c_iTargetClothesBase + 1 then return 740 end
+      if target == c_iTargetClothesBase + 1 then return 660 end
       if target == c_iTargetClothesBase + 2 then return 240 + headOffset end
       if target == c_iTargetClothesBase + 3 then return 428 end
       if target == c_iTargetClothesBase + 4 then return 500 end
-      if target == c_iTargetDrop then return 770 end
+      if target == c_iTargetDrop then return 690 end
     else
       if windowWidth >= 1000 then
         if target == c_iTargetWeapon then
           if clara then return 351 end
           return 418
         end
-        if target == c_iTargetClothesBase + 1 then return 569 end
+        if target == c_iTargetClothesBase + 1 then
+          if clara then return 550 end
+          return 569
+        end
         if target == c_iTargetClothesBase + 2 then return 188 + headOffset end
         if target == c_iTargetClothesBase + 3 then return 346 end
         if target == c_iTargetClothesBase + 4 then return 399 end
-        if target == c_iTargetDrop then return 616 end
+        if target == c_iTargetDrop then
+          if clara then return 550 end
+          return 616
+        end
       else
         if target == c_iTargetWeapon then
-          if clara then return 255 end
+          if clara then return 283 end
           return 323
         end
-        if target == c_iTargetClothesBase + 1 then return 429 end
+        if target == c_iTargetClothesBase + 1 then
+          if clara then return 440 end
+          return 429
+        end
         if target == c_iTargetClothesBase + 2 then return 159 + headOffset end
-        if target == c_iTargetClothesBase + 3 then return 271 end
-        if target == c_iTargetClothesBase + 4 then return 311 end
-        if target == c_iTargetDrop then return 465 end
+        if target == c_iTargetClothesBase + 3 then
+          if clara then return 290 end
+          return 271
+        end
+        if target == c_iTargetClothesBase + 4 then
+          if clara then return 313 end
+          return 311
+        end
+        if target == c_iTargetDrop then
+          if clara then return 440 end
+          return 465
+        end
       end
     end
     end
@@ -822,8 +852,12 @@ maintask InventoryOverhaulUI do
 
   function GetMoneyTop() -> int
     if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 770 end
-    if windowWidth >= 1000 then return 616 end
+    if windowWidth >= 1200 then return 690 end
+    if windowWidth >= 1000 then
+      if GetBranch() == 2 then return 550 end
+      return 616
+    end
+    if GetBranch() == 2 then return 440 end
     return 465
   end
 
@@ -3113,8 +3147,12 @@ maintask InventoryOverhaulUI do
 
   function GetPageControlY() -> int
     if windowWidth >= 1900 then return 826 end
-    if windowWidth >= 1200 then return 816 end
-    if windowWidth >= 1000 then return 632 end
+    if windowWidth >= 1200 then return 736 end
+    if windowWidth >= 1000 then
+      if GetBranch() == 2 then return 558 end
+      return 632
+    end
+    if GetBranch() == 2 then return 448 end
     return 481
   end
 

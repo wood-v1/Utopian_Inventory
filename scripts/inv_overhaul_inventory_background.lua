@@ -168,8 +168,8 @@ maintask InventoryOverhaulBackground do
   function GetGridStartY() -> int
     if rootWidth >= 1900 then return 245 end
     if rootWidth >= 1200 then return 182 end
-    if rootWidth >= 1000 then return 266 end
-    return 225
+    if rootWidth >= 1000 then return 186 end
+    return 145
   end
 
   function GetGridStep() -> int

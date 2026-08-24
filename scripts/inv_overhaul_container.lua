@@ -500,7 +500,7 @@ maintask InvOverhaulContainerUI do
   function ConfigureSlotRenderSize() -> void
     local sizeMessage: int = -27
     local organSizeMessage: int = -27
-    if windowWidth >= 1900 then sizeMessage = -26 end
+    if windowWidth >= 1200 then sizeMessage = -26 end
     if windowWidth >= 1900 then organSizeMessage = -29 end
     for slot = 0, visibleSlots - 1 do
       native.SendMessage(sizeMessage, GetSlotWndName(slot))
@@ -521,7 +521,7 @@ maintask InvOverhaulContainerUI do
       visibleSlots = 35
     else
     if windowWidth >= 1200 then
-      visibleSlots = c_iInventoryCapacity
+      visibleSlots = 35
     else
       if windowWidth >= 1000 then visibleSlots = 35 else visibleSlots = 24 end
     end
@@ -578,7 +578,7 @@ maintask InvOverhaulContainerUI do
 
   function GetGridStartX() -> int
     if windowWidth >= 1900 then return 825 end
-    if windowWidth >= 1200 then return 600 end
+    if windowWidth >= 1200 then return 507 end
     if windowWidth >= 1000 then return 468 end
     return 359
   end
@@ -586,20 +586,20 @@ maintask InvOverhaulContainerUI do
   function GetGridStartY() -> int
     if windowWidth >= 1900 then return 245 end
     if windowWidth >= 1200 then return 182 end
-    if windowWidth >= 1000 then return 266 end
-    return 225
+    if windowWidth >= 1000 then return 186 end
+    return 145
   end
 
   function GetGridStep() -> int
     if windowWidth >= 1900 then return 96 end
-    if windowWidth >= 1200 then return 64 end
+    if windowWidth >= 1200 then return 96 end
     if windowWidth >= 1000 then return 61 end
     return 58
   end
 
   function GetGridColumns() -> int
     if windowWidth >= 1900 then return 7 end
-    if windowWidth >= 1200 then return 8 end
+    if windowWidth >= 1200 then return 7 end
     if windowWidth >= 1000 then return 7 end
     return 6
   end
@@ -624,13 +624,14 @@ maintask InvOverhaulContainerUI do
 
   function GetOrganStartY() -> int
     if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 650 end
+    if windowWidth >= 1200 then return 690 end
     if windowWidth >= 1000 then return 570 end
     return 482
   end
 
   function GetOrganStep() -> int
     if windowWidth >= 1900 then return 67 end
+    if windowWidth >= 1200 then return 64 end
     return GetGridStep()
   end
 
@@ -657,7 +658,7 @@ maintask InvOverhaulContainerUI do
 
   function GetMoneyTop() -> int
     if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 770 end
+    if windowWidth >= 1200 then return 690 end
     if windowWidth >= 1000 then return 616 end
     return 465
   end
@@ -2992,7 +2993,7 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetSlotHotZone() -> int
-    if windowWidth >= 1900 then return 82 end
+    if windowWidth >= 1200 then return 82 end
     return c_iSlotHotZone
   end
 
@@ -3409,9 +3410,14 @@ maintask InvOverhaulContainerUI do
         playerX = 1082
         playerY = 826
       else
+      if windowWidth >= 1200 then
+        playerX = 778
+        playerY = 736
+      else
       if windowWidth >= 1000 then
         playerX = 626
         playerY = 632
+      end
       end
       end
       if x >= playerX && x < playerX + 40 && y >= playerY && y < playerY + 36 then
@@ -3428,6 +3434,7 @@ maintask InvOverhaulContainerUI do
     if containerMaxPage > 0 then
       local containerX: int = GetContainerStartX() + 28
       if windowWidth >= 1900 then containerX = GetContainerStartX() + 73 end
+      if windowWidth >= 1200 && windowWidth < 1900 then containerX = GetContainerStartX() + 71 end
       local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
       if x >= containerX && x < containerX + 40 && y >= containerY && y < containerY + 36 then
         if containerPage > 0 then ChangeContainerPage(-1) end
@@ -3459,9 +3466,14 @@ maintask InvOverhaulContainerUI do
       playerX = 1082
       playerY = 826
     else
+    if windowWidth >= 1200 then
+      playerX = 778
+      playerY = 736
+    else
     if windowWidth >= 1000 then
       playerX = 626
       playerY = 632
+    end
     end
     end
     local playerVisible: bool = GetMaxPlayerPage() > 0
@@ -3470,6 +3482,7 @@ maintask InvOverhaulContainerUI do
 
     local containerX: int = GetContainerStartX() + 28
     if windowWidth >= 1900 then containerX = GetContainerStartX() + 73 end
+    if windowWidth >= 1200 && windowWidth < 1900 then containerX = GetContainerStartX() + 71 end
     local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
     local containerVisible: bool = GetMaxContainerPage() > 0
     SetPageButtonHover("container_page_prev", containerVisible && containerPage > 0 && x >= containerX && x < containerX + 40 && y >= containerY && y < containerY + 36)

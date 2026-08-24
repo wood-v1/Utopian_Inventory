@@ -2800,6 +2800,13 @@ maintask InvOverhaulContainerUI do
       mergeIndex = insertedIndex
     end
     if organSource then native.PlaySound("take_organ") end
+    if afterBackpack > beforeBackpack && insertedIntoPlayerCache && renderedPlayerPage != playerPage then
+      -- Quick-transfer may choose the first free cell on another page. The
+      -- page counter already follows playerPage, so keeping the old page's
+      -- other slot forms here produces a mixed page until the user changes
+      -- pages manually. Repaint the whole destination page in that case.
+      UpdatePlayerSlots()
+    else
     if afterBackpack > beforeBackpack && insertedIntoPlayerCache then
       -- InsertOrderOrdinalAt has already placed the new ordinal in the exact
       -- requested visual cell. Do not rescan every visible cell to rediscover
@@ -2812,6 +2819,7 @@ maintask InvOverhaulContainerUI do
       -- layout map. Spread that lookup across UI updates instead of blocking
       -- the transfer frame with a full visible-grid scan.
       QueueCachedPlayerEntryRefresh(category, mergeIndex)
+    end
     end
     if organSource then UpdateOrganSlots() else RefreshVisibleContainerItem(itemID, sourceSlot) end
     UpdateMoney()

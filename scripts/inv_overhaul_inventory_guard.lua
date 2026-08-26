@@ -184,6 +184,12 @@ maintask TEffect do
     end
     native.SetVariable("inv_overhaul_inventory_snapshot_count", storedCount)
     native.SetVariable("inv_overhaul_inventory_snapshot_version", c_iSnapshotVersion)
+    local reorderGeneration: int = 0
+    local contentGeneration: int = 0
+    native.GetVariable("inv_overhaul_inventory_reorder_generation", reorderGeneration)
+    native.GetVariable("inv_overhaul_inventory_content_generation", contentGeneration)
+    native.SetVariable("inv_overhaul_inventory_snapshot_generation", reorderGeneration)
+    native.SetVariable("inv_overhaul_inventory_snapshot_content_generation", contentGeneration)
     native.SetVariable("inv_overhaul_inventory_snapshot_valid", 1)
     native.Trace("inv_overhaul_inventory_guard persistent snapshot initialized count=" + storedCount)
   end

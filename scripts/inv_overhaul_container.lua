@@ -1,3 +1,5 @@
+import "inv_overhaul_inventory_layout"
+
 maintask InvOverhaulContainerUI do
   local const c_sScriptVersion: string = "2026.08.17-native-occupied-slot-exchange-1"
   local const c_iCWeapon: int = 0
@@ -293,7 +295,9 @@ maintask InvOverhaulContainerUI do
 
   function InitSlotOrder() -> void
     native.CreateIntVector(slotOrder)
-    for i = 0, c_iInventoryCapacity - 1 do slotOrder->add(GetDefaultOrderForCell(i)) end
+    for i = 0, c_iInventoryCapacity - 1 do
+      slotOrder->add(inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i))
+    end
     native.CreateIntVector(playerOrderSnapshot)
     native.CreateIntVector(playerOrdinalMap)
     native.CreateIntVector(playerCategoryCache)
@@ -304,12 +308,6 @@ maintask InvOverhaulContainerUI do
     for i = 0, c_iInventoryCapacity - 1 do playerCategoryCache->add(-1) end
     for i = 0, c_iInventoryCapacity - 1 do playerIndexCache->add(-1) end
     for i = 0, c_iInventoryCapacity - 1 do persistentUsedLayoutCell->add(0) end
-  end
-
-
-  function GetDefaultOrderForCell(cell: int) -> int
-    if cell < 16 then return cell + 40 end
-    return cell - 16
   end
 
   function InitContainerOrders() -> void
@@ -381,9 +379,11 @@ maintask InvOverhaulContainerUI do
       end
     else
       for i = 0, storedSlots - 1 do
-        local order: int = GetDefaultOrderForCell(i)
+        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i)
         native.GetVariable(GetCellVariableName(i), order)
-        if order < 0 || order >= storedSlots then order = GetDefaultOrderForCell(i) end
+        if order < 0 || order >= storedSlots then
+          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i)
+        end
         SetOrderValue(i, order)
       end
     end
@@ -405,9 +405,11 @@ maintask InvOverhaulContainerUI do
     end
     for batch = 0, 7 do
       if layoutSaveNextCell < c_iInventoryCapacity then
-        local order: int = GetDefaultOrderForCell(layoutSaveNextCell)
+        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(layoutSaveNextCell)
         native.GetVariable(GetCellVariableName(layoutSaveNextCell), order)
-        if order < 0 || order >= c_iInventoryCapacity then order = GetDefaultOrderForCell(layoutSaveNextCell) end
+        if order < 0 || order >= c_iInventoryCapacity then
+          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(layoutSaveNextCell)
+        end
         SetOrderValue(layoutSaveNextCell, order)
         layoutSaveNextCell = layoutSaveNextCell + 1
       end
@@ -547,9 +549,8 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetCellForLinearSlot(linear: int) -> int
-    if linear < 0 || linear >= c_iInventoryCapacity then return -1 end
-    if visibleSlots < c_iInventoryCapacity then return (linear + 16) - ((linear + 16) / c_iInventoryCapacity) * c_iInventoryCapacity end
-    return linear
+    return inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+      linear, visibleSlots, c_iInventoryCapacity)
   end
 
   function GetContainerSlotWndName(slot: int) -> string
@@ -743,8 +744,8 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetMaxPlayerPage() -> int
-    if visibleSlots <= 0 then return 0 end
-    return (c_iInventoryCapacity - 1) / visibleSlots
+    return inv_overhaul_inventory_layout.InventoryLayoutGetMaxPage(
+      c_iInventoryCapacity, visibleSlots)
   end
 
   function ClampPlayerPage() -> void
@@ -1672,15 +1673,20 @@ maintask InvOverhaulContainerUI do
     local valid: int = 0
     local version: int = 0
     local count: int = 0
-    local snapshotGeneration: int = -1
-    local currentGeneration: int = 0
+    local snapshotReorderGeneration: int = -1
+    local currentReorderGeneration: int = 0
+    local snapshotContentGeneration: int = -1
+    local currentContentGeneration: int = 0
     native.GetVariable("inv_overhaul_inventory_snapshot_valid", valid)
     native.GetVariable("inv_overhaul_inventory_snapshot_version", version)
     native.GetVariable("inv_overhaul_inventory_snapshot_count", count)
-    native.GetVariable("inv_overhaul_inventory_snapshot_generation", snapshotGeneration)
-    native.GetVariable("inv_overhaul_inventory_reorder_generation", currentGeneration)
+    native.GetVariable("inv_overhaul_inventory_snapshot_generation", snapshotReorderGeneration)
+    native.GetVariable("inv_overhaul_inventory_reorder_generation", currentReorderGeneration)
+    native.GetVariable("inv_overhaul_inventory_snapshot_content_generation", snapshotContentGeneration)
+    native.GetVariable("inv_overhaul_inventory_content_generation", currentContentGeneration)
     if valid != 1 || version != c_iSnapshotVersion || count < 0 || count > c_iInventoryCapacity then return false end
-    if snapshotGeneration == currentGeneration then return true end
+    if snapshotReorderGeneration == currentReorderGeneration &&
+      snapshotContentGeneration == currentContentGeneration then return true end
     return false
   end
 
@@ -1694,10 +1700,13 @@ maintask InvOverhaulContainerUI do
     end
     native.SetVariable("inv_overhaul_inventory_snapshot_count", count)
     native.SetVariable("inv_overhaul_inventory_snapshot_version", c_iSnapshotVersion)
+    local reorderGeneration: int = 0
+    local contentGeneration: int = 0
+    native.GetVariable("inv_overhaul_inventory_reorder_generation", reorderGeneration)
+    native.GetVariable("inv_overhaul_inventory_content_generation", contentGeneration)
+    native.SetVariable("inv_overhaul_inventory_snapshot_generation", reorderGeneration)
+    native.SetVariable("inv_overhaul_inventory_snapshot_content_generation", contentGeneration)
     native.SetVariable("inv_overhaul_inventory_snapshot_valid", 1)
-    local generation: int = 0
-    native.GetVariable("inv_overhaul_inventory_reorder_generation", generation)
-    native.SetVariable("inv_overhaul_inventory_snapshot_generation", generation)
   end
 
   function PersistCurrentPlayerSnapshot() -> void
@@ -1906,7 +1915,9 @@ maintask InvOverhaulContainerUI do
       playerCategoryCache->get(itemID, ordinal)
       playerOrderSnapshot->set(ordinal, itemID)
     end
-    if oldCount < 0 || changed then SavePersistentPlayerSnapshot(currentCount) end
+    -- Persist after every fallback comparison so an older save that lacks the
+    -- content-generation stamp is migrated after its stored IDs are checked.
+    SavePersistentPlayerSnapshot(currentCount)
     if oldCount < 0 then native.Trace("inv_overhaul_container persistent snapshot initialized count=" + currentCount) end
   end
 

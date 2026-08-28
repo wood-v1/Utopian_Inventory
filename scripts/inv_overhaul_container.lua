@@ -1,4 +1,11 @@
 import "inv_overhaul_inventory_layout"
+import "inv_overhaul_inventory_layout_runtime"
+import "inv_overhaul_inventory_snapshot"
+import "inv_overhaul_container_geometry"
+import "inv_overhaul_container_projection"
+import "inv_overhaul_inventory_tooltip"
+import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_quickslot_bindings"
 
 maintask InvOverhaulContainerUI do
   local const c_sScriptVersion: string = "2026.08.17-native-occupied-slot-exchange-1"
@@ -6,12 +13,8 @@ maintask InvOverhaulContainerUI do
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
-  local const c_iLayoutVersion: int = 4
-  local const c_iSnapshotVersion: int = 1
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
-  local const c_iQuickslotCount: int = 10
-  local const c_iQuickslotVersion: int = 1
   local const c_iBranchBurah: int = 1
   local const c_iSlotEmpty: int = 32768
   local const c_iSlotNumber: int = 65536
@@ -25,9 +28,6 @@ maintask InvOverhaulContainerUI do
   local const c_iPanelPointerDragBeginBase: int = 13000000
   local const c_iPanelPointerDragEndBase: int = 16000000
   local const c_iPanelPointerLeaveBase: int = 19000000
-  local const c_iPanelPointerStride: int = 2000
-  local const c_iSlotHotZone: int = 52
-  local const c_iSlotDropInset: int = 1
   local const c_iTargetDrop: int = 200
   local const c_iTargetContainerBase: int = 300
   local const c_iTargetOrganBase: int = 400
@@ -38,7 +38,6 @@ maintask InvOverhaulContainerUI do
   local const c_iContainerSlots: int = 12
   local const c_iOrganSlots: int = 4
   local const c_iMaxContainerVisuals: int = 128
-  local const c_iTransferMarker: int = 791337
   local const c_iWMHelpMessage: int = 200
   local const c_iInventoryFullTextID: int = 1400
   local const c_iContainerFullTextID: int = 1402
@@ -62,17 +61,6 @@ maintask InvOverhaulContainerUI do
   local resolvedIndex: int
   local resolvedContainerIndex: int
   local resolvedContainerOrdinal: int
-  local slotOrder: object
-  local playerOrderSnapshot: object
-  local playerOrdinalMap: object
-  local playerCategoryCache: object
-  local playerIndexCache: object
-  local cachedBackpackItemCount: int
-  local persistentUsedLayoutCell: object
-  local containerOrder: object
-  local containerIndexCache: object
-  local cachedNormalContainerCount: int
-  local organOrder: object
   local dragSource: int
   local dragKind: int
   local dragItemID: int
@@ -86,8 +74,6 @@ maintask InvOverhaulContainerUI do
   local highlightedTarget: int
   local lastValidDropTarget: int
   local invalidDropTargetFrames: int
-  local panelTooltipTarget: int
-  local moneyTooltipItem: object
   local moneyItemID: int
   local isCorpse: bool
   local isDroppedRubbishHeap: bool
@@ -108,18 +94,12 @@ maintask InvOverhaulContainerUI do
   local dragPageHoverAction: int
   local dragPageHoverElapsed: float
   local dragPageHoverConsumed: bool
-  local tooltipResumeDelay: float
   local initialSlotLoadActive: bool
   local initialPlayerSlotLoadNext: int
   local initialContainerSlotLoadNext: int
   local moneyPollCooldown: float
   local initialSlotLoadPending: bool
   local initialSlotLoadDelay: float
-  local quickslotItemCache: object
-  local quickslotCategoryCache: object
-  local quickslotOccurrenceCache: object
-  local layoutSavePending: bool
-  local layoutSaveNextCell: int
   local initialMetadataStage: int
   local pendingPlayerEntryCategory: int
   local pendingPlayerEntryIndex: int
@@ -137,7 +117,6 @@ maintask InvOverhaulContainerUI do
     resolvedIndex = -1
     resolvedContainerIndex = -1
     resolvedContainerOrdinal = -1
-    cachedBackpackItemCount = -1
     dragSource = -1
     dragKind = -1
     dragItemID = -1
@@ -151,7 +130,7 @@ maintask InvOverhaulContainerUI do
     dragPageHoverAction = 0
     dragPageHoverElapsed = 0
     dragPageHoverConsumed = false
-    tooltipResumeDelay = 0
+    inv_overhaul_inventory_tooltip.InventoryTooltipInitializeState()
     initialSlotLoadActive = false
     initialPlayerSlotLoadNext = 0
     initialContainerSlotLoadNext = 0
@@ -161,7 +140,6 @@ maintask InvOverhaulContainerUI do
     highlightedTarget = -1
     lastValidDropTarget = -1
     invalidDropTargetFrames = 0
-    panelTooltipTarget = -999
     lastLayoutWidth = -1
     lastLayoutHeight = -1
     deferredInventoryRefresh = 0
@@ -176,22 +154,13 @@ maintask InvOverhaulContainerUI do
     rubbishKindRefreshRemaining = 0
     windowClosing = false
     organVisibilityRefresh = 0.5
-    layoutSavePending = false
-    layoutSaveNextCell = -1
     initialMetadataStage = 0
     pendingPlayerEntryCategory = -1
     pendingPlayerEntryIndex = -1
     pendingPlayerEntryScanSlot = 0
-    native.CreateIntVector(quickslotItemCache)
-    native.CreateIntVector(quickslotCategoryCache)
-    native.CreateIntVector(quickslotOccurrenceCache)
-    for quickslot = 1, c_iQuickslotCount do
-      quickslotItemCache->add(-1)
-      quickslotCategoryCache->add(-1)
-      quickslotOccurrenceCache->add(-1)
-    end
-    InitializeQuickslotBindings()
-    RefreshQuickslotCache()
+    inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotInitializeState()
+    inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotInitializeBindings()
+    inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotRefreshCache()
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
     native.SetVariable("inv_overhaul_inventory_page_hover", 0)
     native.SetCursor("inv_overhaul_inventory")
@@ -199,10 +168,11 @@ maintask InvOverhaulContainerUI do
     native.CaptureKeyboard()
     native.SetOwnerDraw(false)
     native.SetNeedUpdate(true)
-    native.CreateInvItem(moneyTooltipItem)
-    moneyTooltipItem->SetItemName("Money")
-    moneyTooltipItem->GetItemID(moneyItemID)
+    inv_overhaul_inventory_tooltip.InventoryTooltipInitializeMoneyItem()
+    moneyItemID = inv_overhaul_inventory_tooltip.InventoryTooltipGetMoneyItemID()
+    inv_overhaul_inventory_snapshot.InventorySnapshotInitializeState()
     InitSlotOrder()
+    inv_overhaul_inventory_items.InventoryItemsInitializeProjection()
     InitContainerOrders()
     -- Organ forms are created with the same black default background as the
     -- other loot slots. Hide them before the first ProcessEvents call so a
@@ -220,9 +190,7 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetPlayerContainer() -> object
-    local container: object
-    native.GetPlayerContainer(container)
-    return container
+    return inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
   end
 
   function GetExternalContainer() -> object
@@ -294,209 +262,57 @@ maintask InvOverhaulContainerUI do
   end
 
   function InitSlotOrder() -> void
-    native.CreateIntVector(slotOrder)
-    for i = 0, c_iInventoryCapacity - 1 do
-      slotOrder->add(inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i))
-    end
-    native.CreateIntVector(playerOrderSnapshot)
-    native.CreateIntVector(playerOrdinalMap)
-    native.CreateIntVector(playerCategoryCache)
-    native.CreateIntVector(playerIndexCache)
-    native.CreateIntVector(persistentUsedLayoutCell)
-    for i = 0, c_iInventoryCapacity - 1 do playerOrderSnapshot->add(-1) end
-    for i = 0, c_iInventoryCapacity - 1 do playerOrdinalMap->add(-1) end
-    for i = 0, c_iInventoryCapacity - 1 do playerCategoryCache->add(-1) end
-    for i = 0, c_iInventoryCapacity - 1 do playerIndexCache->add(-1) end
-    for i = 0, c_iInventoryCapacity - 1 do persistentUsedLayoutCell->add(0) end
+    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeInitialize()
   end
 
   function InitContainerOrders() -> void
-    native.CreateIntVector(containerOrder)
-    for i = 0, c_iMaxContainerVisuals - 1 do containerOrder->add(i) end
-    native.CreateIntVector(containerIndexCache)
-    for i = 0, c_iMaxContainerVisuals - 1 do containerIndexCache->add(-1) end
-    cachedNormalContainerCount = 0
-    native.CreateIntVector(organOrder)
-    for i = 0, c_iOrganSlots - 1 do organOrder->add(i) end
+    inv_overhaul_container_projection.ContainerProjectionInitialize()
   end
 
   function GetOrderValue(slot: int) -> int
-    local order: int = slot
-    if slot >= 0 && slot < c_iInventoryCapacity then slotOrder->get(order, slot) end
-    return order
+    return inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(slot)
   end
 
   function SetOrderValue(slot: int, value: int) -> void
-    if slot >= 0 && slot < c_iInventoryCapacity then slotOrder->set(slot, value) end
+    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(slot, value)
   end
 
   function GetContainerOrderValue(visual: int) -> int
-    local order: int = visual
-    if visual >= 0 && visual < c_iMaxContainerVisuals then containerOrder->get(order, visual) end
-    return order
+    return inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(visual)
   end
 
   function SetContainerOrderValue(visual: int, value: int) -> void
-    if visual >= 0 && visual < c_iMaxContainerVisuals then containerOrder->set(visual, value) end
+    inv_overhaul_container_projection.ContainerProjectionSetContainerOrder(visual, value)
   end
 
   function GetOrganOrderValue(visual: int) -> int
-    local order: int = visual
-    if visual >= 0 && visual < c_iOrganSlots then organOrder->get(order, visual) end
-    return order
+    return inv_overhaul_container_projection.ContainerProjectionGetOrganOrder(visual)
   end
 
   function SetOrganOrderValue(visual: int, value: int) -> void
-    if visual >= 0 && visual < c_iOrganSlots then organOrder->set(visual, value) end
-  end
-
-  function GetCellVariableName(slot: int) -> string
-    return "inv_overhaul_inventory_cell_" + slot
-  end
-
-  function LoadLayoutVariables() -> void
-    local initialized: int = 0
-    local version: int = 0
-    native.GetVariable("inv_overhaul_inventory_layout_initialized", initialized)
-    native.GetVariable("inv_overhaul_inventory_layout_version", version)
-    if initialized != 1 then
-      SaveLayoutVariables()
-      return
-    end
-    local storedSlots: int = c_iInventoryCapacity
-    if version == 3 then storedSlots = 40 end
-    if version != 3 && version != c_iLayoutVersion then
-      SaveLayoutVariables()
-      return
-    end
-    if version == 3 then
-      for i = 0, 15 do SetOrderValue(i, i + 40) end
-      for i = 0, 39 do
-        local order: int = i
-        native.GetVariable(GetCellVariableName(i), order)
-        if order < 0 || order >= 40 then order = i end
-        SetOrderValue(i + 16, order)
-      end
-    else
-      for i = 0, storedSlots - 1 do
-        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i)
-        native.GetVariable(GetCellVariableName(i), order)
-        if order < 0 || order >= storedSlots then
-          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(i)
-        end
-        SetOrderValue(i, order)
-      end
-    end
-    NormalizeSlotOrder()
-    if version == 3 then SaveLayoutVariables() end
+    inv_overhaul_container_projection.ContainerProjectionSetOrganOrder(visual, value)
   end
 
   function ContinueIncrementalLayoutLoad() -> bool
-    if layoutSaveNextCell < 0 then
-      local initialized: int = 0
-      local version: int = 0
-      native.GetVariable("inv_overhaul_inventory_layout_initialized", initialized)
-      native.GetVariable("inv_overhaul_inventory_layout_version", version)
-      if initialized != 1 || version != c_iLayoutVersion then
-        LoadLayoutVariables()
-        return true
-      end
-      layoutSaveNextCell = 0
-    end
-    for batch = 0, 7 do
-      if layoutSaveNextCell < c_iInventoryCapacity then
-        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(layoutSaveNextCell)
-        native.GetVariable(GetCellVariableName(layoutSaveNextCell), order)
-        if order < 0 || order >= c_iInventoryCapacity then
-          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(layoutSaveNextCell)
-        end
-        SetOrderValue(layoutSaveNextCell, order)
-        layoutSaveNextCell = layoutSaveNextCell + 1
-      end
-    end
-    if layoutSaveNextCell >= c_iInventoryCapacity then
-      NormalizeSlotOrder()
-      layoutSaveNextCell = 0
-      return true
-    end
-    return false
+    return inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeContinueIncrementalLoad(-1)
   end
 
   function SaveLayoutVariables() -> void
-    for i = 0, c_iInventoryCapacity - 1 do native.SetVariable(GetCellVariableName(i), GetOrderValue(i)) end
-    native.SetVariable("inv_overhaul_inventory_layout_initialized", 1)
-    native.SetVariable("inv_overhaul_inventory_layout_version", c_iLayoutVersion)
-    layoutSavePending = false
-    layoutSaveNextCell = 0
+    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSaveAll()
   end
 
   function QueueLayoutSave() -> void
-    layoutSavePending = true
-    layoutSaveNextCell = 0
+    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeQueueSave()
   end
 
   function ContinueLayoutSave() -> void
-    if !layoutSavePending then return end
-    for batch = 0, 1 do
-      if layoutSaveNextCell < c_iInventoryCapacity then
-        native.SetVariable(GetCellVariableName(layoutSaveNextCell), GetOrderValue(layoutSaveNextCell))
-        layoutSaveNextCell = layoutSaveNextCell + 1
-      end
-    end
-    if layoutSaveNextCell >= c_iInventoryCapacity then
-      native.SetVariable("inv_overhaul_inventory_layout_initialized", 1)
-      native.SetVariable("inv_overhaul_inventory_layout_version", c_iLayoutVersion)
-      layoutSavePending = false
-      layoutSaveNextCell = 0
-    end
-  end
-
-  function IsOrderUsedBefore(slot: int, order: int) -> bool
-    for i = 0, slot - 1 do
-      if GetOrderValue(i) == order then return true end
-    end
-    return false
-  end
-
-  function IsOrderUsedAtOrBefore(slot: int, order: int) -> bool
-    for i = 0, slot do
-      if GetOrderValue(i) == order then return true end
-    end
-    return false
-  end
-
-  function FindFirstUnusedOrder(slot: int) -> int
-    for candidate = 0, c_iInventoryCapacity - 1 do
-      if !IsOrderUsedAtOrBefore(slot, candidate) then return candidate end
-    end
-    return slot
-  end
-
-  function NormalizeSlotOrder() -> void
-    for slot = 0, c_iInventoryCapacity - 1 do
-      local order: int = GetOrderValue(slot)
-      if order < 0 || order >= c_iInventoryCapacity || IsOrderUsedBefore(slot, order) then
-        SetOrderValue(slot, FindFirstUnusedOrder(slot))
-      end
-    end
+    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeContinueQueuedSave()
   end
 
   function OrderFreeCellsByDisplay() -> void
     local itemCount: int = GetBackpackItemCount()
-    if itemCount > c_iInventoryCapacity then return end
-    local nextFreeOrder: int = itemCount
-    local changed: bool = false
-    for linear = 0, c_iInventoryCapacity - 1 do
-      local cell: int = GetCellForLinearSlot(linear)
-      if cell >= 0 && GetOrderValue(cell) >= itemCount then
-        if GetOrderValue(cell) != nextFreeOrder then
-          SetOrderValue(cell, nextFreeOrder)
-          changed = true
-        end
-        nextFreeOrder = nextFreeOrder + 1
-      end
-    end
-    if changed then QueueLayoutSave() end
+    if inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeOrderFreeCellsByDisplay(
+      itemCount, visibleSlots) then QueueLayoutSave() end
   end
 
   function ConfigureSlotRenderSize() -> void
@@ -578,123 +394,59 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetGridStartX() -> int
-    if windowWidth >= 1900 then return 825 end
-    if windowWidth >= 1200 then return 507 end
-    if windowWidth >= 1000 then return 468 end
-    return 359
+    return inv_overhaul_container_geometry.ContainerGeometryGetGridStartX(windowWidth)
   end
 
   function GetGridStartY() -> int
-    if windowWidth >= 1900 then return 245 end
-    if windowWidth >= 1200 then return 182 end
-    if windowWidth >= 1000 then return 186 end
-    return 145
+    return inv_overhaul_container_geometry.ContainerGeometryGetGridStartY(windowWidth)
   end
 
   function GetGridStep() -> int
-    if windowWidth >= 1900 then return 96 end
-    if windowWidth >= 1200 then return 96 end
-    if windowWidth >= 1000 then return 61 end
-    return 58
+    return inv_overhaul_container_geometry.ContainerGeometryGetGridStep(windowWidth)
   end
 
   function GetGridColumns() -> int
-    if windowWidth >= 1900 then return 7 end
-    if windowWidth >= 1200 then return 7 end
-    if windowWidth >= 1000 then return 7 end
-    return 6
+    return inv_overhaul_container_geometry.ContainerGeometryGetGridColumns(windowWidth)
   end
 
   function GetContainerStartX() -> int
-    if windowWidth >= 1900 then return 455 end
-    if windowWidth >= 1200 then return 170 end
-    if windowWidth >= 1000 then return 121 end
-    return 79
+    return inv_overhaul_container_geometry.ContainerGeometryGetContainerStartX(windowWidth)
   end
 
   function GetContainerStartY() -> int
-    return GetGridStartY()
+    return inv_overhaul_container_geometry.ContainerGeometryGetContainerStartY(windowWidth)
   end
 
   function GetOrganStartX() -> int
-    if windowWidth >= 1900 then return 469 end
-    if windowWidth >= 1200 then return 138 end
-    if windowWidth >= 1000 then return 90 end
-    return 49
+    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStartX(windowWidth)
   end
 
   function GetOrganStartY() -> int
-    if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 690 end
-    if windowWidth >= 1000 then return 570 end
-    return 482
+    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStartY(windowWidth)
   end
 
   function GetOrganStep() -> int
-    if windowWidth >= 1900 then return 67 end
-    if windowWidth >= 1200 then return 64 end
-    return GetGridStep()
-  end
-
-  function GetDropLeft() -> int
-    if windowWidth >= 1900 then return 1067 end
-    if windowWidth >= 1200 then return 806 end
-    if windowWidth >= 1000 then return 650 end
-    return 501
-  end
-
-  function GetDropTop() -> int
-    if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 685 end
-    if windowWidth >= 1000 then return 596 end
-    return 455
+    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStep(windowWidth)
   end
 
   function GetMoneyLeft() -> int
-    if windowWidth >= 1900 then return 1390 end
-    if windowWidth >= 1200 then return 1100 end
-    if windowWidth >= 1000 then return 864 end
-    return 655
+    return inv_overhaul_container_geometry.ContainerGeometryGetMoneyLeft(windowWidth)
   end
 
   function GetMoneyTop() -> int
-    if windowWidth >= 1900 then return 780 end
-    if windowWidth >= 1200 then return 690 end
-    if windowWidth >= 1000 then return 616 end
-    return 465
+    return inv_overhaul_container_geometry.ContainerGeometryGetMoneyTop(windowWidth)
   end
 
   function IsEquippedItem(category: int, index: int) -> bool
-    if category != c_iCWeapon && category != c_iCClothes then return false end
-    local container: object = GetPlayerContainer()
-    local selected: bool
-    container->IsItemSelected(selected, index, category)
-    if !selected then return false end
-    local item: object
-    container->GetItem(item, index, category)
-    local itemID: int
-    item->GetItemID(itemID)
-    if category == c_iCWeapon then
-      local weapon: bool
-      native.HasInvItemProperty(weapon, itemID, "Weapon")
-      return weapon
-    end
-    local group: bool
-    native.HasInvItemProperty(group, itemID, "Group")
-    return group
+    return inv_overhaul_inventory_items.InventoryItemsIsEquipped(category, index)
   end
 
   function GetBackpackItemCount() -> int
-    local container: object = GetPlayerContainer()
-    local total: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      container->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then total = total + 1 end
-      end
-    end
-    return total
+    return inv_overhaul_inventory_items.InventoryItemsGetBackpackCount()
+  end
+
+  function GetCachedBackpackItemCount() -> int
+    return inv_overhaul_inventory_items.InventoryItemsGetCachedBackpackCount()
   end
 
   function ShowInventoryFull() -> void
@@ -716,8 +468,12 @@ maintask InvOverhaulContainerUI do
   end
 
   function CanPlayerAcceptItem(item: object, category: int) -> bool
-    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
-    if cachedBackpackItemCount < c_iInventoryCapacity then return true end
+    local cachedCount: int = GetCachedBackpackItemCount()
+    if cachedCount < 0 then
+      BuildPlayerIndexCache()
+      cachedCount = GetCachedBackpackItemCount()
+    end
+    if cachedCount < c_iInventoryCapacity then return true end
     if !item then return false end
 
     local itemID: int
@@ -759,32 +515,13 @@ maintask InvOverhaulContainerUI do
     resolvedIndex = -1
     local target: int = GetOrderValue(GetVisibleCell(slot))
     if target < 0 || target >= c_iInventoryCapacity then return false end
-    playerCategoryCache->get(resolvedCategory, target)
-    playerIndexCache->get(resolvedIndex, target)
+    resolvedCategory = inv_overhaul_inventory_items.InventoryItemsGetCachedCategory(target)
+    resolvedIndex = inv_overhaul_inventory_items.InventoryItemsGetCachedIndex(target)
     return resolvedCategory >= 0 && resolvedIndex >= 0
   end
 
   function BuildPlayerIndexCache() -> void
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      playerCategoryCache->set(ordinal, -1)
-      playerIndexCache->set(ordinal, -1)
-    end
-    local container: object = GetPlayerContainer()
-    local ordinal: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      container->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if ordinal < c_iInventoryCapacity then
-            playerCategoryCache->set(ordinal, category)
-            playerIndexCache->set(ordinal, index)
-          end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    cachedBackpackItemCount = ordinal
+    inv_overhaul_inventory_items.InventoryItemsBuildIndexCache()
   end
 
   function GetAppendedCategoryBackpackOrdinal(category: int, beforeCount: int) -> int
@@ -792,13 +529,8 @@ maintask InvOverhaulContainerUI do
     -- with overflow are intentionally preserved, but must never be used as
     -- vector bounds by the incremental transfer path.
     if beforeCount < 0 || beforeCount > c_iInventoryCapacity then return -1 end
-    local insertedOrdinal: int = 0
-    for ordinal = 0, beforeCount - 1 do
-      local cachedCategory: int
-      playerCategoryCache->get(cachedCategory, ordinal)
-      if cachedCategory <= category then insertedOrdinal = insertedOrdinal + 1 end
-    end
-    return insertedOrdinal
+    return inv_overhaul_inventory_items.InventoryItemsGetAppendedCategoryOrdinal(
+      category, beforeCount)
   end
 
   function InsertPlayerIndexCacheAt(
@@ -816,19 +548,8 @@ maintask InvOverhaulContainerUI do
       BuildPlayerIndexCache()
       return false
     end
-    local ordinal: int = beforeCount
-    while ordinal > insertedOrdinal do
-      local previousCategory: int
-      local previousIndex: int
-      playerCategoryCache->get(previousCategory, ordinal - 1)
-      playerIndexCache->get(previousIndex, ordinal - 1)
-      playerCategoryCache->set(ordinal, previousCategory)
-      playerIndexCache->set(ordinal, previousIndex)
-      ordinal = ordinal - 1
-    end
-    playerCategoryCache->set(insertedOrdinal, category)
-    playerIndexCache->set(insertedOrdinal, index)
-    cachedBackpackItemCount = beforeCount + 1
+    inv_overhaul_inventory_items.InventoryItemsInsertCachedEntry(
+      insertedOrdinal, beforeCount, category, index)
     return true
   end
 
@@ -847,22 +568,8 @@ maintask InvOverhaulContainerUI do
       BuildPlayerIndexCache()
       return false
     end
-    for ordinal = removedOrdinal, beforeCount - 2 do
-      local nextCategory: int
-      local nextIndex: int
-      playerCategoryCache->get(nextCategory, ordinal + 1)
-      playerIndexCache->get(nextIndex, ordinal + 1)
-      if nextCategory == removedCategory && nextIndex > removedIndex then
-        nextIndex = nextIndex - 1
-      end
-      playerCategoryCache->set(ordinal, nextCategory)
-      playerIndexCache->set(ordinal, nextIndex)
-    end
-    if beforeCount > 0 then
-      playerCategoryCache->set(beforeCount - 1, -1)
-      playerIndexCache->set(beforeCount - 1, -1)
-    end
-    cachedBackpackItemCount = beforeCount - 1
+    inv_overhaul_inventory_items.InventoryItemsRemoveCachedEntry(
+      removedOrdinal, beforeCount, removedCategory, removedIndex)
     return true
   end
 
@@ -892,13 +599,14 @@ maintask InvOverhaulContainerUI do
       UpdatePlayerSlots()
       return
     end
+    local cachedCount: int = GetCachedBackpackItemCount()
     for slot = 0, visibleSlots - 1 do
       local ordinal: int = GetOrderValue(GetVisibleCell(slot))
-      if ordinal >= 0 && ordinal < cachedBackpackItemCount && ordinal < c_iInventoryCapacity then
-        local cachedCategory: int
-        local cachedIndex: int
-        playerCategoryCache->get(cachedCategory, ordinal)
-        playerIndexCache->get(cachedIndex, ordinal)
+      if ordinal >= 0 && ordinal < cachedCount && ordinal < c_iInventoryCapacity then
+        local cachedCategory: int =
+          inv_overhaul_inventory_items.InventoryItemsGetCachedCategory(ordinal)
+        local cachedIndex: int =
+          inv_overhaul_inventory_items.InventoryItemsGetCachedIndex(ordinal)
         if cachedCategory == category && cachedIndex == index then
           UpdatePlayerSlot(slot)
           UpdatePlayerPageControls()
@@ -928,11 +636,12 @@ maintask InvOverhaulContainerUI do
     local slot: int = pendingPlayerEntryScanSlot
     pendingPlayerEntryScanSlot = pendingPlayerEntryScanSlot + 1
     local ordinal: int = GetOrderValue(GetVisibleCell(slot))
-    if ordinal >= 0 && ordinal < cachedBackpackItemCount && ordinal < c_iInventoryCapacity then
-      local cachedCategory: int
-      local cachedIndex: int
-      playerCategoryCache->get(cachedCategory, ordinal)
-      playerIndexCache->get(cachedIndex, ordinal)
+    local cachedCount: int = GetCachedBackpackItemCount()
+    if ordinal >= 0 && ordinal < cachedCount && ordinal < c_iInventoryCapacity then
+      local cachedCategory: int =
+        inv_overhaul_inventory_items.InventoryItemsGetCachedCategory(ordinal)
+      local cachedIndex: int =
+        inv_overhaul_inventory_items.InventoryItemsGetCachedIndex(ordinal)
       if cachedCategory == pendingPlayerEntryCategory && cachedIndex == pendingPlayerEntryIndex then
         UpdatePlayerSlot(slot)
         pendingPlayerEntryCategory = -1
@@ -952,10 +661,7 @@ maintask InvOverhaulContainerUI do
   end
 
   function IsOrganItem(item: object) -> bool
-    if !item then return false end
-    local organ: bool = false
-    item->HasProperty(organ, "Organ")
-    return organ
+    return inv_overhaul_container_projection.ContainerProjectionIsOrganItem(item)
   end
 
   function IsKnownOrganItemID(itemID: int) -> bool
@@ -993,59 +699,35 @@ maintask InvOverhaulContainerUI do
 
   function GetNormalContainerItemCount() -> int
     local container: object = GetExternalContainer()
-    if !container then return 0 end
-    local count: int
-    container->GetItemCount(count)
-    local normalCount: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if !IsOrganItem(item) then normalCount = normalCount + 1 end
-    end
-    return normalCount
+    return inv_overhaul_container_projection.ContainerProjectionGetNormalItemCount(container)
   end
 
   function GetOrganItemCount() -> int
     local container: object = GetExternalContainer()
-    if !container then return 0 end
-    local count: int
-    container->GetItemCount(count)
-    local organCount: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if IsOrganItem(item) then organCount = organCount + 1 end
-    end
-    return organCount
+    return inv_overhaul_container_projection.ContainerProjectionGetOrganItemCount(container)
+  end
+
+  function ApplyResolvedContainerReference(reference: int) -> bool
+    resolvedContainerIndex = -1
+    resolvedContainerOrdinal = -1
+    if reference < 0 then return false end
+    resolvedContainerIndex = inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(reference)
+    resolvedContainerOrdinal = inv_overhaul_container_projection.ContainerProjectionGetReferenceOrdinal(reference)
+    return resolvedContainerIndex >= 0 && resolvedContainerOrdinal >= 0
   end
 
   function ResolveNormalContainerOrdinal(ordinal: int) -> bool
-    resolvedContainerIndex = -1
-    resolvedContainerOrdinal = -1
-    if ordinal < 0 || ordinal >= cachedNormalContainerCount || ordinal >= c_iMaxContainerVisuals then return false end
-    containerIndexCache->get(resolvedContainerIndex, ordinal)
-    if resolvedContainerIndex < 0 then return false end
-    resolvedContainerOrdinal = ordinal
-    return true
+    local reference: int = inv_overhaul_container_projection.ContainerProjectionResolveNormalOrdinal(ordinal)
+    return ApplyResolvedContainerReference(reference)
   end
 
   function BuildContainerIndexCache() -> void
-    for ordinal = 0, c_iMaxContainerVisuals - 1 do containerIndexCache->set(ordinal, -1) end
-    cachedNormalContainerCount = 0
     local container: object = GetExternalContainer()
-    if !container then return end
-    local count: int
-    container->GetItemCount(count)
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if !IsOrganItem(item) then
-        if cachedNormalContainerCount < c_iMaxContainerVisuals then
-          containerIndexCache->set(cachedNormalContainerCount, index)
-        end
-        cachedNormalContainerCount = cachedNormalContainerCount + 1
-      end
-    end
+    inv_overhaul_container_projection.ContainerProjectionBuildIndexCache(container)
+  end
+
+  function GetCachedNormalContainerCount() -> int
+    return inv_overhaul_container_projection.ContainerProjectionGetCachedNormalCount()
   end
 
   function ResolveOrganOrdinal(ordinal: int) -> bool
@@ -1053,23 +735,8 @@ maintask InvOverhaulContainerUI do
     resolvedContainerOrdinal = -1
     if ordinal < 0 then return false end
     local container: object = GetExternalContainer()
-    if !container then return false end
-    local count: int
-    container->GetItemCount(count)
-    local current: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if IsOrganItem(item) then
-        if current == ordinal then
-          resolvedContainerIndex = index
-          resolvedContainerOrdinal = ordinal
-          return true
-        end
-        current = current + 1
-      end
-    end
-    return false
+    local reference: int = inv_overhaul_container_projection.ContainerProjectionResolveOrganOrdinal(container, ordinal)
+    return ApplyResolvedContainerReference(reference)
   end
 
   function ResolveContainerVisualSlot(slot: int) -> bool
@@ -1082,54 +749,19 @@ maintask InvOverhaulContainerUI do
     resolvedContainerIndex = -1
     resolvedContainerOrdinal = slot
     local container: object = GetExternalContainer()
-    if !container then return false end
-    local count: int
-    container->GetItemCount(count)
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if IsOrganItem(item) then
-        local itemID: int
-        item->GetItemID(itemID)
-        local organSlot: int = GetOrganSlotByItemID(itemID)
-        if organSlot == slot then
-          resolvedContainerIndex = index
-          return true
-        end
-      end
-    end
-    return false
+    local reference: int = inv_overhaul_container_projection.ContainerProjectionResolveOrganVisual(container, slot)
+    if reference < 0 then return false end
+    resolvedContainerIndex = inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(reference)
+    resolvedContainerOrdinal = inv_overhaul_container_projection.ContainerProjectionGetReferenceOrdinal(reference)
+    return resolvedContainerIndex >= 0
   end
 
   function GetOrganSlotByItemID(itemID: int) -> int
-    local knownID: int
-    native.GetInvItemByName(knownID, "liver")
-    if itemID == knownID then return 0 end
-    native.GetInvItemByName(knownID, "diseased_liver")
-    if itemID == knownID then return 0 end
-    native.GetInvItemByName(knownID, "kidney")
-    if itemID == knownID then return 1 end
-    native.GetInvItemByName(knownID, "diseased_kidney")
-    if itemID == knownID then return 1 end
-    native.GetInvItemByName(knownID, "heart")
-    if itemID == knownID then return 2 end
-    native.GetInvItemByName(knownID, "diseased_heart")
-    if itemID == knownID then return 2 end
-    native.GetInvItemByName(knownID, "blood")
-    if itemID == knownID then return 3 end
-    native.GetInvItemByName(knownID, "diseased_blood")
-    if itemID == knownID then return 3 end
-    return -1
+    return inv_overhaul_container_projection.ContainerProjectionGetOrganSlotByItemID(itemID)
   end
 
   function GetLastOccupiedContainerVisual() -> int
-    local count: int = cachedNormalContainerCount
-    if count <= 0 then return -1 end
-    local last: int = -1
-    for visual = 0, c_iMaxContainerVisuals - 1 do
-      if GetContainerOrderValue(visual) < count then last = visual end
-    end
-    return last
+    return inv_overhaul_container_projection.ContainerProjectionGetLastOccupiedVisual()
   end
 
   function ClampContainerPage() -> void
@@ -1139,9 +771,7 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetMaxContainerPage() -> int
-    local lastVisual: int = GetLastOccupiedContainerVisual()
-    if lastVisual < 0 then return 0 end
-    return lastVisual / c_iContainerSlots
+    return inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
   end
 
   function SetPageControlsVisible(prefix: string, visible: bool) -> void
@@ -1170,7 +800,7 @@ maintask InvOverhaulContainerUI do
     native.SendMessage(-116, "container_page_prev")
     native.SendMessage(-117, "container_page_next")
     if maxPage != lastContainerMaxPage then
-      native.Trace("inv_overhaul_container pages count=" + cachedNormalContainerCount + " max=" + maxPage + " current=" + containerPage + " corpse=" + isCorpse)
+      native.Trace("inv_overhaul_container pages count=" + GetCachedNormalContainerCount() + " max=" + maxPage + " current=" + containerPage + " corpse=" + isCorpse)
       lastContainerMaxPage = maxPage
     end
     SetPageControlsVisible("container_", maxPage > 0)
@@ -1189,172 +819,26 @@ maintask InvOverhaulContainerUI do
     native.SendMessage(money, "money")
   end
 
-  function GetQuickslotItemVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_item_" + slot
-  end
-
-  function GetQuickslotCategoryVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_category_" + slot
-  end
-
-  function GetQuickslotDepletedVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_depleted_" + slot
-  end
-
-  function GetQuickslotOccurrenceVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_occurrence_" + slot
-  end
-
-  function GetItemOccurrence(category: int, index: int, itemID: int) -> int
-    local container: object = GetPlayerContainer()
-    local occurrence: int = 0
-    for candidate = 0, index - 1 do
-      local candidateItem: object
-      local candidateID: int
-      container->GetItem(candidateItem, candidate, category)
-      if candidateItem then
-        candidateItem->GetItemID(candidateID)
-        if candidateID == itemID then occurrence = occurrence + 1 end
-      end
-    end
-    return occurrence
-  end
-
-  function InitializeQuickslotBindings() -> void
-    local version: int = 0
-    native.GetVariable("inv_overhaul_quickslot_version", version)
-    if version == c_iQuickslotVersion then return end
-    for slot = 1, c_iQuickslotCount do
-      native.SetVariable(GetQuickslotItemVariable(slot), -1)
-      native.SetVariable(GetQuickslotCategoryVariable(slot), -1)
-    end
-    native.SetVariable("inv_overhaul_quickslot_version", c_iQuickslotVersion)
-  end
-
-  function RefreshQuickslotCache() -> void
-    for slot = 1, c_iQuickslotCount do
-      local assignedCategory: int = -1
-      local assignedItem: int = -1
-      local assignedOccurrence: int = -1
-      native.GetVariable(GetQuickslotCategoryVariable(slot), assignedCategory)
-      native.GetVariable(GetQuickslotItemVariable(slot), assignedItem)
-      native.GetVariable(GetQuickslotOccurrenceVariable(slot), assignedOccurrence)
-      quickslotCategoryCache->set(slot - 1, assignedCategory)
-      quickslotItemCache->set(slot - 1, assignedItem)
-      quickslotOccurrenceCache->set(slot - 1, assignedOccurrence)
-    end
-  end
-
-  function GetItemQuickslot(category: int, itemID: int) -> int
-    for slot = 1, c_iQuickslotCount do
-      local assignedCategory: int = -1
-      local assignedItem: int = -1
-      quickslotCategoryCache->get(assignedCategory, slot - 1)
-      quickslotItemCache->get(assignedItem, slot - 1)
-      if assignedCategory == category && assignedItem == itemID then return slot end
-    end
-    return 0
-  end
-
   function GetDisplayedQuickslot(category: int, index: int, itemID: int) -> int
-    -- Most items are not bound to any quick-slot. Avoid walking the native
-    -- category (one GetItem call per preceding entry) unless a binding can
-    -- actually match this item.
-    if GetItemQuickslot(category, itemID) <= 0 then return 0 end
-    local occurrence: int = GetItemOccurrence(category, index, itemID)
-    for slot = 1, c_iQuickslotCount do
-      local assignedCategory: int = -1
-      local assignedItem: int = -1
-      local assignedOccurrence: int = -1
-      quickslotCategoryCache->get(assignedCategory, slot - 1)
-      quickslotItemCache->get(assignedItem, slot - 1)
-      quickslotOccurrenceCache->get(assignedOccurrence, slot - 1)
-      if assignedCategory == category && assignedItem == itemID &&
-        assignedOccurrence == occurrence then return slot end
-    end
-    return 0
-  end
-
-  function IsQuickslotEligible(category: int, itemID: int) -> bool
-    if category == c_iCWeapon then
-      local weapon: bool
-      native.HasInvItemProperty(weapon, itemID, "Weapon")
-      return weapon
-    end
-    if category == c_iCClothes then
-      local group: bool
-      native.HasInvItemProperty(group, itemID, "Group")
-      return group
-    end
-    return category >= 2 && category < c_iCategoryCount
+    return inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetDisplayedBinding(
+      category, index, itemID)
   end
 
   function AssignQuickslot(slot: int, category: int, index: int) -> void
-    if slot < 1 || slot > c_iQuickslotCount then return end
-    local container: object = GetPlayerContainer()
-    local item: object
-    local itemID: int
-    container->GetItem(item, index, category)
-    if !item then return end
-    item->GetItemID(itemID)
-    if !IsQuickslotEligible(category, itemID) then return end
-    local occurrence: int = GetItemOccurrence(category, index, itemID)
-
-    local oldCategory: int = -1
-    local oldItem: int = -1
-    local oldOccurrence: int = 0
-    native.GetVariable(GetQuickslotCategoryVariable(slot), oldCategory)
-    native.GetVariable(GetQuickslotItemVariable(slot), oldItem)
-    native.GetVariable(GetQuickslotOccurrenceVariable(slot), oldOccurrence)
-    if oldCategory == category && oldItem == itemID && oldOccurrence == occurrence then
-      native.SetVariable(GetQuickslotCategoryVariable(slot), -1)
-      native.SetVariable(GetQuickslotItemVariable(slot), -1)
-      native.SetVariable(GetQuickslotDepletedVariable(slot), 0)
-      native.SetVariable(GetQuickslotOccurrenceVariable(slot), -1)
-      quickslotCategoryCache->set(slot - 1, -1)
-      quickslotItemCache->set(slot - 1, -1)
-      quickslotOccurrenceCache->set(slot - 1, -1)
-    else
-      for other = 1, c_iQuickslotCount do
-        local otherCategory: int = -1
-        local otherItem: int = -1
-        local otherOccurrence: int = 0
-        native.GetVariable(GetQuickslotCategoryVariable(other), otherCategory)
-        native.GetVariable(GetQuickslotItemVariable(other), otherItem)
-        native.GetVariable(GetQuickslotOccurrenceVariable(other), otherOccurrence)
-        if otherCategory == category && otherItem == itemID && otherOccurrence == occurrence then
-          native.SetVariable(GetQuickslotCategoryVariable(other), -1)
-          native.SetVariable(GetQuickslotItemVariable(other), -1)
-          native.SetVariable(GetQuickslotDepletedVariable(other), 0)
-          native.SetVariable(GetQuickslotOccurrenceVariable(other), -1)
-          quickslotCategoryCache->set(other - 1, -1)
-          quickslotItemCache->set(other - 1, -1)
-          quickslotOccurrenceCache->set(other - 1, -1)
-        end
-      end
-      native.SetVariable(GetQuickslotCategoryVariable(slot), category)
-      native.SetVariable(GetQuickslotItemVariable(slot), itemID)
-      native.SetVariable(GetQuickslotDepletedVariable(slot), 0)
-      native.SetVariable(GetQuickslotOccurrenceVariable(slot), occurrence)
-      quickslotCategoryCache->set(slot - 1, category)
-      quickslotItemCache->set(slot - 1, itemID)
-      quickslotOccurrenceCache->set(slot - 1, occurrence)
-    end
-    UpdatePlayerSlots()
+    if inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotAssign(
+      slot, category, index, false) then UpdatePlayerSlots() end
   end
 
   function GetQuickslotByKey(key: int) -> int
-    if key >= 49 && key <= 57 then return key - 48 end
-    if key == 48 then return 10 end
-    if key >= 97 && key <= 105 then return key - 96 end
-    if key == 96 then return 10 end
-    return 0
+    return inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetSlotByKey(key)
   end
 
   function AssignHoveredQuickslot(slot: int) -> void
     if dragSource >= 0 then return end
     local target: int = highlightedTarget
-    if target < 0 then target = panelTooltipTarget end
+    if target < 0 then
+      target = inv_overhaul_inventory_tooltip.InventoryTooltipGetTarget()
+    end
     if target < 0 || target >= visibleSlots then return end
     if ResolveVisibleSlot(target) then
       AssignQuickslot(slot, resolvedCategory, resolvedIndex)
@@ -1605,604 +1089,52 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetBackpackOrdinal(category: int, index: int) -> int
-    local container: object = GetPlayerContainer()
-    local ordinal: int = 0
-    for currentCategory = 0, c_iCategoryCount - 1 do
-      local count: int
-      container->GetItemCount(count, currentCategory)
-      for currentIndex = 0, count - 1 do
-        if !IsEquippedItem(currentCategory, currentIndex) then
-          if currentCategory == category && currentIndex == index then return ordinal end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    return -1
-  end
-
-  function CapturePlayerItemIDs(snapshot: object) -> int
-    local player: object = GetPlayerContainer()
-    local ordinal: int = 0
-    for emptyOrdinal = 0, c_iInventoryCapacity - 1 do snapshot->set(emptyOrdinal, -1) end
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if ordinal < c_iInventoryCapacity then
-            local item: object
-            local itemID: int = -1
-            player->GetItem(item, index, category)
-            if item then item->GetItemID(itemID) end
-            snapshot->set(ordinal, itemID)
-          end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    return ordinal
-  end
-
-  function SnapshotExistingPlayerOrder() -> void
-    CapturePlayerItemIDs(playerOrderSnapshot)
-  end
-
-  function GetPersistentSnapshotVariableName(ordinal: int) -> string
-    return "inv_overhaul_inventory_snapshot_" + ordinal
-  end
-
-  function LoadPersistentPlayerSnapshot() -> int
-    local valid: int = 0
-    local version: int = 0
-    local count: int = 0
-    native.GetVariable("inv_overhaul_inventory_snapshot_valid", valid)
-    native.GetVariable("inv_overhaul_inventory_snapshot_version", version)
-    native.GetVariable("inv_overhaul_inventory_snapshot_count", count)
-    if valid != 1 || version != c_iSnapshotVersion || count < 0 || count > c_iInventoryCapacity then
-      return -1
-    end
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      local itemID: int = -1
-      if ordinal < count then native.GetVariable(GetPersistentSnapshotVariableName(ordinal), itemID) end
-      playerOrderSnapshot->set(ordinal, itemID)
-    end
-    return count
-  end
-
-  function CanReusePersistentPlayerSnapshot() -> bool
-    local valid: int = 0
-    local version: int = 0
-    local count: int = 0
-    local snapshotReorderGeneration: int = -1
-    local currentReorderGeneration: int = 0
-    local snapshotContentGeneration: int = -1
-    local currentContentGeneration: int = 0
-    native.GetVariable("inv_overhaul_inventory_snapshot_valid", valid)
-    native.GetVariable("inv_overhaul_inventory_snapshot_version", version)
-    native.GetVariable("inv_overhaul_inventory_snapshot_count", count)
-    native.GetVariable("inv_overhaul_inventory_snapshot_generation", snapshotReorderGeneration)
-    native.GetVariable("inv_overhaul_inventory_reorder_generation", currentReorderGeneration)
-    native.GetVariable("inv_overhaul_inventory_snapshot_content_generation", snapshotContentGeneration)
-    native.GetVariable("inv_overhaul_inventory_content_generation", currentContentGeneration)
-    if valid != 1 || version != c_iSnapshotVersion || count < 0 || count > c_iInventoryCapacity then return false end
-    if snapshotReorderGeneration == currentReorderGeneration &&
-      snapshotContentGeneration == currentContentGeneration then return true end
-    return false
-  end
-
-  function SavePersistentPlayerSnapshot(count: int) -> void
-    if count < 0 then count = 0 end
-    if count > c_iInventoryCapacity then count = c_iInventoryCapacity end
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      local itemID: int = -1
-      playerOrderSnapshot->get(itemID, ordinal)
-      native.SetVariable(GetPersistentSnapshotVariableName(ordinal), itemID)
-    end
-    native.SetVariable("inv_overhaul_inventory_snapshot_count", count)
-    native.SetVariable("inv_overhaul_inventory_snapshot_version", c_iSnapshotVersion)
-    local reorderGeneration: int = 0
-    local contentGeneration: int = 0
-    native.GetVariable("inv_overhaul_inventory_reorder_generation", reorderGeneration)
-    native.GetVariable("inv_overhaul_inventory_content_generation", contentGeneration)
-    native.SetVariable("inv_overhaul_inventory_snapshot_generation", reorderGeneration)
-    native.SetVariable("inv_overhaul_inventory_snapshot_content_generation", contentGeneration)
-    native.SetVariable("inv_overhaul_inventory_snapshot_valid", 1)
+    return inv_overhaul_inventory_items.InventoryItemsGetBackpackOrdinal(category, index)
   end
 
   function PersistCurrentPlayerSnapshot() -> void
-    local count: int = CapturePlayerItemIDs(playerOrderSnapshot)
-    SavePersistentPlayerSnapshot(count)
-  end
-
-  function FindFirstUnusedPersistentCell() -> int
-    for linear = 0, c_iInventoryCapacity - 1 do
-      local cell: int = GetCellForLinearSlot(linear)
-      local used: int = 0
-      persistentUsedLayoutCell->get(used, cell)
-      if used == 0 then return cell end
-    end
-    return -1
-  end
-
-  function PersistentPlayerSnapshotDiffers(oldCount: int, currentCount: int) -> bool
-    if oldCount != currentCount then return true end
-    for ordinal = 0, currentCount - 1 do
-      local oldID: int
-      local currentID: int
-      playerOrderSnapshot->get(oldID, ordinal)
-      playerCategoryCache->get(currentID, ordinal)
-      if oldID != currentID then return true end
-    end
-    return false
-  end
-
-  function ReconcilePersistentPlayerLayout(oldCount: int, currentCount: int) -> void
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      playerOrdinalMap->set(ordinal, -1)
-      playerIndexCache->set(ordinal, 0)
-      persistentUsedLayoutCell->set(ordinal, 0)
-    end
-
-    local removalHintValid: int = 0
-    local removalHintOrdinal: int = -1
-    local removalHintOldCount: int = -1
-    native.GetVariable("inv_overhaul_inventory_removed_ordinal_valid", removalHintValid)
-    native.GetVariable("inv_overhaul_inventory_removed_ordinal_hint", removalHintOrdinal)
-    native.GetVariable("inv_overhaul_inventory_removed_ordinal_old_count", removalHintOldCount)
-    local removalHintApplies: bool =
-      removalHintValid == 1 &&
-      removalHintOldCount == oldCount &&
-      currentCount == oldCount - 1 &&
-      removalHintOrdinal >= 0 &&
-      removalHintOrdinal < oldCount
-
-    local equipmentRemovalCount: int = 0
-    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", equipmentRemovalCount)
-    local equipmentRemovalApplies: bool =
-      equipmentRemovalCount > 0 &&
-      equipmentRemovalCount <= 8 &&
-      currentCount == oldCount - equipmentRemovalCount
-    local expectedRemovalOldCount: int = oldCount
-    if equipmentRemovalApplies then
-      for hint = 0, equipmentRemovalCount - 1 do
-        local hintOrdinal: int = -1
-        local hintOldCount: int = -1
-        native.GetVariable(
-          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
-          hintOrdinal)
-        native.GetVariable(
-          "inv_overhaul_inventory_equipment_removal_old_count_" + hint,
-          hintOldCount)
-        if hintOldCount != expectedRemovalOldCount ||
-          hintOrdinal < 0 || hintOrdinal >= expectedRemovalOldCount then
-          equipmentRemovalApplies = false
-        end
-        expectedRemovalOldCount = expectedRemovalOldCount - 1
-      end
-    end
-
-    if equipmentRemovalApplies then
-      for oldOrdinal = 0, oldCount - 1 do playerOrdinalMap->set(oldOrdinal, oldOrdinal) end
-      for hint = 0, equipmentRemovalCount - 1 do
-        local hintOrdinal: int = -1
-        native.GetVariable(
-          "inv_overhaul_inventory_equipment_removal_ordinal_" + hint,
-          hintOrdinal)
-        for oldOrdinal = 0, oldCount - 1 do
-          local mapped: int = -1
-          playerOrdinalMap->get(mapped, oldOrdinal)
-          if mapped == hintOrdinal then
-            playerOrdinalMap->set(oldOrdinal, -1)
-          else
-            if mapped > hintOrdinal then playerOrdinalMap->set(oldOrdinal, mapped - 1) end
-          end
-        end
-      end
-      for oldOrdinal = 0, oldCount - 1 do
-        local mapped: int = -1
-        playerOrdinalMap->get(mapped, oldOrdinal)
-        if mapped >= 0 then playerIndexCache->set(mapped, 1) end
-      end
-      native.Trace("inv_overhaul_container applied equipment removal queue count=" +
-        equipmentRemovalCount + " old=" + oldCount + " new=" + currentCount)
-    else
-    if removalHintApplies then
-      for oldOrdinal = 0, oldCount - 1 do
-        if oldOrdinal < removalHintOrdinal then
-          playerOrdinalMap->set(oldOrdinal, oldOrdinal)
-          playerIndexCache->set(oldOrdinal, 1)
-        end
-        if oldOrdinal > removalHintOrdinal then
-          playerOrdinalMap->set(oldOrdinal, oldOrdinal - 1)
-          playerIndexCache->set(oldOrdinal - 1, 1)
-        end
-      end
-      native.Trace("inv_overhaul_container applied removal hint ordinal=" + removalHintOrdinal +
-        " old=" + oldCount + " new=" + currentCount)
-    else
-      for oldOrdinal = 0, oldCount - 1 do
-        if oldOrdinal < currentCount then
-          local oldID: int
-          local currentID: int
-          playerOrderSnapshot->get(oldID, oldOrdinal)
-          playerCategoryCache->get(currentID, oldOrdinal)
-          if oldID == currentID then
-            playerOrdinalMap->set(oldOrdinal, oldOrdinal)
-            playerIndexCache->set(oldOrdinal, 1)
-          end
-        end
-      end
-
-      for oldOrdinal = 0, oldCount - 1 do
-        local mapped: int = -1
-        playerOrdinalMap->get(mapped, oldOrdinal)
-        if mapped < 0 then
-          local wantedID: int
-          playerOrderSnapshot->get(wantedID, oldOrdinal)
-          for currentOrdinal = 0, currentCount - 1 do
-            local claimed: int
-            local currentID: int
-            playerIndexCache->get(claimed, currentOrdinal)
-            playerCategoryCache->get(currentID, currentOrdinal)
-            if claimed == 0 && currentID == wantedID then
-              playerOrdinalMap->set(oldOrdinal, currentOrdinal)
-              playerIndexCache->set(currentOrdinal, 1)
-              currentOrdinal = currentCount
-            end
-          end
-        end
-      end
-    end
-    end
-    if equipmentRemovalCount > 0 then
-      native.SetVariable("inv_overhaul_inventory_equipment_removal_count", 0)
-    end
-    if removalHintValid == 1 then native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0) end
-
-    for cell = 0, c_iInventoryCapacity - 1 do
-      local oldOrder: int = GetOrderValue(cell)
-      if oldOrder >= 0 && oldOrder < oldCount then
-        local mappedOrder: int
-        playerOrdinalMap->get(mappedOrder, oldOrder)
-        if mappedOrder >= 0 then
-          SetOrderValue(cell, mappedOrder)
-          persistentUsedLayoutCell->set(cell, 1)
-        end
-      end
-    end
-
-    for insertedOrder = 0, currentCount - 1 do
-      local claimed: int
-      playerIndexCache->get(claimed, insertedOrder)
-      if claimed == 0 then
-        local freeCell: int = FindFirstUnusedPersistentCell()
-        if freeCell >= 0 then
-          SetOrderValue(freeCell, insertedOrder)
-          persistentUsedLayoutCell->set(freeCell, 1)
-        end
-      end
-    end
-
-    local freeOrder: int = currentCount
-    for linear = 0, c_iInventoryCapacity - 1 do
-      local freeCell: int = GetCellForLinearSlot(linear)
-      local used: int
-      persistentUsedLayoutCell->get(used, freeCell)
-      if used == 0 then
-        SetOrderValue(freeCell, freeOrder)
-        freeOrder = freeOrder + 1
-      end
-    end
-    NormalizeSlotOrder()
-    QueueLayoutSave()
-    native.Trace("inv_overhaul_container reconciled generic snapshot old=" + oldCount + " new=" + currentCount)
+    inv_overhaul_inventory_snapshot.InventorySnapshotPersistCurrent()
   end
 
   function InitializePersistentPlayerSnapshot() -> void
-    if CanReusePersistentPlayerSnapshot() then
-      CapturePlayerItemIDs(playerOrderSnapshot)
+    if inv_overhaul_inventory_snapshot.InventorySnapshotCanReusePersistent() then
+      inv_overhaul_inventory_snapshot.InventorySnapshotCapturePrevious()
       return
     end
-    local currentCount: int = CapturePlayerItemIDs(playerCategoryCache)
+
+    local currentCount: int =
+      inv_overhaul_inventory_snapshot.InventorySnapshotCaptureCurrentCount()
     if currentCount > c_iInventoryCapacity then currentCount = c_iInventoryCapacity end
-    local oldCount: int = LoadPersistentPlayerSnapshot()
-    local changed: bool = oldCount >= 0 && PersistentPlayerSnapshotDiffers(oldCount, currentCount)
+    local loaded: bool =
+      inv_overhaul_inventory_snapshot.InventorySnapshotLoadPersistent()
+    local changed: bool =
+      loaded && inv_overhaul_inventory_snapshot.InventorySnapshotDiffers(currentCount)
     if changed then
-      ReconcilePersistentPlayerLayout(oldCount, currentCount)
+      local oldCount: int =
+        inv_overhaul_inventory_snapshot.InventorySnapshotGetLastBackpackItemCount()
+      inv_overhaul_inventory_snapshot.InventorySnapshotReconcile(
+        currentCount, visibleSlots)
+      QueueLayoutSave()
+      native.Trace("inv_overhaul_container persistent snapshot reconciled old=" +
+        oldCount + " current=" + currentCount)
     end
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      local itemID: int = -1
-      playerCategoryCache->get(itemID, ordinal)
-      playerOrderSnapshot->set(ordinal, itemID)
-    end
+
+    inv_overhaul_inventory_snapshot.InventorySnapshotCopyCurrent(currentCount)
     -- Persist after every fallback comparison so an older save that lacks the
     -- content-generation stamp is migrated after its stored IDs are checked.
-    SavePersistentPlayerSnapshot(currentCount)
-    if oldCount < 0 then native.Trace("inv_overhaul_container persistent snapshot initialized count=" + currentCount) end
-  end
-
-  function FindInsertedBackpackOrdinal(beforeCount: int) -> int
-    local player: object = GetPlayerContainer()
-    local oldOrdinal: int = 0
-    local newOrdinal: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if oldOrdinal >= beforeCount then return newOrdinal end
-          local item: object
-          local currentItemID: int
-          local previousItemID: int
-          player->GetItem(item, index, category)
-          item->GetItemID(currentItemID)
-          playerOrderSnapshot->get(previousItemID, oldOrdinal)
-          if currentItemID != previousItemID then return newOrdinal end
-          oldOrdinal = oldOrdinal + 1
-          newOrdinal = newOrdinal + 1
-        end
-      end
+    inv_overhaul_inventory_snapshot.InventorySnapshotSavePersistent()
+    if !loaded then
+      native.Trace("inv_overhaul_container persistent snapshot initialized count=" +
+      currentCount)
     end
-    return newOrdinal
-  end
-
-  function FindSnapshotPlayerOrdinal(oldOrder: int, insertedCategory: int, insertedIndex: int) -> int
-    local player: object = GetPlayerContainer()
-    local wantedItemID: int
-    playerOrderSnapshot->get(wantedItemID, oldOrder)
-    local wantedOccurrence: int = 0
-    for previousOrder = 0, oldOrder - 1 do
-      local previousItemID: int
-      playerOrderSnapshot->get(previousItemID, previousOrder)
-      if previousItemID == wantedItemID then wantedOccurrence = wantedOccurrence + 1 end
-    end
-    local ordinal: int = 0
-    local occurrence: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if category != insertedCategory || index != insertedIndex then
-            local item: object
-            local itemID: int
-            player->GetItem(item, index, category)
-            item->GetItemID(itemID)
-            if itemID == wantedItemID then
-              if occurrence == wantedOccurrence then return ordinal end
-              occurrence = occurrence + 1
-            end
-          end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    return -1
-  end
-
-  function BuildPlayerOrdinalMapAfterInsert(beforeCount: int, afterCount: int) -> int
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      playerOrdinalMap->set(ordinal, -1)
-      playerCategoryCache->set(ordinal, -1)
-      playerIndexCache->set(ordinal, 0)
-    end
-
-    local player: object = GetPlayerContainer()
-    local newOrdinal: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if newOrdinal < c_iInventoryCapacity then
-            local item: object
-            local itemID: int
-            player->GetItem(item, index, category)
-            item->GetItemID(itemID)
-            playerCategoryCache->set(newOrdinal, itemID)
-          end
-          newOrdinal = newOrdinal + 1
-        end
-      end
-    end
-    if newOrdinal != afterCount then return -1 end
-
-    for oldOrdinal = 0, beforeCount - 1 do
-      local wantedItemID: int
-      playerOrderSnapshot->get(wantedItemID, oldOrdinal)
-      for currentOrdinal = 0, afterCount - 1 do
-        local claimed: int
-        local currentItemID: int
-        playerIndexCache->get(claimed, currentOrdinal)
-        playerCategoryCache->get(currentItemID, currentOrdinal)
-        if claimed == 0 && currentItemID == wantedItemID then
-          playerOrdinalMap->set(oldOrdinal, currentOrdinal)
-          playerIndexCache->set(currentOrdinal, 1)
-          currentOrdinal = afterCount
-        end
-      end
-    end
-
-    for oldOrdinal = 0, beforeCount - 1 do
-      local mappedOrdinal: int
-      playerOrdinalMap->get(mappedOrdinal, oldOrdinal)
-      if mappedOrdinal < 0 then return -1 end
-    end
-    for currentOrdinal = 0, afterCount - 1 do
-      local claimed: int
-      playerIndexCache->get(claimed, currentOrdinal)
-      if claimed == 0 then return currentOrdinal end
-    end
-    return -1
-  end
-
-  function RestorePlayerOrderAfterInsert(beforeCount: int, afterCount: int, preferredSlot: int) -> bool
-    if afterCount != beforeCount + 1 || beforeCount >= c_iInventoryCapacity then return false end
-    local insertedOrder: int = BuildPlayerOrdinalMapAfterInsert(beforeCount, afterCount)
-    if insertedOrder < 0 then
-      native.Trace("inv_overhaul_container player order restore failed before=" + beforeCount + " after=" + afterCount)
-      return false
-    end
-    local insertedSlot: int = FindFirstFreePlayerVisual(beforeCount)
-    if insertedSlot < 0 then return false end
-    for slot = 0, c_iInventoryCapacity - 1 do
-      local oldOrder: int = GetOrderValue(slot)
-      if oldOrder < beforeCount then
-        local mappedOrder: int
-        playerOrdinalMap->get(mappedOrder, oldOrder)
-        if mappedOrder >= 0 then SetOrderValue(slot, mappedOrder) end
-      end
-    end
-    SetOrderValue(insertedSlot, insertedOrder)
-    local preferredCell: int = GetVisibleCell(preferredSlot)
-    if preferredSlot >= 0 && preferredSlot < visibleSlots && preferredCell != insertedSlot then
-      local preferredOrder: int = GetOrderValue(preferredCell)
-      SetOrderValue(preferredCell, insertedOrder)
-      SetOrderValue(insertedSlot, preferredOrder)
-    end
-    NormalizeSlotOrder()
-    OrderFreeCellsByDisplay()
-    QueueLayoutSave()
-    native.Trace("inv_overhaul_container player order restored inserted=" + insertedOrder + " target=" + preferredSlot)
-    return true
-  end
-
-  function RestorePlayerOrderAfterRemoveMapped(removedOrder: int, beforeCount: int, afterCount: int) -> bool
-    if removedOrder < 0 || removedOrder >= beforeCount || afterCount != beforeCount - 1 then return false end
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      playerOrdinalMap->set(ordinal, -1)
-      playerCategoryCache->set(ordinal, -1)
-      playerIndexCache->set(ordinal, 0)
-    end
-
-    local player: object = GetPlayerContainer()
-    local newOrdinal: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if newOrdinal < c_iInventoryCapacity then
-            local item: object
-            local itemID: int
-            player->GetItem(item, index, category)
-            item->GetItemID(itemID)
-            playerCategoryCache->set(newOrdinal, itemID)
-          end
-          newOrdinal = newOrdinal + 1
-        end
-      end
-    end
-    if newOrdinal != afterCount then return false end
-
-    for oldOrdinal = 0, beforeCount - 1 do
-      if oldOrdinal != removedOrder then
-        local wantedItemID: int
-        playerOrderSnapshot->get(wantedItemID, oldOrdinal)
-        for currentOrdinal = 0, afterCount - 1 do
-          local claimed: int
-          local currentItemID: int
-          playerIndexCache->get(claimed, currentOrdinal)
-          playerCategoryCache->get(currentItemID, currentOrdinal)
-          if claimed == 0 && currentItemID == wantedItemID then
-            playerOrdinalMap->set(oldOrdinal, currentOrdinal)
-            playerIndexCache->set(currentOrdinal, 1)
-            currentOrdinal = afterCount
-          end
-        end
-      end
-    end
-
-    for oldOrdinal = 0, beforeCount - 1 do
-      if oldOrdinal != removedOrder then
-        local mappedOrdinal: int
-        playerOrdinalMap->get(mappedOrdinal, oldOrdinal)
-        if mappedOrdinal < 0 then return false end
-      end
-    end
-
-    for cell = 0, c_iInventoryCapacity - 1 do
-      local oldOrder: int = GetOrderValue(cell)
-      if oldOrder == removedOrder then
-        SetOrderValue(cell, afterCount)
-      else
-        if oldOrder >= 0 && oldOrder < beforeCount then
-          local mappedOrder: int
-          playerOrdinalMap->get(mappedOrder, oldOrder)
-          if mappedOrder >= 0 then SetOrderValue(cell, mappedOrder) end
-        end
-      end
-    end
-    NormalizeSlotOrder()
-    OrderFreeCellsByDisplay()
-    QueueLayoutSave()
-    native.Trace("inv_overhaul_container player order restored after remove=" + removedOrder)
-    return true
-  end
-
-  function FindRemainingPlayerOrdinal(oldOrder: int, removedOrder: int) -> int
-    local wantedItemID: int
-    local removedItemID: int
-    playerOrderSnapshot->get(wantedItemID, oldOrder)
-    playerOrderSnapshot->get(removedItemID, removedOrder)
-    local wantedOccurrence: int = 0
-    for previousOrder = 0, oldOrder - 1 do
-      local previousItemID: int
-      playerOrderSnapshot->get(previousItemID, previousOrder)
-      if previousItemID == wantedItemID then wantedOccurrence = wantedOccurrence + 1 end
-    end
-    if removedOrder < oldOrder && removedItemID == wantedItemID then
-      wantedOccurrence = wantedOccurrence - 1
-    end
-
-    local player: object = GetPlayerContainer()
-    local ordinal: int = 0
-    local occurrence: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          local item: object
-          local itemID: int
-          player->GetItem(item, index, category)
-          item->GetItemID(itemID)
-          if itemID == wantedItemID then
-            if occurrence == wantedOccurrence then return ordinal end
-            occurrence = occurrence + 1
-          end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    return -1
-  end
-
-  function RestorePlayerOrderAfterRemove(removedOrder: int, beforeCount: int) -> bool
-    if removedOrder < 0 || removedOrder >= beforeCount then return false end
-    for slot = 0, c_iInventoryCapacity - 1 do
-      local oldOrder: int = GetOrderValue(slot)
-      if oldOrder == removedOrder then
-        SetOrderValue(slot, beforeCount - 1)
-      else
-        if oldOrder < beforeCount then
-          local mappedOrder: int = FindRemainingPlayerOrdinal(oldOrder, removedOrder)
-          if mappedOrder >= 0 then SetOrderValue(slot, mappedOrder) end
-        end
-      end
-    end
-    NormalizeSlotOrder()
-    OrderFreeCellsByDisplay()
-    QueueLayoutSave()
-    return true
   end
 
   function InsertOrderOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
     if insertedOrder < 0 then return false end
     if beforeCount >= c_iInventoryCapacity then return false end
     -- The cell carrying exactly beforeCount is the first free ordinal. Using
-    -- that exact cell keeps slotOrder a permutation after the ordinal shift;
-    -- a full NormalizeSlotOrder/OrderFreeCellsByDisplay pass is unnecessary.
+    -- that exact cell keeps the shared layout a permutation after the ordinal
+    -- shift; a full normalize/order-free-cells pass is unnecessary.
     local insertedSlot: int = -1
     for slot = 0, c_iInventoryCapacity - 1 do
       if GetOrderValue(slot) == beforeCount then insertedSlot = slot end
@@ -2224,90 +1156,29 @@ maintask InvOverhaulContainerUI do
   end
 
   function FindFirstFreeContainerVisual(itemCount: int) -> int
-    for visual = 0, c_iMaxContainerVisuals - 1 do
-      if GetContainerOrderValue(visual) >= itemCount then return visual end
-    end
-    return -1
+    return inv_overhaul_container_projection.ContainerProjectionFindFirstFreeContainerVisual(itemCount)
   end
 
   function InsertContainerOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
-    if insertedOrder < 0 then return false end
-    if beforeCount >= c_iMaxContainerVisuals then return false end
-    local preferredVisual: int = containerPage * c_iContainerSlots + preferredSlot
-    local insertedVisual: int = -1
-    for visual = 0, c_iMaxContainerVisuals - 1 do
-      local order: int = GetContainerOrderValue(visual)
-      if order == beforeCount then
-        SetContainerOrderValue(visual, insertedOrder)
-        insertedVisual = visual
-      else
-        if order >= insertedOrder && order < beforeCount then SetContainerOrderValue(visual, order + 1) end
-      end
-    end
-    if insertedVisual < 0 then return false end
-    if preferredSlot >= 0 && preferredSlot < c_iContainerSlots && preferredVisual != insertedVisual then
-      local preferredOrder: int = GetContainerOrderValue(preferredVisual)
-      SetContainerOrderValue(preferredVisual, insertedOrder)
-      SetContainerOrderValue(insertedVisual, preferredOrder)
-    end
-    return true
+    return inv_overhaul_container_projection.ContainerProjectionInsertContainerOrdinalAt(
+      containerPage, insertedOrder, beforeCount, preferredSlot)
   end
 
   function FindFirstFreeOrganVisual(itemCount: int) -> int
-    for visual = 0, c_iOrganSlots - 1 do
-      if GetOrganOrderValue(visual) >= itemCount then return visual end
-    end
-    return -1
+    return inv_overhaul_container_projection.ContainerProjectionFindFirstFreeOrganVisual(itemCount)
   end
 
   function InsertOrganOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
-    if insertedOrder < 0 then return false end
-    local freeSlot: int = -1
-    if preferredSlot >= 0 && preferredSlot < c_iOrganSlots then
-      if GetOrganOrderValue(preferredSlot) >= beforeCount then freeSlot = preferredSlot end
-    end
-    if freeSlot < 0 then freeSlot = FindFirstFreeOrganVisual(beforeCount) end
-    if freeSlot < 0 then return false end
-    local preferredOccupied: bool = preferredSlot >= 0 && preferredSlot < c_iOrganSlots && GetOrganOrderValue(preferredSlot) < beforeCount
-    for visual = 0, c_iOrganSlots - 1 do
-      if visual != freeSlot then
-        local order: int = GetOrganOrderValue(visual)
-        if order >= insertedOrder && order < beforeCount then SetOrganOrderValue(visual, order + 1) end
-      end
-    end
-    if preferredOccupied then
-      SetOrganOrderValue(freeSlot, GetOrganOrderValue(preferredSlot))
-      SetOrganOrderValue(preferredSlot, insertedOrder)
-    else
-      SetOrganOrderValue(freeSlot, insertedOrder)
-    end
-    return true
+    return inv_overhaul_container_projection.ContainerProjectionInsertOrganOrdinalAt(
+      insertedOrder, beforeCount, preferredSlot)
   end
 
   function RemoveContainerOrdinal(removedOrder: int, beforeCount: int) -> void
-    if removedOrder < 0 then return end
-    local emptyOrder: int = beforeCount - 1
-    for visual = 0, c_iMaxContainerVisuals - 1 do
-      local order: int = GetContainerOrderValue(visual)
-      if order == removedOrder then
-        SetContainerOrderValue(visual, emptyOrder)
-      else
-        if order > removedOrder && order < beforeCount then SetContainerOrderValue(visual, order - 1) end
-      end
-    end
+    inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(removedOrder, beforeCount)
   end
 
   function RemoveOrganOrdinal(removedOrder: int, beforeCount: int) -> void
-    if removedOrder < 0 then return end
-    local emptyOrder: int = beforeCount - 1
-    for visual = 0, c_iOrganSlots - 1 do
-      local order: int = GetOrganOrderValue(visual)
-      if order == removedOrder then
-        SetOrganOrderValue(visual, emptyOrder)
-      else
-        if order > removedOrder && order < beforeCount then SetOrganOrderValue(visual, order - 1) end
-      end
-    end
+    inv_overhaul_container_projection.ContainerProjectionRemoveOrganOrdinal(removedOrder, beforeCount)
   end
 
   function TogglePlayerSlot(category: int, index: int) -> void
@@ -2381,20 +1252,6 @@ maintask InvOverhaulContainerUI do
     end
   end
 
-  function FindPlayerTransferMarkerIndex(category: int) -> int
-    local player: object = GetPlayerContainer()
-    local count: int
-    player->GetItemCount(count, category)
-    for index = 0, count - 1 do
-      local item: object
-      player->GetItem(item, index, category)
-      local hasMarker: bool = false
-      item->HasProperty(hasMarker, "InvOverhaulTransferMarker")
-      if hasMarker then return index end
-    end
-    return -1
-  end
-
   function FindPlayerItemIndexByID(category: int, wantedItemID: int) -> int
     local player: object = GetPlayerContainer()
     local count: int
@@ -2428,27 +1285,6 @@ maintask InvOverhaulContainerUI do
       end
     end
     return total
-  end
-
-  function FindExternalTransferMarkerOrdinal(organItem: bool) -> int
-    local external: object = GetExternalContainer()
-    local count: int
-    external->GetItemCount(count)
-    local ordinal: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      external->GetItem(item, index)
-      if IsOrganItem(item) == organItem then
-        local hasMarker: bool = false
-        item->HasProperty(hasMarker, "InvOverhaulTransferMarker")
-        if hasMarker then
-          item->RemoveProperty("InvOverhaulTransferMarker")
-          return ordinal
-        end
-        ordinal = ordinal + 1
-      end
-    end
-    return -1
   end
 
   function FindExternalItemOrdinalByID(organItem: bool, wantedItemID: int) -> int
@@ -2506,8 +1342,11 @@ maintask InvOverhaulContainerUI do
     local external: object = GetExternalContainer()
     if !external then return end
 
-    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
-    local beforeBackpack: int = cachedBackpackItemCount
+    local beforeBackpack: int = GetCachedBackpackItemCount()
+    if beforeBackpack < 0 then
+      BuildPlayerIndexCache()
+      beforeBackpack = GetCachedBackpackItemCount()
+    end
     local sourceCell: int = GetVisibleCell(sourceSlot)
     if dragKind == 0 && dragPlayerCell >= 0 then sourceCell = dragPlayerCell end
     local usedOrder: int = GetOrderValue(sourceCell)
@@ -2637,8 +1476,12 @@ maintask InvOverhaulContainerUI do
 
     -- If moving one unit does not free a backpack cell, the incoming stack
     -- still has to fit normally. Never remove the container item first.
-    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
-    if cachedBackpackItemCount >= c_iInventoryCapacity && sourceAmount > 1 then
+    local cachedCount: int = GetCachedBackpackItemCount()
+    if cachedCount < 0 then
+      BuildPlayerIndexCache()
+      cachedCount = GetCachedBackpackItemCount()
+    end
+    if cachedCount >= c_iInventoryCapacity && sourceAmount > 1 then
       local exchangedItemID: int
       local exchangedCategory: int
       exchangedItem->GetItemID(exchangedItemID)
@@ -2675,7 +1518,7 @@ maintask InvOverhaulContainerUI do
         BuildContainerIndexCache()
         for visual = 0, c_iMaxContainerVisuals - 1 do SetContainerOrderValue(visual, visual) end
         exchangedMovedToIndex = appendedIndex
-        exchangedMovedToOrdinal = cachedNormalContainerCount - 1
+        exchangedMovedToOrdinal = GetCachedNormalContainerCount() - 1
       end
     end
 
@@ -2715,8 +1558,11 @@ maintask InvOverhaulContainerUI do
     local player: object = GetPlayerContainer()
     local beforeNormal: int = GetNormalContainerItemCount()
     local beforeOrgans: int = GetOrganItemCount()
-    if cachedBackpackItemCount < 0 then BuildPlayerIndexCache() end
-    local beforeBackpack: int = cachedBackpackItemCount
+    local beforeBackpack: int = GetCachedBackpackItemCount()
+    if beforeBackpack < 0 then
+      BuildPlayerIndexCache()
+      beforeBackpack = GetCachedBackpackItemCount()
+    end
     local item: object
     local amount: int
     external->GetItem(item, sourceIndex)
@@ -3007,52 +1853,37 @@ maintask InvOverhaulContainerUI do
   end
 
   function IsInsideSlotDropArea(localX: int, localY: int, hotZone: int) -> bool
-    return localX >= c_iSlotDropInset && localY >= c_iSlotDropInset &&
-      localX < hotZone - c_iSlotDropInset && localY < hotZone - c_iSlotDropInset
+    return inv_overhaul_container_geometry.ContainerGeometryIsInsideSlotDropArea(
+      localX, localY, hotZone)
   end
 
   function GetSlotHotZone() -> int
-    if windowWidth >= 1200 then return 82 end
-    return c_iSlotHotZone
+    return inv_overhaul_container_geometry.ContainerGeometryGetSlotHotZone(windowWidth)
   end
 
   function GetOrganSlotHotZone() -> int
-    if windowWidth >= 1900 then return 57 end
-    return c_iSlotHotZone
-  end
-
-  function FindGridSlotAt(x: int, y: int, startX: int, startY: int, columns: int, rows: int, count: int, hotZone: int, step: int) -> int
-    if x < startX || y < startY || x >= startX + columns * step || y >= startY + rows * step then return -1 end
-    local column: int = (x - startX) / step
-    local row: int = (y - startY) / step
-    local localX: int = x - startX - column * step
-    local localY: int = y - startY - row * step
-    if !IsInsideSlotDropArea(localX, localY, hotZone) then return -1 end
-    local slot: int = row * columns + column
-    if slot < 0 || slot >= count then return -1 end
-    return slot
+    return inv_overhaul_container_geometry.ContainerGeometryGetOrganSlotHotZone(windowWidth)
   end
 
   function FindPlayerSlotAt(x: int, y: int) -> int
-    local columns: int = GetGridColumns()
-    local rows: int = (visibleSlots + columns - 1) / columns
-    return FindGridSlotAt(x, y, GetGridStartX(), GetGridStartY(), columns, rows, visibleSlots, GetSlotHotZone(), GetGridStep())
+    return inv_overhaul_container_geometry.ContainerGeometryFindPlayerSlotAt(
+      windowWidth, visibleSlots, x, y)
   end
 
   function FindContainerSlotAt(x: int, y: int) -> int
-    return FindGridSlotAt(x, y, GetContainerStartX(), GetContainerStartY(), 3, 4, c_iContainerSlots, GetSlotHotZone(), GetGridStep())
+    return inv_overhaul_container_geometry.ContainerGeometryFindContainerSlotAt(
+      windowWidth, c_iContainerSlots, x, y)
   end
 
   function FindOrganSlotAt(x: int, y: int) -> int
     if !showOrgans then return -1 end
-    return FindGridSlotAt(x, y, GetOrganStartX(), GetOrganStartY(), 4, 1, c_iOrganSlots, GetOrganSlotHotZone(), GetOrganStep())
+    return inv_overhaul_container_geometry.ContainerGeometryFindOrganSlotAt(
+      windowWidth, c_iOrganSlots, x, y)
   end
 
   function IsInsideMoney(x: int, y: int) -> bool
-    local left: int = GetMoneyLeft()
-    local top: int = GetMoneyTop()
-    local hotZone: int = GetSlotHotZone()
-    return x >= left && y >= top && x < left + hotZone && y < top + hotZone
+    return inv_overhaul_container_geometry.ContainerGeometryIsInsideMoney(
+      windowWidth, x, y)
   end
 
   function FindTargetAt(x: int, y: int) -> int
@@ -3123,7 +1954,7 @@ maintask InvOverhaulContainerUI do
     if target < 0 && lastValidDropTarget >= 0 && invalidDropTargetFrames <= 3 then target = lastValidDropTarget end
     local source: int = dragSource
     local sourceKind: int = dragKind
-    tooltipResumeDelay = 0.2
+    inv_overhaul_inventory_tooltip.InventoryTooltipSuspend(0.2)
     ClearPanelTooltip()
     if source >= 0 then
       native.SendMessage(-130, GetTargetWndName(source))
@@ -3230,64 +2061,46 @@ maintask InvOverhaulContainerUI do
   end
 
   function ClearPanelTooltip() -> void
-    if panelTooltipTarget != -1 then
-    end
-    panelTooltipTarget = -1
-    native.SendMessage(-1, "panel_background")
+    inv_overhaul_inventory_tooltip.InventoryTooltipClear()
   end
 
   function ShowPlayerPagingTooltip() -> void
-    panelTooltipTarget = c_iTargetPaging
-    native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
-    native.SetVariable("inv_overhaul_inventory_tooltip_text_id", 1404)
-    native.SetVariable("inv_overhaul_inventory_tooltip_type", 5)
+    inv_overhaul_inventory_tooltip.InventoryTooltipShowText(c_iTargetPaging, 1404)
   end
 
   function ShowQuickslotHelpPanelTooltip() -> void
-    panelTooltipTarget = c_iTargetQuickslotHelp
-    native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
-    native.SetVariable("inv_overhaul_inventory_tooltip_text_id", 1407)
-    native.SetVariable("inv_overhaul_inventory_tooltip_type", 5)
+    inv_overhaul_inventory_tooltip.InventoryTooltipShowText(c_iTargetQuickslotHelp, 1407)
   end
 
   function IsInsideQuickslotHelp(x: int, y: int) -> bool
-    local helpX: int = 701
-    local helpY: int = 121
-    if windowWidth >= 1900 then
-      helpX = 1486
-      helpY = 211
-    else
-    if windowWidth >= 1200 then
-      helpX = 1166
-      helpY = 151
-    else
-    if windowWidth >= 1000 then
-      helpX = 918
-      helpY = 135
-    end
-    end
-    end
-    return x >= helpX && x < helpX + 28 && y >= helpY && y < helpY + 28
+    return inv_overhaul_container_geometry.ContainerGeometryIsInsideQuickslotHelp(
+      windowWidth, x, y)
+  end
+
+  function GetPlayerPageControlX() -> int
+    return inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlX(windowWidth)
+  end
+
+  function GetPlayerPageControlY() -> int
+    return inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlY(windowWidth)
+  end
+
+  function GetContainerPageControlX() -> int
+    return inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlX(windowWidth)
+  end
+
+  function GetContainerPageControlY() -> int
+    return inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlY(
+      windowWidth, c_iContainerSlots)
   end
 
   function IsInsidePlayerPaging(x: int, y: int) -> bool
-    if GetMaxPlayerPage() <= 0 then return false end
-    local playerX: int = 467
-    local playerY: int = 481
-    if windowWidth >= 1900 then
-      playerX = 1082
-      playerY = 826
-    else
-    if windowWidth >= 1000 then
-      playerX = 626
-      playerY = 632
-    end
-    end
-    return x >= playerX && x < playerX + 132 && y >= playerY && y < playerY + 36
+    return inv_overhaul_container_geometry.ContainerGeometryIsInsidePageControl(
+      GetMaxPlayerPage(), x, y, GetPlayerPageControlX(), GetPlayerPageControlY())
   end
 
   function UpdatePanelTooltip(x: int, y: int) -> void
-    if tooltipResumeDelay > 0 then
+    if inv_overhaul_inventory_tooltip.InventoryTooltipIsSuspended() then
       ClearPanelTooltip()
       return
     end
@@ -3304,10 +2117,7 @@ maintask InvOverhaulContainerUI do
       return
     end
     if IsInsideMoney(x, y) then
-      if panelTooltipTarget != c_iTargetMoney then
-        panelTooltipTarget = c_iTargetMoney
-        native.SendMessage(1, "panel_background", moneyTooltipItem)
-      end
+      inv_overhaul_inventory_tooltip.InventoryTooltipShowMoneyForTarget(c_iTargetMoney)
       return
     end
 
@@ -3338,10 +2148,7 @@ maintask InvOverhaulContainerUI do
       ClearPanelTooltip()
       return
     end
-    if panelTooltipTarget != target then
-      panelTooltipTarget = target
-      native.SendMessage(1, "panel_background", item)
-    end
+    inv_overhaul_inventory_tooltip.InventoryTooltipShowItem(target, item)
   end
 
   function StartPanelPointerDrag(x: int, y: int) -> void
@@ -3352,14 +2159,11 @@ maintask InvOverhaulContainerUI do
   end
 
   function GetPanelPointerX(message: int, base: int) -> int
-    local encoded: int = message - base
-    return encoded / c_iPanelPointerStride
+    return inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerX(message, base)
   end
 
   function GetPanelPointerY(message: int, base: int) -> int
-    local encoded: int = message - base
-    local x: int = encoded / c_iPanelPointerStride
-    return encoded - x * c_iPanelPointerStride
+    return inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerY(message, base)
   end
 
   function HandlePanelPointer(message: int) -> void
@@ -3423,44 +2227,24 @@ maintask InvOverhaulContainerUI do
   function HandlePageControlAt(x: int, y: int) -> bool
     local playerMaxPage: int = GetMaxPlayerPage()
     if playerMaxPage > 0 then
-      local playerX: int = 467
-      local playerY: int = 481
-      if windowWidth >= 1900 then
-        playerX = 1082
-        playerY = 826
-      else
-      if windowWidth >= 1200 then
-        playerX = 778
-        playerY = 736
-      else
-      if windowWidth >= 1000 then
-        playerX = 626
-        playerY = 632
-      end
-      end
-      end
-      if x >= playerX && x < playerX + 40 && y >= playerY && y < playerY + 36 then
-        if playerPage > 0 then ChangePlayerPage(-1) end
-        return true
-      end
-      if x >= playerX + 92 && x < playerX + 132 && y >= playerY && y < playerY + 36 then
-        if playerPage < playerMaxPage then ChangePlayerPage(1) end
+      local playerAction: int =
+        inv_overhaul_container_geometry.ContainerGeometryGetPageControlAction(
+          x, y, GetPlayerPageControlX(), GetPlayerPageControlY())
+      if playerAction != 0 then
+        if playerAction < 0 && playerPage > 0 then ChangePlayerPage(-1) end
+        if playerAction > 0 && playerPage < playerMaxPage then ChangePlayerPage(1) end
         return true
       end
     end
 
     local containerMaxPage: int = GetMaxContainerPage()
     if containerMaxPage > 0 then
-      local containerX: int = GetContainerStartX() + 28
-      if windowWidth >= 1900 then containerX = GetContainerStartX() + 73 end
-      if windowWidth >= 1200 && windowWidth < 1900 then containerX = GetContainerStartX() + 71 end
-      local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
-      if x >= containerX && x < containerX + 40 && y >= containerY && y < containerY + 36 then
-        if containerPage > 0 then ChangeContainerPage(-1) end
-        return true
-      end
-      if x >= containerX + 92 && x < containerX + 132 && y >= containerY && y < containerY + 36 then
-        if containerPage < containerMaxPage then ChangeContainerPage(1) end
+      local containerAction: int =
+        inv_overhaul_container_geometry.ContainerGeometryGetPageControlAction(
+          x, y, GetContainerPageControlX(), GetContainerPageControlY())
+      if containerAction != 0 then
+        if containerAction < 0 && containerPage > 0 then ChangeContainerPage(-1) end
+        if containerAction > 0 && containerPage < containerMaxPage then ChangeContainerPage(1) end
         return true
       end
     end
@@ -3479,33 +2263,29 @@ maintask InvOverhaulContainerUI do
   end
 
   function UpdatePageControlHover(x: int, y: int) -> void
-    local playerX: int = 467
-    local playerY: int = 481
-    if windowWidth >= 1900 then
-      playerX = 1082
-      playerY = 826
-    else
-    if windowWidth >= 1200 then
-      playerX = 778
-      playerY = 736
-    else
-    if windowWidth >= 1000 then
-      playerX = 626
-      playerY = 632
-    end
-    end
-    end
-    local playerVisible: bool = GetMaxPlayerPage() > 0
-    SetPageButtonHover("player_page_prev", playerVisible && playerPage > 0 && x >= playerX && x < playerX + 40 && y >= playerY && y < playerY + 36)
-    SetPageButtonHover("player_page_next", playerVisible && playerPage < GetMaxPlayerPage() && x >= playerX + 92 && x < playerX + 132 && y >= playerY && y < playerY + 36)
+    local playerX: int = GetPlayerPageControlX()
+    local playerY: int = GetPlayerPageControlY()
+    local playerMaxPage: int = GetMaxPlayerPage()
+    SetPageButtonHover(
+      "player_page_prev",
+      inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
+        -1, playerPage, playerMaxPage, x, y, playerX, playerY))
+    SetPageButtonHover(
+      "player_page_next",
+      inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
+        1, playerPage, playerMaxPage, x, y, playerX, playerY))
 
-    local containerX: int = GetContainerStartX() + 28
-    if windowWidth >= 1900 then containerX = GetContainerStartX() + 73 end
-    if windowWidth >= 1200 && windowWidth < 1900 then containerX = GetContainerStartX() + 71 end
-    local containerY: int = GetContainerStartY() + c_iContainerSlots / 3 * GetGridStep() - 4
-    local containerVisible: bool = GetMaxContainerPage() > 0
-    SetPageButtonHover("container_page_prev", containerVisible && containerPage > 0 && x >= containerX && x < containerX + 40 && y >= containerY && y < containerY + 36)
-    SetPageButtonHover("container_page_next", containerVisible && containerPage < GetMaxContainerPage() && x >= containerX + 92 && x < containerX + 132 && y >= containerY && y < containerY + 36)
+    local containerX: int = GetContainerPageControlX()
+    local containerY: int = GetContainerPageControlY()
+    local containerMaxPage: int = GetMaxContainerPage()
+    SetPageButtonHover(
+      "container_page_prev",
+      inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
+        -1, containerPage, containerMaxPage, x, y, containerX, containerY))
+    SetPageButtonHover(
+      "container_page_next",
+      inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
+        1, containerPage, containerMaxPage, x, y, containerX, containerY))
   end
 
   function ChangePlayerPage(delta: int) -> void
@@ -3692,13 +2472,7 @@ maintask InvOverhaulContainerUI do
         if RefreshDroppedRubbishKind(true) then return end
       end
     end
-    if tooltipResumeDelay > 0 then
-      ClearPanelTooltip()
-      tooltipResumeDelay = tooltipResumeDelay - delta
-      if tooltipResumeDelay <= 0 then
-        tooltipResumeDelay = 0
-      end
-    end
+    inv_overhaul_inventory_tooltip.InventoryTooltipAdvanceSuspension(delta)
     if inventoryFullMessageCooldown > 0 then
       inventoryFullMessageCooldown = inventoryFullMessageCooldown - delta
       if inventoryFullMessageCooldown < 0 then inventoryFullMessageCooldown = 0 end
@@ -3781,7 +2555,7 @@ maintask InvOverhaulContainerUI do
 
   function OnChar(char: int) -> void
     if char >= 48 && char <= 57 then return end
-    if layoutSavePending then SaveLayoutVariables() end
+    if inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeHasQueuedSave() then SaveLayoutVariables() end
     PersistCurrentPlayerSnapshot()
     CloseContainerWindow()
   end
@@ -3795,7 +2569,7 @@ maintask InvOverhaulContainerUI do
       return
     end
     if key == 27 || key == 73 || key == 105 then
-      if layoutSavePending then SaveLayoutVariables() end
+      if inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeHasQueuedSave() then SaveLayoutVariables() end
       PersistCurrentPlayerSnapshot()
       CloseContainerWindow()
     end

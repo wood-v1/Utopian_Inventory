@@ -86,6 +86,7 @@ module inv_overhaul_inventory_quickslot_bindings do
     category: int,
     index: int,
     itemID: int) -> int
+    if InventoryQuickslotGetItemBinding(category, itemID) <= 0 then return 0 end
     local occurrence: int = inv_overhaul_inventory_items.InventoryItemsGetOccurrence(category, index, itemID)
     for slot = 1, QuickslotCount do
       local assignedCategory: int = -1
@@ -117,7 +118,8 @@ module inv_overhaul_inventory_quickslot_bindings do
   function InventoryQuickslotAssign(
     slot: int,
     category: int,
-    index: int) -> bool
+    index: int,
+    emitTrace: bool) -> bool
     if slot < 1 || slot > QuickslotCount then return false end
     local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
     local item: object
@@ -142,7 +144,9 @@ module inv_overhaul_inventory_quickslot_bindings do
       categoryCache->set(slot - 1, -1)
       itemCache->set(slot - 1, -1)
       occurrenceCache->set(slot - 1, -1)
-      native.Trace("inv_overhaul_quickslot cleared slot=" + slot + " item=" + itemID)
+      if emitTrace then
+        native.Trace("inv_overhaul_quickslot cleared slot=" + slot + " item=" + itemID)
+      end
     else
       for other = 1, QuickslotCount do
         local otherCategory: int = -1
@@ -168,8 +172,10 @@ module inv_overhaul_inventory_quickslot_bindings do
       categoryCache->set(slot - 1, category)
       itemCache->set(slot - 1, itemID)
       occurrenceCache->set(slot - 1, occurrence)
-      native.Trace("inv_overhaul_quickslot assigned slot=" + slot + " category=" + category +
-        " item=" + itemID + " occurrence=" + occurrence)
+      if emitTrace then
+        native.Trace("inv_overhaul_quickslot assigned slot=" + slot + " category=" + category +
+          " item=" + itemID + " occurrence=" + occurrence)
+      end
     end
     return true
   end

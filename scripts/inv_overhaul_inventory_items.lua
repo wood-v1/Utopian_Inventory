@@ -7,6 +7,7 @@ module inv_overhaul_inventory_items do
 
   local categoryCache: object
   local indexCache: object
+  local cachedBackpackCount: int
 
   function InventoryItemsInitializeProjection() -> void
     local newCategoryCache: object
@@ -15,6 +16,7 @@ module inv_overhaul_inventory_items do
     native.CreateIntVector(newIndexCache)
     categoryCache = newCategoryCache
     indexCache = newIndexCache
+    cachedBackpackCount = -1
     for ordinal = 0, InventoryCapacity - 1 do
       categoryCache->add(-1)
       indexCache->add(-1)
@@ -106,6 +108,7 @@ module inv_overhaul_inventory_items do
         end
       end
     end
+    cachedBackpackCount = ordinal
   end
 
   function InventoryItemsBuildIndexCacheAndSnapshot(
@@ -135,7 +138,67 @@ module inv_overhaul_inventory_items do
         end
       end
     end
+    cachedBackpackCount = ordinal
     return ordinal
+  end
+
+  function InventoryItemsGetCachedBackpackCount() -> int
+    return cachedBackpackCount
+  end
+
+  function InventoryItemsGetAppendedCategoryOrdinal(
+    category: int,
+    beforeCount: int) -> int
+    local insertedOrdinal: int = 0
+    for ordinal = 0, beforeCount - 1 do
+      local cachedCategory: int
+      categoryCache->get(cachedCategory, ordinal)
+      if cachedCategory <= category then insertedOrdinal = insertedOrdinal + 1 end
+    end
+    return insertedOrdinal
+  end
+
+  function InventoryItemsInsertCachedEntry(
+    insertedOrdinal: int,
+    beforeCount: int,
+    category: int,
+    index: int) -> void
+    local ordinal: int = beforeCount
+    while ordinal > insertedOrdinal do
+      local previousCategory: int
+      local previousIndex: int
+      categoryCache->get(previousCategory, ordinal - 1)
+      indexCache->get(previousIndex, ordinal - 1)
+      categoryCache->set(ordinal, previousCategory)
+      indexCache->set(ordinal, previousIndex)
+      ordinal = ordinal - 1
+    end
+    categoryCache->set(insertedOrdinal, category)
+    indexCache->set(insertedOrdinal, index)
+    cachedBackpackCount = beforeCount + 1
+  end
+
+  function InventoryItemsRemoveCachedEntry(
+    removedOrdinal: int,
+    beforeCount: int,
+    removedCategory: int,
+    removedIndex: int) -> void
+    for ordinal = removedOrdinal, beforeCount - 2 do
+      local nextCategory: int
+      local nextIndex: int
+      categoryCache->get(nextCategory, ordinal + 1)
+      indexCache->get(nextIndex, ordinal + 1)
+      if nextCategory == removedCategory && nextIndex > removedIndex then
+        nextIndex = nextIndex - 1
+      end
+      categoryCache->set(ordinal, nextCategory)
+      indexCache->set(ordinal, nextIndex)
+    end
+    if beforeCount > 0 then
+      categoryCache->set(beforeCount - 1, -1)
+      indexCache->set(beforeCount - 1, -1)
+    end
+    cachedBackpackCount = beforeCount - 1
   end
 
   function InventoryItemsGetBackpackOrdinal(category: int, index: int) -> int

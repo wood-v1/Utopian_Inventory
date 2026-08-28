@@ -505,7 +505,7 @@ module inv_overhaul_inventory_controller do
 
   function InventoryControllerAssignQuickslot(slot: int, category: int, index: int) -> void
     if inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotAssign(
-      slot, category, index) then
+      slot, category, index, true) then
       InventoryControllerUpdateSlots()
     end
   end

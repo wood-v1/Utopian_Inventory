@@ -17,6 +17,13 @@ module inv_overhaul_inventory_tooltip do
     moneyItem->SetItemName("Money")
   end
 
+  function InventoryTooltipGetMoneyItemID() -> int
+    local item: object = moneyItem
+    local itemID: int
+    item->GetItemID(itemID)
+    return itemID
+  end
+
   function InventoryTooltipGetTarget() -> int
     return target
   end
@@ -48,11 +55,15 @@ module inv_overhaul_inventory_tooltip do
     native.SetVariable("inv_overhaul_inventory_tooltip_type", 5)
   end
 
-  function InventoryTooltipShowMoney() -> void
-    if target == inv_overhaul_inventory_protocol.TargetMoney then return end
-    target = inv_overhaul_inventory_protocol.TargetMoney
+  function InventoryTooltipShowMoneyForTarget(newTarget: int) -> void
+    if target == newTarget then return end
+    target = newTarget
     local item: object = moneyItem
     native.SendMessage(1, "panel_background", item)
+  end
+
+  function InventoryTooltipShowMoney() -> void
+    InventoryTooltipShowMoneyForTarget(inv_overhaul_inventory_protocol.TargetMoney)
   end
 
   function InventoryTooltipShowItem(newTarget: int, item: object) -> void

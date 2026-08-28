@@ -2,7 +2,10 @@ import "inv_overhaul_inventory_layout"
 import "inv_overhaul_inventory_layout_runtime"
 import "inv_overhaul_inventory_snapshot"
 import "inv_overhaul_container_geometry"
+import "inv_overhaul_container_drag"
 import "inv_overhaul_container_projection"
+import "inv_overhaul_container_transfer"
+import "inv_overhaul_container_view"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_items"
 import "inv_overhaul_inventory_quickslot_bindings"
@@ -10,14 +13,11 @@ import "inv_overhaul_inventory_quickslot_bindings"
 maintask InvOverhaulContainerUI do
   local const c_sScriptVersion: string = "2026.08.17-native-occupied-slot-exchange-1"
   local const c_iCWeapon: int = 0
-  local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
   local const c_iBranchBurah: int = 1
-  local const c_iSlotEmpty: int = 32768
-  local const c_iSlotNumber: int = 65536
   local const c_iHoverMessageBase: int = 100000
   local const c_iReleaseMessageBase: int = 200000
   local const c_iDragEndMessageBase: int = 300000
@@ -45,7 +45,6 @@ maintask InvOverhaulContainerUI do
   local const c_iPageHoverEnter: int = -110
   local const c_iPageHoverLeave: int = -111
   local const c_iGridRendererReady: int = 29900000
-  local const c_fPageHoverDelay: float = 1.00
   local const c_iInitialSlotLoadBatch: int = 1
 
   local windowWidth: int
@@ -61,24 +60,8 @@ maintask InvOverhaulContainerUI do
   local resolvedIndex: int
   local resolvedContainerIndex: int
   local resolvedContainerOrdinal: int
-  local dragSource: int
-  local dragKind: int
-  local dragItemID: int
-  local dragPlayerCategory: int
-  local dragPlayerIndex: int
-  local dragPlayerCell: int
-  local dragContainerIndex: int
-  local dragContainerOrdinal: int
-  local dragContainerVisual: int
-  local dragPlayerIsOrgan: bool
-  local highlightedTarget: int
-  local lastValidDropTarget: int
-  local invalidDropTargetFrames: int
   local moneyItemID: int
   local isCorpse: bool
-  local isDroppedRubbishHeap: bool
-  local rubbishKindRefreshDelay: float
-  local rubbishKindRefreshRemaining: float
   local windowClosing: bool
   local showOrgans: bool
   local corpseVisualPending: bool
@@ -91,9 +74,6 @@ maintask InvOverhaulContainerUI do
   local lastContainerMaxPage: int
   local shiftHeld: bool
   local controlHeld: bool
-  local dragPageHoverAction: int
-  local dragPageHoverElapsed: float
-  local dragPageHoverConsumed: bool
   local initialSlotLoadActive: bool
   local initialPlayerSlotLoadNext: int
   local initialContainerSlotLoadNext: int
@@ -117,19 +97,7 @@ maintask InvOverhaulContainerUI do
     resolvedIndex = -1
     resolvedContainerIndex = -1
     resolvedContainerOrdinal = -1
-    dragSource = -1
-    dragKind = -1
-    dragItemID = -1
-    dragPlayerCategory = -1
-    dragPlayerIndex = -1
-    dragPlayerCell = -1
-    dragContainerIndex = -1
-    dragContainerOrdinal = -1
-    dragContainerVisual = -1
-    dragPlayerIsOrgan = false
-    dragPageHoverAction = 0
-    dragPageHoverElapsed = 0
-    dragPageHoverConsumed = false
+    inv_overhaul_container_drag.ContainerDragInitializeState()
     inv_overhaul_inventory_tooltip.InventoryTooltipInitializeState()
     initialSlotLoadActive = false
     initialPlayerSlotLoadNext = 0
@@ -137,9 +105,6 @@ maintask InvOverhaulContainerUI do
     moneyPollCooldown = 0.25
     initialSlotLoadPending = true
     initialSlotLoadDelay = 0.05
-    highlightedTarget = -1
-    lastValidDropTarget = -1
-    invalidDropTargetFrames = 0
     lastLayoutWidth = -1
     lastLayoutHeight = -1
     deferredInventoryRefresh = 0
@@ -149,9 +114,6 @@ maintask InvOverhaulContainerUI do
     shiftHeld = false
     controlHeld = false
     corpseVisualPending = false
-    isDroppedRubbishHeap = false
-    rubbishKindRefreshDelay = 0
-    rubbishKindRefreshRemaining = 0
     windowClosing = false
     organVisibilityRefresh = 0.5
     initialMetadataStage = 0
@@ -173,12 +135,14 @@ maintask InvOverhaulContainerUI do
     inv_overhaul_inventory_snapshot.InventorySnapshotInitializeState()
     InitSlotOrder()
     inv_overhaul_inventory_items.InventoryItemsInitializeProjection()
-    InitContainerOrders()
+    inv_overhaul_container_projection.ContainerProjectionInitialize()
     -- Organ forms are created with the same black default background as the
     -- other loot slots. Hide them before the first ProcessEvents call so a
     -- normal container never renders four corpse slots for one frame.
     for organSlot = 0, c_iOrganSlots - 1 do
-      native.SendMessage(-22, GetOrganSlotWndName(organSlot))
+      native.SendMessage(
+        -22,
+        inv_overhaul_container_view.ContainerViewGetOrganSlotWndName(organSlot))
     end
     UpdateLayout()
     native.SendMessage(-201, "panel_background")
@@ -199,15 +163,9 @@ maintask InvOverhaulContainerUI do
     return container
   end
 
-  function RefreshDroppedRubbishKind(closeIfEmpty: bool) -> bool
-    return false
-  end
-
   function DetectContainerKind() -> void
     isCorpse = false
     showOrgans = false
-    local rubbishHeap: int = 0
-    isDroppedRubbishHeap = false
     local external: object = GetExternalContainer()
     -- The selected world object may be a generic Container actor (dropped
     -- rubbish heaps use this type). It does not expose the Actor property
@@ -224,14 +182,7 @@ maintask InvOverhaulContainerUI do
     if external then
       local count: int
       external->GetItemCount(count)
-      native.Trace("INV_OVERHAUL_EFFECT_LIFECYCLE loot init rubbish=" + rubbishHeap + " count=" + count)
-      native.Trace("inv_overhaul_container external item count=" + count + " rubbish=" + rubbishHeap)
-      if isDroppedRubbishHeap && count <= 0 then
-        native.Trace("inv_overhaul_container closing empty dropped rubbish heap")
-        windowClosing = true
-        CloseContainerWindow()
-        return
-      end
+      native.Trace("inv_overhaul_container external item count=" + count)
       for index = 0, count - 1 do
         local item: object
         local organ: bool = false
@@ -265,32 +216,12 @@ maintask InvOverhaulContainerUI do
     inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeInitialize()
   end
 
-  function InitContainerOrders() -> void
-    inv_overhaul_container_projection.ContainerProjectionInitialize()
-  end
-
   function GetOrderValue(slot: int) -> int
     return inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(slot)
   end
 
   function SetOrderValue(slot: int, value: int) -> void
     inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(slot, value)
-  end
-
-  function GetContainerOrderValue(visual: int) -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(visual)
-  end
-
-  function SetContainerOrderValue(visual: int, value: int) -> void
-    inv_overhaul_container_projection.ContainerProjectionSetContainerOrder(visual, value)
-  end
-
-  function GetOrganOrderValue(visual: int) -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetOrganOrder(visual)
-  end
-
-  function SetOrganOrderValue(visual: int, value: int) -> void
-    inv_overhaul_container_projection.ContainerProjectionSetOrganOrder(visual, value)
   end
 
   function ContinueIncrementalLayoutLoad() -> bool
@@ -315,23 +246,6 @@ maintask InvOverhaulContainerUI do
       itemCount, visibleSlots) then QueueLayoutSave() end
   end
 
-  function ConfigureSlotRenderSize() -> void
-    local sizeMessage: int = -27
-    local organSizeMessage: int = -27
-    if windowWidth >= 1200 then sizeMessage = -26 end
-    if windowWidth >= 1900 then organSizeMessage = -29 end
-    for slot = 0, visibleSlots - 1 do
-      native.SendMessage(sizeMessage, GetSlotWndName(slot))
-    end
-    for containerSlot = 0, c_iContainerSlots - 1 do
-      native.SendMessage(sizeMessage, GetContainerSlotWndName(containerSlot))
-    end
-    for organSlot = 0, c_iOrganSlots - 1 do
-      native.SendMessage(organSizeMessage, GetOrganSlotWndName(organSlot))
-    end
-    native.SendMessage(sizeMessage, "money")
-  end
-
   function UpdateLayout() -> void
     native.GetWindowSize(windowWidth, windowHeight)
     if windowWidth <= 0 || windowHeight <= 0 then native.GetScreenSize(windowWidth, windowHeight) end
@@ -347,16 +261,11 @@ maintask InvOverhaulContainerUI do
     if windowWidth != lastLayoutWidth || windowHeight != lastLayoutHeight then
       native.SendMessage(windowWidth, "panel_background")
       native.SendMessage(5000 + windowHeight, "panel_background")
-      ConfigureSlotRenderSize()
+      inv_overhaul_container_view.ContainerViewConfigureSlotRenderSize(
+        windowWidth, visibleSlots)
       lastLayoutWidth = windowWidth
       lastLayoutHeight = windowHeight
     end
-  end
-
-  function GetSlotWndName(slot: int) -> string
-    local number: int = slot + 1
-    if number < 10 then return "slot0" + number end
-    return "slot" + number
   end
 
   function GetVisibleCell(slot: int) -> int
@@ -367,78 +276,6 @@ maintask InvOverhaulContainerUI do
   function GetCellForLinearSlot(linear: int) -> int
     return inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
       linear, visibleSlots, c_iInventoryCapacity)
-  end
-
-  function GetContainerSlotWndName(slot: int) -> string
-    local number: int = slot + 1
-    if number < 10 then return "cslot0" + number end
-    return "cslot" + number
-  end
-
-  function GetOrganSlotWndName(slot: int) -> string
-    local number: int = slot + 1
-    if number < 10 then return "oslot0" + number end
-    return "oslot" + number
-  end
-
-  function GetTargetWndName(target: int) -> string
-    if target >= 0 && target < visibleSlots then return GetSlotWndName(target) end
-    if target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then
-      return GetContainerSlotWndName(target - c_iTargetContainerBase)
-    end
-    if target >= c_iTargetOrganBase && target < c_iTargetOrganBase + c_iOrganSlots then
-      return GetOrganSlotWndName(target - c_iTargetOrganBase)
-    end
-    if target == c_iTargetDrop then return "drop_slot" end
-    return ""
-  end
-
-  function GetGridStartX() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetGridStartX(windowWidth)
-  end
-
-  function GetGridStartY() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetGridStartY(windowWidth)
-  end
-
-  function GetGridStep() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetGridStep(windowWidth)
-  end
-
-  function GetGridColumns() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetGridColumns(windowWidth)
-  end
-
-  function GetContainerStartX() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetContainerStartX(windowWidth)
-  end
-
-  function GetContainerStartY() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetContainerStartY(windowWidth)
-  end
-
-  function GetOrganStartX() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStartX(windowWidth)
-  end
-
-  function GetOrganStartY() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStartY(windowWidth)
-  end
-
-  function GetOrganStep() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetOrganStep(windowWidth)
-  end
-
-  function GetMoneyLeft() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetMoneyLeft(windowWidth)
-  end
-
-  function GetMoneyTop() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetMoneyTop(windowWidth)
-  end
-
-  function IsEquippedItem(category: int, index: int) -> bool
-    return inv_overhaul_inventory_items.InventoryItemsIsEquipped(category, index)
   end
 
   function GetBackpackItemCount() -> int
@@ -465,38 +302,6 @@ maintask InvOverhaulContainerUI do
     if isCorpse then text->add(c_iCorpseFullTextID) else text->add(c_iContainerFullTextID) end
     native.SendWorldWndMessage(c_iWMHelpMessage, text)
     inventoryFullMessageCooldown = 1.0
-  end
-
-  function CanPlayerAcceptItem(item: object, category: int) -> bool
-    local cachedCount: int = GetCachedBackpackItemCount()
-    if cachedCount < 0 then
-      BuildPlayerIndexCache()
-      cachedCount = GetCachedBackpackItemCount()
-    end
-    if cachedCount < c_iInventoryCapacity then return true end
-    if !item then return false end
-
-    local itemID: int
-    item->GetItemID(itemID)
-    local maxStackSize: int
-    native.GetInvItemMaxStackSize(maxStackSize, itemID)
-    if maxStackSize <= 1 then return false end
-
-    local player: object = GetPlayerContainer()
-    local count: int
-    player->GetItemCount(count, category)
-    for index = 0, count - 1 do
-      if !IsEquippedItem(category, index) then
-        local candidate: object
-        local candidateID: int
-        local candidateAmount: int
-        player->GetItem(candidate, index, category)
-        candidate->GetItemID(candidateID)
-        player->GetItemAmount(candidateAmount, index, category)
-        if candidateID == itemID && candidateAmount < maxStackSize then return true end
-      end
-    end
-    return false
   end
 
   function GetMaxPlayerPage() -> int
@@ -573,51 +378,6 @@ maintask InvOverhaulContainerUI do
     return true
   end
 
-  function FindPlayerMergeIndex(category: int, itemID: int) -> int
-    local maxStackSize: int
-    native.GetInvItemMaxStackSize(maxStackSize, itemID)
-    if maxStackSize <= 1 then return -1 end
-    local player: object = GetPlayerContainer()
-    local count: int
-    player->GetItemCount(count, category)
-    for index = 0, count - 1 do
-      if !IsEquippedItem(category, index) then
-        local candidate: object
-        local candidateID: int
-        local candidateAmount: int
-        player->GetItem(candidate, index, category)
-        candidate->GetItemID(candidateID)
-        player->GetItemAmount(candidateAmount, index, category)
-        if candidateID == itemID && candidateAmount < maxStackSize then return index end
-      end
-    end
-    return -1
-  end
-
-  function RefreshCachedPlayerEntry(category: int, index: int, fallbackSlot: int) -> void
-    if renderedPlayerPage != playerPage then
-      UpdatePlayerSlots()
-      return
-    end
-    local cachedCount: int = GetCachedBackpackItemCount()
-    for slot = 0, visibleSlots - 1 do
-      local ordinal: int = GetOrderValue(GetVisibleCell(slot))
-      if ordinal >= 0 && ordinal < cachedCount && ordinal < c_iInventoryCapacity then
-        local cachedCategory: int =
-          inv_overhaul_inventory_items.InventoryItemsGetCachedCategory(ordinal)
-        local cachedIndex: int =
-          inv_overhaul_inventory_items.InventoryItemsGetCachedIndex(ordinal)
-        if cachedCategory == category && cachedIndex == index then
-          UpdatePlayerSlot(slot)
-          UpdatePlayerPageControls()
-          return
-        end
-      end
-    end
-    if fallbackSlot >= 0 && fallbackSlot < visibleSlots then UpdatePlayerSlot(fallbackSlot) end
-    UpdatePlayerPageControls()
-  end
-
   function QueueCachedPlayerEntryRefresh(category: int, index: int) -> void
     pendingPlayerEntryCategory = category
     pendingPlayerEntryIndex = index
@@ -660,51 +420,9 @@ maintask InvOverhaulContainerUI do
     return -1
   end
 
-  function IsOrganItem(item: object) -> bool
-    return inv_overhaul_container_projection.ContainerProjectionIsOrganItem(item)
-  end
-
-  function IsKnownOrganItemID(itemID: int) -> bool
-    local knownID: int
-    native.GetInvItemByName(knownID, "liver")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "kidney")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "heart")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "blood")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "diseased_liver")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "diseased_kidney")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "diseased_heart")
-    if itemID == knownID then return true end
-    native.GetInvItemByName(knownID, "diseased_blood")
-    return itemID == knownID
-  end
-
-  function IsPlayerOrganItem(category: int, index: int) -> bool
-    local player: object = GetPlayerContainer()
-    local item: object
-    player->GetItem(item, index, category)
-    if !item then return false end
-    local storedOrgan: bool = false
-    item->HasProperty(storedOrgan, "InvOverhaulOrgan")
-    if storedOrgan then return true end
-    local itemID: int
-    item->GetItemID(itemID)
-    return IsKnownOrganItemID(itemID)
-  end
-
   function GetNormalContainerItemCount() -> int
     local container: object = GetExternalContainer()
     return inv_overhaul_container_projection.ContainerProjectionGetNormalItemCount(container)
-  end
-
-  function GetOrganItemCount() -> int
-    local container: object = GetExternalContainer()
-    return inv_overhaul_container_projection.ContainerProjectionGetOrganItemCount(container)
   end
 
   function ApplyResolvedContainerReference(reference: int) -> bool
@@ -726,22 +444,10 @@ maintask InvOverhaulContainerUI do
     inv_overhaul_container_projection.ContainerProjectionBuildIndexCache(container)
   end
 
-  function GetCachedNormalContainerCount() -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetCachedNormalCount()
-  end
-
-  function ResolveOrganOrdinal(ordinal: int) -> bool
-    resolvedContainerIndex = -1
-    resolvedContainerOrdinal = -1
-    if ordinal < 0 then return false end
-    local container: object = GetExternalContainer()
-    local reference: int = inv_overhaul_container_projection.ContainerProjectionResolveOrganOrdinal(container, ordinal)
-    return ApplyResolvedContainerReference(reference)
-  end
-
   function ResolveContainerVisualSlot(slot: int) -> bool
     local visual: int = containerPage * c_iContainerSlots + slot
-    return ResolveNormalContainerOrdinal(GetContainerOrderValue(visual))
+    return ResolveNormalContainerOrdinal(
+      inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(visual))
   end
 
   function ResolveOrganVisualSlot(slot: int) -> bool
@@ -756,60 +462,32 @@ maintask InvOverhaulContainerUI do
     return resolvedContainerIndex >= 0
   end
 
-  function GetOrganSlotByItemID(itemID: int) -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetOrganSlotByItemID(itemID)
-  end
-
-  function GetLastOccupiedContainerVisual() -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetLastOccupiedVisual()
-  end
-
   function ClampContainerPage() -> void
-    local maxPage: int = GetMaxContainerPage()
+    local maxPage: int =
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
     if containerPage < 0 then containerPage = 0 end
     if containerPage > maxPage then containerPage = maxPage end
   end
 
-  function GetMaxContainerPage() -> int
-    return inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
-  end
-
-  function SetPageControlsVisible(prefix: string, visible: bool) -> void
-    local message: int = -93
-    if visible then message = -92 end
-    native.SendMessage(message, prefix + "page_prev")
-    native.SendMessage(message, prefix + "page_counter")
-    native.SendMessage(message, prefix + "page_next")
-  end
-
   function UpdatePlayerPageControls() -> void
     local maxPage: int = GetMaxPlayerPage()
-    native.SendMessage(-114, "player_page_prev")
-    native.SendMessage(-115, "player_page_next")
-    SetPageControlsVisible("player_", maxPage > 0)
-    if maxPage <= 0 then return end
-    native.SendMessage(-90, "player_page_prev")
-    native.SendMessage(-91, "player_page_next")
-    if playerPage > 0 then native.SendMessage(-97, "player_page_prev") else native.SendMessage(-96, "player_page_prev") end
-    if playerPage < maxPage then native.SendMessage(-97, "player_page_next") else native.SendMessage(-96, "player_page_next") end
-    native.SendMessage((playerPage + 1) * 100 + maxPage + 1, "player_page_counter")
+    inv_overhaul_container_view.ContainerViewResetPageControls(
+      "player_", -114, -115)
+    inv_overhaul_container_view.ContainerViewUpdatePageControls(
+      "player_", playerPage, maxPage)
   end
 
   function UpdateContainerPageControls() -> void
-    local maxPage: int = GetMaxContainerPage()
-    native.SendMessage(-116, "container_page_prev")
-    native.SendMessage(-117, "container_page_next")
+    local maxPage: int =
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
+    inv_overhaul_container_view.ContainerViewResetPageControls(
+      "container_", -116, -117)
     if maxPage != lastContainerMaxPage then
-      native.Trace("inv_overhaul_container pages count=" + GetCachedNormalContainerCount() + " max=" + maxPage + " current=" + containerPage + " corpse=" + isCorpse)
+      native.Trace("inv_overhaul_container pages count=" + inv_overhaul_container_projection.ContainerProjectionGetCachedNormalCount() + " max=" + maxPage + " current=" + containerPage + " corpse=" + isCorpse)
       lastContainerMaxPage = maxPage
     end
-    SetPageControlsVisible("container_", maxPage > 0)
-    if maxPage <= 0 then return end
-    native.SendMessage(-90, "container_page_prev")
-    native.SendMessage(-91, "container_page_next")
-    if containerPage > 0 then native.SendMessage(-97, "container_page_prev") else native.SendMessage(-96, "container_page_prev") end
-    if containerPage < maxPage then native.SendMessage(-97, "container_page_next") else native.SendMessage(-96, "container_page_next") end
-    native.SendMessage((containerPage + 1) * 100 + maxPage + 1, "container_page_counter")
+    inv_overhaul_container_view.ContainerViewUpdatePageControls(
+      "container_", containerPage, maxPage)
   end
 
   function UpdateMoney() -> void
@@ -834,8 +512,9 @@ maintask InvOverhaulContainerUI do
   end
 
   function AssignHoveredQuickslot(slot: int) -> void
-    if dragSource >= 0 then return end
-    local target: int = highlightedTarget
+    if inv_overhaul_container_drag.ContainerDragIsActive() then return end
+    local target: int =
+      inv_overhaul_container_drag.ContainerDragGetHighlightedTarget()
     if target < 0 then
       target = inv_overhaul_inventory_tooltip.InventoryTooltipGetTarget()
     end
@@ -847,28 +526,26 @@ maintask InvOverhaulContainerUI do
 
   function UpdatePlayerSlot(slot: int) -> void
     local container: object = GetPlayerContainer()
-    local wnd: string = GetSlotWndName(slot)
+    local wnd: string =
+      inv_overhaul_container_view.ContainerViewGetPlayerSlotWndName(slot)
     if GetVisibleCell(slot) < 0 then
-      native.SendMessage(c_iSlotEmpty, wnd)
-      native.SendMessage(-140, wnd)
-      native.SendMessage(-22, wnd)
+      inv_overhaul_container_view.ContainerViewRenderPlayerSlotUnavailable(wnd)
     else
-      native.SendMessage(-23, wnd)
+      inv_overhaul_container_view.ContainerViewBeginPlayerSlot(wnd)
       if ResolveVisibleSlot(slot) then
         local item: object
         local amount: int
         container->GetItem(item, resolvedIndex, resolvedCategory)
         container->GetItemAmount(amount, resolvedIndex, resolvedCategory)
-        native.SendMessage(0, wnd, item)
-        native.SendMessage(amount + c_iSlotNumber, wnd)
+        inv_overhaul_container_view.ContainerViewRenderPlayerSlotItem(
+          wnd, item, amount)
         local itemID: int
         item->GetItemID(itemID)
         local quickslot: int = GetDisplayedQuickslot(resolvedCategory, resolvedIndex, itemID)
-        native.SendMessage(-140, wnd)
-        if quickslot > 0 then native.SendMessage(-140 - quickslot, wnd) end
+        inv_overhaul_container_view.ContainerViewRenderPlayerQuickslot(
+          wnd, quickslot)
       else
-        native.SendMessage(c_iSlotEmpty, wnd)
-        native.SendMessage(-140, wnd)
+        inv_overhaul_container_view.ContainerViewRenderPlayerSlotEmpty(wnd)
       end
     end
   end
@@ -883,16 +560,17 @@ maintask InvOverhaulContainerUI do
 
   function UpdateContainerSlot(slot: int) -> void
     local container: object = GetExternalContainer()
-    local wnd: string = GetContainerSlotWndName(slot)
+    local wnd: string =
+      inv_overhaul_container_view.ContainerViewGetContainerSlotWndName(slot)
     if ResolveContainerVisualSlot(slot) then
       local item: object
       local amount: int
       container->GetItem(item, resolvedContainerIndex)
       container->GetItemAmount(amount, resolvedContainerIndex)
-      native.SendMessage(0, wnd, item)
-      native.SendMessage(amount + c_iSlotNumber, wnd)
+      inv_overhaul_container_view.ContainerViewRenderContainerSlotItem(
+        wnd, item, amount)
     else
-      native.SendMessage(c_iSlotEmpty, wnd)
+      inv_overhaul_container_view.ContainerViewRenderContainerSlotEmpty(wnd)
     end
   end
 
@@ -907,23 +585,22 @@ maintask InvOverhaulContainerUI do
   function UpdateOrganSlots() -> void
     local container: object = GetExternalContainer()
     for slot = 0, c_iOrganSlots - 1 do
-      local wnd: string = GetOrganSlotWndName(slot)
+      local wnd: string =
+        inv_overhaul_container_view.ContainerViewGetOrganSlotWndName(slot)
       if !isCorpse || !showOrgans then
-        native.SendMessage(c_iSlotEmpty, wnd)
-        native.SendMessage(-22, wnd)
+        inv_overhaul_container_view.ContainerViewRenderOrganSlotHidden(wnd)
       else
-        native.SendMessage(-23, wnd)
+        inv_overhaul_container_view.ContainerViewBeginOrganSlot(wnd)
         if ResolveOrganVisualSlot(slot) then
-          native.SendMessage(-25, wnd)
+          inv_overhaul_container_view.ContainerViewBeginOrganSlotItem(wnd)
           local item: object
           local amount: int
           container->GetItem(item, resolvedContainerIndex)
           container->GetItemAmount(amount, resolvedContainerIndex)
-          native.SendMessage(0, wnd, item)
-          native.SendMessage(amount + c_iSlotNumber, wnd)
+          inv_overhaul_container_view.ContainerViewRenderOrganSlotItem(
+            wnd, item, amount)
         else
-          native.SendMessage(c_iSlotEmpty, wnd)
-          native.SendMessage(-24, wnd)
+          inv_overhaul_container_view.ContainerViewRenderOrganSlotEmpty(wnd)
         end
       end
     end
@@ -936,34 +613,6 @@ maintask InvOverhaulContainerUI do
     UpdateContainerSlots()
     UpdateOrganSlots()
     UpdateMoney()
-  end
-
-  function RefreshVisiblePlayerItem(itemID: int, fallbackSlot: int) -> void
-    initialSlotLoadActive = false
-    if renderedPlayerPage != playerPage then
-      UpdatePlayerSlots()
-      return
-    end
-    BuildPlayerIndexCache()
-    local fallbackUpdated: bool = false
-    for slot = 0, visibleSlots - 1 do
-      local update: bool = false
-      if slot == fallbackSlot then update = true end
-      if ResolveVisibleSlot(slot) then
-        local player: object = GetPlayerContainer()
-        local item: object
-        local visibleItemID: int = -1
-        player->GetItem(item, resolvedIndex, resolvedCategory)
-        if item then item->GetItemID(visibleItemID) end
-        if visibleItemID == itemID then update = true end
-      end
-      if update then
-        UpdatePlayerSlot(slot)
-        if slot == fallbackSlot then fallbackUpdated = true end
-      end
-    end
-    if !fallbackUpdated && fallbackSlot >= 0 && fallbackSlot < visibleSlots then UpdatePlayerSlot(fallbackSlot) end
-    UpdatePlayerPageControls()
   end
 
   function RefreshVisibleContainerItem(itemID: int, fallbackSlot: int) -> void
@@ -1030,12 +679,6 @@ maintask InvOverhaulContainerUI do
     end
   end
 
-  function SwapSlotOrder(sourceSlot: int, targetSlot: int) -> void
-    if sourceSlot < 0 || targetSlot < 0 || sourceSlot == targetSlot then return end
-    if sourceSlot >= visibleSlots || targetSlot >= visibleSlots then return end
-    SwapSlotOrderCells(GetVisibleCell(sourceSlot), GetVisibleCell(targetSlot))
-  end
-
   function SwapSlotOrderCells(sourceCell: int, targetCell: int) -> void
     if sourceCell == targetCell then return end
     if sourceCell < 0 || targetCell < 0 then return end
@@ -1050,19 +693,17 @@ maintask InvOverhaulContainerUI do
     end
   end
 
-  function SwapContainerSlotOrder(sourceSlot: int, targetSlot: int) -> void
-    if sourceSlot < 0 || sourceSlot >= c_iContainerSlots then return end
-    if targetSlot < 0 || targetSlot >= c_iContainerSlots || sourceSlot == targetSlot then return end
-    SwapContainerSlotOrderVisuals(containerPage * c_iContainerSlots + sourceSlot, containerPage * c_iContainerSlots + targetSlot)
-  end
-
   function SwapContainerSlotOrderVisuals(sourceVisual: int, targetVisual: int) -> void
     if sourceVisual < 0 || sourceVisual >= c_iMaxContainerVisuals then return end
     if targetVisual < 0 || targetVisual >= c_iMaxContainerVisuals || sourceVisual == targetVisual then return end
-    local sourceOrder: int = GetContainerOrderValue(sourceVisual)
-    local targetOrder: int = GetContainerOrderValue(targetVisual)
-    SetContainerOrderValue(sourceVisual, targetOrder)
-    SetContainerOrderValue(targetVisual, sourceOrder)
+    local sourceOrder: int =
+      inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(sourceVisual)
+    local targetOrder: int =
+      inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(targetVisual)
+    inv_overhaul_container_projection.ContainerProjectionSetContainerOrder(
+      sourceVisual, targetOrder)
+    inv_overhaul_container_projection.ContainerProjectionSetContainerOrder(
+      targetVisual, sourceOrder)
     UpdateContainerSlots()
   end
 
@@ -1155,184 +796,19 @@ maintask InvOverhaulContainerUI do
     return true
   end
 
-  function FindFirstFreeContainerVisual(itemCount: int) -> int
-    return inv_overhaul_container_projection.ContainerProjectionFindFirstFreeContainerVisual(itemCount)
-  end
-
   function InsertContainerOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
     return inv_overhaul_container_projection.ContainerProjectionInsertContainerOrdinalAt(
       containerPage, insertedOrder, beforeCount, preferredSlot)
   end
 
-  function FindFirstFreeOrganVisual(itemCount: int) -> int
-    return inv_overhaul_container_projection.ContainerProjectionFindFirstFreeOrganVisual(itemCount)
-  end
-
-  function InsertOrganOrdinalAt(insertedOrder: int, beforeCount: int, preferredSlot: int) -> bool
-    return inv_overhaul_container_projection.ContainerProjectionInsertOrganOrdinalAt(
-      insertedOrder, beforeCount, preferredSlot)
-  end
-
-  function RemoveContainerOrdinal(removedOrder: int, beforeCount: int) -> void
-    inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(removedOrder, beforeCount)
-  end
-
-  function RemoveOrganOrdinal(removedOrder: int, beforeCount: int) -> void
-    inv_overhaul_container_projection.ContainerProjectionRemoveOrganOrdinal(removedOrder, beforeCount)
-  end
-
-  function TogglePlayerSlot(category: int, index: int) -> void
-    local container: object = GetPlayerContainer()
-    local item: object
-    container->GetItem(item, index, category)
-    if !item then return end
-    local itemID: int
-    item->GetItemID(itemID)
-    local amount: int
-    container->GetItemAmount(amount, index, category)
-    local selected: bool
-    container->IsItemSelected(selected, index, category)
-
-    if category == c_iCWeapon then
-      local weapon: bool
-      native.HasInvItemProperty(weapon, itemID, "Weapon")
-      if !weapon then return end
-      if selected then
-        container->SelectItem(index, false, category)
-        native.SetPlayerHandsItem(-1)
-      else
-        native.SetPlayerHandsItem(itemID)
-        local count: int
-        container->GetItemCount(count, category)
-        for i = 0, count - 1 do
-          local otherSelected: bool
-          container->IsItemSelected(otherSelected, i, category)
-          if otherSelected then container->SelectItem(i, false, category) end
-        end
-        container->SelectItem(index, true, category)
-      end
-      return
-    end
-
-    if category == c_iCClothes then
-      local hasGroup: bool
-      native.HasInvItemProperty(hasGroup, itemID, "Group")
-      if !hasGroup then return end
-      local group: int
-      native.GetInvItemProperty(group, itemID, "Group")
-      if selected then
-        container->SelectItem(index, false, category)
-      else
-        local count: int
-        container->GetItemCount(count, category)
-        for i = 0, count - 1 do
-          local other: object
-          container->GetItem(other, i, category)
-          local otherID: int
-          other->GetItemID(otherID)
-          local otherHasGroup: bool
-          native.HasInvItemProperty(otherHasGroup, otherID, "Group")
-          if otherHasGroup then
-            local otherGroup: int
-            native.GetInvItemProperty(otherGroup, otherID, "Group")
-            if otherGroup == group then container->SelectItem(i, false, category) end
-          end
-        end
-        container->SelectItem(index, true, category)
-      end
-      return
-    end
-
-    local used: bool
-    native.UseItem(index, category, used)
-    if used then
-      deferredInventoryRefresh = 0.25
-      amount = amount - 1
-      if amount == 0 then container->RemoveItem(index, 1, category) else container->SetItemAmount(amount, index, category) end
-    end
-  end
-
-  function FindPlayerItemIndexByID(category: int, wantedItemID: int) -> int
-    local player: object = GetPlayerContainer()
-    local count: int
-    player->GetItemCount(count, category)
-    for index = 0, count - 1 do
-      local candidate: object
-      player->GetItem(candidate, index, category)
-      local candidateID: int
-      candidate->GetItemID(candidateID)
-      if candidateID == wantedItemID then return index end
-    end
-    return -1
-  end
-
-  function GetPlayerItemTotalAmount(category: int, wantedItemID: int) -> int
-    local player: object = GetPlayerContainer()
-    local count: int
-    local total: int = 0
-    player->GetItemCount(count, category)
-    for index = 0, count - 1 do
-      local candidate: object
-      player->GetItem(candidate, index, category)
-      if candidate then
-        local candidateID: int
-        candidate->GetItemID(candidateID)
-        if candidateID == wantedItemID then
-          local candidateAmount: int
-          player->GetItemAmount(candidateAmount, index, category)
-          total = total + candidateAmount
-        end
-      end
-    end
-    return total
-  end
-
-  function FindExternalItemOrdinalByID(organItem: bool, wantedItemID: int) -> int
-    local external: object = GetExternalContainer()
-    local count: int
-    external->GetItemCount(count)
-    local ordinal: int = 0
-    for index = 0, count - 1 do
-      local candidate: object
-      external->GetItem(candidate, index)
-      if IsOrganItem(candidate) == organItem then
-        local candidateID: int
-        candidate->GetItemID(candidateID)
-        if candidateID == wantedItemID then return ordinal end
-        ordinal = ordinal + 1
-      end
-    end
-    return -1
-  end
-
-  function GetExternalItemTotalAmount(wantedItemID: int) -> int
-    local external: object = GetExternalContainer()
-    if !external then return 0 end
-    local count: int
-    external->GetItemCount(count)
-    local total: int = 0
-    for index = 0, count - 1 do
-      local candidate: object
-      external->GetItem(candidate, index)
-      if candidate then
-        local candidateID: int
-        candidate->GetItemID(candidateID)
-        if candidateID == wantedItemID then
-          local candidateAmount: int
-          external->GetItemAmount(candidateAmount, index)
-          total = total + candidateAmount
-        end
-      end
-    end
-    return total
-  end
-
-  function MovePlayerAmountToContainer(sourceSlot: int, targetSlot: int, asOrgan: bool, requestedAmount: int) -> void
+  function MovePlayerAmountToContainer(sourceSlot: int, targetSlot: int, requestedAmount: int) -> void
     local category: int = -1
     local index: int = -1
-    if dragKind == 0 && dragPlayerCategory >= 0 && dragPlayerIndex >= 0 then
-      category = dragPlayerCategory
-      index = dragPlayerIndex
+    if inv_overhaul_container_drag.ContainerDragGetKind() == 0 &&
+      inv_overhaul_container_drag.ContainerDragGetPlayerCategory() >= 0 &&
+      inv_overhaul_container_drag.ContainerDragGetPlayerIndex() >= 0 then
+      category = inv_overhaul_container_drag.ContainerDragGetPlayerCategory()
+      index = inv_overhaul_container_drag.ContainerDragGetPlayerIndex()
     else
       if !ResolveVisibleSlot(sourceSlot) then return end
       category = resolvedCategory
@@ -1348,14 +824,16 @@ maintask InvOverhaulContainerUI do
       beforeBackpack = GetCachedBackpackItemCount()
     end
     local sourceCell: int = GetVisibleCell(sourceSlot)
-    if dragKind == 0 && dragPlayerCell >= 0 then sourceCell = dragPlayerCell end
+    if inv_overhaul_container_drag.ContainerDragGetKind() == 0 &&
+      inv_overhaul_container_drag.ContainerDragGetPlayerCell() >= 0 then
+      sourceCell = inv_overhaul_container_drag.ContainerDragGetPlayerCell()
+    end
     local usedOrder: int = GetOrderValue(sourceCell)
     if usedOrder < 0 || usedOrder >= beforeBackpack then usedOrder = GetBackpackOrdinal(category, index) end
     local beforeCategoryCount: int
     player->GetItemCount(beforeCategoryCount, category)
-    local beforeExternal: int
-    if asOrgan then beforeExternal = GetOrganItemCount() else beforeExternal = GetNormalContainerItemCount() end
-    if !asOrgan && beforeExternal >= c_iMaxContainerVisuals then
+    local beforeExternal: int = GetNormalContainerItemCount()
+    if beforeExternal >= c_iMaxContainerVisuals then
       ShowContainerFull()
       return
     end
@@ -1364,29 +842,26 @@ maintask InvOverhaulContainerUI do
     if !item then return end
     local availableAmount: int
     player->GetItemAmount(availableAmount, index, category)
-    local transferAmount: int = requestedAmount
-    if transferAmount <= 0 || transferAmount > availableAmount then transferAmount = availableAmount end
+    local transferAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferNormalizeAmount(
+        requestedAmount, availableAmount)
     if transferAmount <= 0 then return end
     local itemID: int
     item->GetItemID(itemID)
-    local beforeExternalAmount: int = GetExternalItemTotalAmount(itemID)
+    local beforeExternalAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetExternalItemTotalAmount(
+        external, itemID)
 
-    if asOrgan then
-      item->RemoveProperty("InvOverhaulOrgan")
-      item->SetProperty("Organ", 1)
-    end
     local success: bool
     external->AddItem(success, item, 0, transferAmount)
-    local afterExternalAmount: int = GetExternalItemTotalAmount(itemID)
+    local afterExternalAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetExternalItemTotalAmount(
+        external, itemID)
     local addedAmount: int = afterExternalAmount - beforeExternalAmount
     if !success || addedAmount <= 0 then
-      if asOrgan then
-        item->RemoveProperty("Organ")
-        item->SetProperty("InvOverhaulOrgan", 1)
-      end
       ShowContainerFull()
       native.Trace("inv_overhaul_container player-to-container rejected slot=" + sourceSlot + " success=" + success + " before_amount=" + beforeExternalAmount + " after_amount=" + afterExternalAmount)
-      if asOrgan then UpdateOrganSlots() else RefreshVisibleContainerItem(itemID, targetSlot) end
+      RefreshVisibleContainerItem(itemID, targetSlot)
       return
     end
 
@@ -1406,15 +881,14 @@ maintask InvOverhaulContainerUI do
         RemoveOrderOrdinal(usedOrder, beforeBackpack)
       end
     end
-    local afterExternal: int
-    if asOrgan then afterExternal = GetOrganItemCount() else afterExternal = GetNormalContainerItemCount() end
-    if !asOrgan && quickTransferPreviousContainerPage >= 0 && afterExternal == beforeExternal then
+    local afterExternal: int = GetNormalContainerItemCount()
+    if quickTransferPreviousContainerPage >= 0 && afterExternal == beforeExternal then
       containerPage = quickTransferPreviousContainerPage
     end
     if afterExternal > beforeExternal then
-      if asOrgan then InsertOrganOrdinalAt(beforeExternal, beforeExternal, targetSlot) else InsertContainerOrdinalAt(beforeExternal, beforeExternal, targetSlot) end
+      InsertContainerOrdinalAt(beforeExternal, beforeExternal, targetSlot)
     end
-    if !asOrgan && beforeExternal <= c_iContainerSlots && afterExternal > c_iContainerSlots then
+    if beforeExternal <= c_iContainerSlots && afterExternal > c_iContainerSlots then
       native.Trace("inv_overhaul_container corpse/container page 2 activated count=" + afterExternal)
     end
     local visibleSourceSlot: int = GetVisibleSlotForCell(sourceCell)
@@ -1422,21 +896,17 @@ maintask InvOverhaulContainerUI do
       UpdatePlayerSlot(visibleSourceSlot)
       UpdatePlayerPageControls()
     end
-    if asOrgan then
-      UpdateOrganSlots()
-    else
-      RefreshVisibleContainerItem(itemID, targetSlot)
-    end
+    RefreshVisibleContainerItem(itemID, targetSlot)
     UpdateMoney()
   end
 
-  function MovePlayerToContainer(sourceSlot: int, targetSlot: int, asOrgan: bool) -> void
-    MovePlayerAmountToContainer(sourceSlot, targetSlot, asOrgan, 1)
+  function MovePlayerToContainer(sourceSlot: int, targetSlot: int) -> void
+    MovePlayerAmountToContainer(sourceSlot, targetSlot, 1)
   end
 
   function ExchangePlayerWithContainer(sourceSlot: int, targetSlot: int) -> void
     if !ResolveContainerVisualSlot(targetSlot) then
-      MovePlayerToContainer(sourceSlot, targetSlot, false)
+      MovePlayerToContainer(sourceSlot, targetSlot)
       return
     end
 
@@ -1456,9 +926,10 @@ maintask InvOverhaulContainerUI do
 
     local sourceCategory: int = -1
     local sourceIndex: int = -1
-    if dragPlayerCategory >= 0 && dragPlayerIndex >= 0 then
-      sourceCategory = dragPlayerCategory
-      sourceIndex = dragPlayerIndex
+    if inv_overhaul_container_drag.ContainerDragGetPlayerCategory() >= 0 &&
+      inv_overhaul_container_drag.ContainerDragGetPlayerIndex() >= 0 then
+      sourceCategory = inv_overhaul_container_drag.ContainerDragGetPlayerCategory()
+      sourceIndex = inv_overhaul_container_drag.ContainerDragGetPlayerIndex()
     else
       if !ResolveVisibleSlot(sourceSlot) then return end
       sourceCategory = resolvedCategory
@@ -1472,7 +943,9 @@ maintask InvOverhaulContainerUI do
     if !sourceItem || sourceAmount <= 0 then return end
     local sourceItemID: int
     sourceItem->GetItemID(sourceItemID)
-    local beforeSourceAmount: int = GetPlayerItemTotalAmount(sourceCategory, sourceItemID)
+    local beforeSourceAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetPlayerItemTotalAmount(
+        player, sourceCategory, sourceItemID)
 
     -- If moving one unit does not free a backpack cell, the incoming stack
     -- still has to fit normally. Never remove the container item first.
@@ -1486,66 +959,59 @@ maintask InvOverhaulContainerUI do
       local exchangedCategory: int
       exchangedItem->GetItemID(exchangedItemID)
       native.GetInvItemProperty(exchangedCategory, exchangedItemID, "Category")
-      if !CanPlayerAcceptItem(exchangedItem, exchangedCategory) then
+      local exchangedMergeIndex: int =
+        inv_overhaul_container_transfer.ContainerTransferFindPlayerMergeIndex(
+          player, exchangedCategory, exchangedItemID)
+      if exchangedMergeIndex < 0 then
         ShowInventoryFull()
         return
       end
     end
 
-    MovePlayerToContainer(sourceSlot, targetSlot, false)
-    local afterSourceAmount: int = GetPlayerItemTotalAmount(sourceCategory, sourceItemID)
+    MovePlayerToContainer(sourceSlot, targetSlot)
+    local afterSourceAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetPlayerItemTotalAmount(
+        player, sourceCategory, sourceItemID)
     if afterSourceAmount >= beforeSourceAmount then return end
 
     -- AddItem appends a new non-stackable entry. Exchange that native entry
     -- with the occupied target before removing the displaced item. The
     -- physical container order then matches the visible order and survives
     -- closing/reopening the loot window without a sidecar layout cache.
-    local externalCountAfter: int
-    external->GetItemCount(externalCountAfter)
     local exchangedMovedToIndex: int = exchangedContainerIndex
     local exchangedMovedToOrdinal: int = exchangedContainerOrdinal
-    if externalCountAfter == externalCountBefore + 1 then
-      local appendedIndex: int = externalCountAfter - 1
-      local appendedItem: object
-      local appendedAmount: int
-      local appendedItemID: int = -1
-      external->GetItem(appendedItem, appendedIndex)
-      external->GetItemAmount(appendedAmount, appendedIndex)
-      if appendedItem then appendedItem->GetItemID(appendedItemID) end
-      if appendedItem && appendedItemID == sourceItemID then
-        external->SetItem(appendedItem, appendedAmount, exchangedContainerIndex, 0)
-        external->SetItem(exchangedItem, exchangedAmount, appendedIndex, 0)
-        BuildContainerIndexCache()
-        for visual = 0, c_iMaxContainerVisuals - 1 do SetContainerOrderValue(visual, visual) end
-        exchangedMovedToIndex = appendedIndex
-        exchangedMovedToOrdinal = GetCachedNormalContainerCount() - 1
+    local appendedIndex: int =
+      inv_overhaul_container_transfer.ContainerTransferSwapAppendedEntry(
+        external, exchangedItem, exchangedAmount, exchangedContainerIndex,
+        sourceItemID, externalCountBefore)
+    if appendedIndex >= 0 then
+      BuildContainerIndexCache()
+      for visual = 0, c_iMaxContainerVisuals - 1 do
+        inv_overhaul_container_projection.ContainerProjectionSetContainerOrder(
+          visual, visual)
       end
+      exchangedMovedToIndex = appendedIndex
+      exchangedMovedToOrdinal =
+        inv_overhaul_container_projection.ContainerProjectionGetCachedNormalCount() - 1
     end
 
     -- Route the displaced native entry back into the player's vacated visual
     -- cell. The direct indices prevent a page/order lookup from selecting one
     -- of the many identical masks in this reproduction case.
-    local previousDragKind: int = dragKind
-    local previousContainerIndex: int = dragContainerIndex
-    local previousContainerOrdinal: int = dragContainerOrdinal
-    dragKind = 1
-    dragContainerIndex = exchangedMovedToIndex
-    dragContainerOrdinal = exchangedMovedToOrdinal
-    MoveExternalAmountToPlayer(false, targetSlot, sourceSlot, -1)
-    dragKind = previousDragKind
-    dragContainerIndex = previousContainerIndex
-    dragContainerOrdinal = previousContainerOrdinal
+    MoveResolvedExternalAmountToPlayer(
+      false, exchangedMovedToIndex, exchangedMovedToOrdinal,
+      targetSlot, sourceSlot, -1)
     UpdateContainerSlots()
     native.Trace("inv_overhaul_container exchanged occupied container slot=" + targetSlot)
   end
 
   function MoveExternalAmountToPlayer(organSource: bool, sourceSlot: int, targetSlot: int, requestedAmount: int) -> void
-    if RefreshDroppedRubbishKind(true) then return end
     local sourceIndex: int = -1
     local sourceOrdinal: int = -1
-    if dragKind >= 1 && dragContainerIndex >= 0 then
-      sourceIndex = dragContainerIndex
-      sourceOrdinal = dragContainerOrdinal
+    if inv_overhaul_container_drag.ContainerDragGetKind() >= 1 &&
+      inv_overhaul_container_drag.ContainerDragGetContainerIndex() >= 0 then
+      sourceIndex = inv_overhaul_container_drag.ContainerDragGetContainerIndex()
+      sourceOrdinal = inv_overhaul_container_drag.ContainerDragGetContainerOrdinal()
     else
       local found: bool
       if organSource then found = ResolveOrganVisualSlot(sourceSlot) else found = ResolveContainerVisualSlot(sourceSlot) end
@@ -1553,11 +1019,20 @@ maintask InvOverhaulContainerUI do
       sourceIndex = resolvedContainerIndex
       sourceOrdinal = resolvedContainerOrdinal
     end
+    MoveResolvedExternalAmountToPlayer(
+      organSource, sourceIndex, sourceOrdinal, sourceSlot, targetSlot, requestedAmount)
+  end
 
+  function MoveResolvedExternalAmountToPlayer(
+    organSource: bool,
+    sourceIndex: int,
+    sourceOrdinal: int,
+    sourceSlot: int,
+    targetSlot: int,
+    requestedAmount: int) -> void
     local external: object = GetExternalContainer()
     local player: object = GetPlayerContainer()
     local beforeNormal: int = GetNormalContainerItemCount()
-    local beforeOrgans: int = GetOrganItemCount()
     local beforeBackpack: int = GetCachedBackpackItemCount()
     if beforeBackpack < 0 then
       BuildPlayerIndexCache()
@@ -1568,27 +1043,22 @@ maintask InvOverhaulContainerUI do
     external->GetItem(item, sourceIndex)
     external->GetItemAmount(amount, sourceIndex)
     if !item || amount <= 0 then return end
-    local transferAmount: int = requestedAmount
-    if transferAmount <= 0 || transferAmount > amount then transferAmount = amount end
+    local transferAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferNormalizeAmount(
+        requestedAmount, amount)
     if transferAmount <= 0 then return end
 
     local itemID: int
     item->GetItemID(itemID)
-    local externalStackCount: int = 0
-    external->GetItemCount(externalStackCount)
-    local closesDroppedRubbish: bool = isDroppedRubbishHeap && externalStackCount <= 1
     if itemID == moneyItemID then
       local money: int
       player->GetProperty("money", money)
       player->SetProperty("money", money + amount)
       external->RemoveItem(sourceIndex, amount)
-      if closesDroppedRubbish then
-        native.Trace("INV_OVERHAUL_EFFECT_LIFECYCLE loot removed final money stack; closing rubbish heap")
-        windowClosing = true
-        CloseContainerWindow()
-        return
+      if !organSource then
+        inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(
+          sourceOrdinal, beforeNormal)
       end
-      if organSource then RemoveOrganOrdinal(sourceOrdinal, beforeOrgans) else RemoveContainerOrdinal(sourceOrdinal, beforeNormal) end
       native.Trace("inv_overhaul_container took money amount=" + amount)
       if organSource then UpdateOrganSlots() else RefreshVisibleContainerItem(itemID, sourceSlot) end
       UpdateMoney()
@@ -1597,13 +1067,17 @@ maintask InvOverhaulContainerUI do
 
     local category: int
     native.GetInvItemProperty(category, itemID, "Category")
-    local mergeIndex: int = FindPlayerMergeIndex(category, itemID)
-    if !CanPlayerAcceptItem(item, category) then
+    local mergeIndex: int =
+      inv_overhaul_container_transfer.ContainerTransferFindPlayerMergeIndex(
+        player, category, itemID)
+    if beforeBackpack >= c_iInventoryCapacity && mergeIndex < 0 then
       ShowInventoryFull()
       native.Trace("inv_overhaul_container container-to-player refused: inventory full")
       return
     end
-    local beforePlayerAmount: int = GetPlayerItemTotalAmount(category, itemID)
+    local beforePlayerAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetPlayerItemTotalAmount(
+        player, category, itemID)
     local beforeCategoryCount: int
     player->GetItemCount(beforeCategoryCount, category)
     if organSource then
@@ -1612,7 +1086,9 @@ maintask InvOverhaulContainerUI do
     end
     local success: bool
     player->AddItem(success, item, category, transferAmount)
-    local afterPlayerAmount: int = GetPlayerItemTotalAmount(category, itemID)
+    local afterPlayerAmount: int =
+      inv_overhaul_container_transfer.ContainerTransferGetPlayerItemTotalAmount(
+        player, category, itemID)
     local addedAmount: int = afterPlayerAmount - beforePlayerAmount
     if !success || addedAmount <= 0 then
       if organSource then
@@ -1626,19 +1102,11 @@ maintask InvOverhaulContainerUI do
     end
 
     if addedAmount > transferAmount then addedAmount = transferAmount end
-    if closesDroppedRubbish && addedAmount >= amount then
-      external->RemoveItem(sourceIndex, addedAmount)
-      native.Trace("INV_OVERHAUL_EFFECT_LIFECYCLE loot removed final item stack; closing rubbish heap")
-      windowClosing = true
-      CloseContainerWindow()
-      return
-    end
     external->RemoveItem(sourceIndex, addedAmount)
     if addedAmount >= amount then
-      if organSource then
-        RemoveOrganOrdinal(sourceOrdinal, beforeOrgans)
-      else
-        RemoveContainerOrdinal(sourceOrdinal, beforeNormal)
+      if !organSource then
+        inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(
+          sourceOrdinal, beforeNormal)
       end
     end
 
@@ -1698,8 +1166,9 @@ maintask InvOverhaulContainerUI do
     if !item then return end
     local availableAmount: int
     player->GetItemAmount(availableAmount, index, category)
-    local amount: int = requestedAmount
-    if amount <= 0 || amount > availableAmount then amount = availableAmount end
+    local amount: int =
+      inv_overhaul_container_transfer.ContainerTransferNormalizeAmount(
+        requestedAmount, availableAmount)
     if amount <= 0 then return end
     if category == c_iCWeapon then
       local selected: bool
@@ -1755,88 +1224,93 @@ maintask InvOverhaulContainerUI do
   end
 
   function ResolveDragSource(source: int) -> bool
-    dragKind = -1
-    dragPlayerCategory = -1
-    dragPlayerIndex = -1
-    dragPlayerCell = -1
-    dragContainerIndex = -1
-    dragContainerOrdinal = -1
-    dragContainerVisual = -1
-    dragPlayerIsOrgan = false
     local item: object
+    local kind: int = -1
+    local playerCategory: int = -1
+    local playerIndex: int = -1
+    local playerCell: int = -1
+    local containerIndex: int = -1
+    local containerOrdinal: int = -1
+    local containerVisual: int = -1
 
     if source >= 0 && source < visibleSlots then
       if !ResolveVisibleSlot(source) then return false end
-      dragKind = 0
-      dragPlayerCategory = resolvedCategory
-      dragPlayerIndex = resolvedIndex
-      dragPlayerCell = GetVisibleCell(source)
-      dragPlayerIsOrgan = IsPlayerOrganItem(dragPlayerCategory, dragPlayerIndex)
+      kind = 0
+      playerCategory = resolvedCategory
+      playerIndex = resolvedIndex
+      playerCell = GetVisibleCell(source)
       local player: object = GetPlayerContainer()
-      player->GetItem(item, dragPlayerIndex, dragPlayerCategory)
+      player->GetItem(item, playerIndex, playerCategory)
     else
       if source >= c_iTargetContainerBase && source < c_iTargetContainerBase + c_iContainerSlots then
         if !ResolveContainerVisualSlot(source - c_iTargetContainerBase) then return false end
-        dragKind = 1
-        dragContainerVisual = containerPage * c_iContainerSlots + source - c_iTargetContainerBase
+        kind = 1
+        containerVisual = containerPage * c_iContainerSlots + source - c_iTargetContainerBase
       else
         if source >= c_iTargetOrganBase && source < c_iTargetOrganBase + c_iOrganSlots then
           if !ResolveOrganVisualSlot(source - c_iTargetOrganBase) then return false end
-          dragKind = 2
+          kind = 2
         else
           return false
         end
       end
-      dragContainerIndex = resolvedContainerIndex
-      dragContainerOrdinal = resolvedContainerOrdinal
+      containerIndex = resolvedContainerIndex
+      containerOrdinal = resolvedContainerOrdinal
       local external: object = GetExternalContainer()
-      external->GetItem(item, dragContainerIndex)
+      external->GetItem(item, containerIndex)
     end
 
     if !item then return false end
-    item->GetItemID(dragItemID)
+    local itemID: int
+    item->GetItemID(itemID)
+    if kind == 0 then
+      inv_overhaul_container_drag.ContainerDragBeginPlayerSource(
+        source, itemID, playerCategory, playerIndex, playerCell)
+    else
+      inv_overhaul_container_drag.ContainerDragBeginExternalSource(
+        source, kind, itemID, containerIndex, containerOrdinal, containerVisual)
+    end
     return true
   end
 
   function BeginDragCursor(source: int) -> bool
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
-    dragItemID = -1
     if !ResolveDragSource(source) then return false end
-    native.SetVariable("inv_overhaul_inventory_drag_item", dragItemID)
+    native.SetVariable(
+      "inv_overhaul_inventory_drag_item",
+      inv_overhaul_container_drag.ContainerDragGetItemID())
     return true
   end
 
   function EndDragCursor() -> void
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
     native.SetVariable("inv_overhaul_inventory_page_hover", 0)
-    dragItemID = -1
-    dragKind = -1
-    dragPlayerCategory = -1
-    dragPlayerIndex = -1
-    dragPlayerCell = -1
-    dragContainerIndex = -1
-    dragContainerOrdinal = -1
-    dragContainerVisual = -1
-    dragPlayerIsOrgan = false
+    inv_overhaul_container_drag.ContainerDragClearSource()
   end
 
   function GetPlayerSlotBySender(sender: string) -> int
     for slot = 0, visibleSlots - 1 do
-      if sender == GetSlotWndName(slot) then return slot end
+      if sender == inv_overhaul_container_view.ContainerViewGetPlayerSlotWndName(slot) then
+        return slot
+      end
     end
     return -1
   end
 
   function GetContainerSlotBySender(sender: string) -> int
     for slot = 0, c_iContainerSlots - 1 do
-      if sender == GetContainerSlotWndName(slot) then return slot end
+      if sender == inv_overhaul_container_view.ContainerViewGetContainerSlotWndName(slot) then
+        return slot
+      end
     end
     return -1
   end
 
   function GetOrganSlotBySender(sender: string) -> int
     for slot = 0, c_iOrganSlots - 1 do
-      if sender == GetOrganSlotWndName(slot) then return slot end
+      if sender == inv_overhaul_container_view.ContainerViewGetOrganSlotWndName(slot) then
+        return slot
+      end
     end
     return -1
   end
@@ -1852,44 +1326,19 @@ maintask InvOverhaulContainerUI do
     return -1
   end
 
-  function IsInsideSlotDropArea(localX: int, localY: int, hotZone: int) -> bool
-    return inv_overhaul_container_geometry.ContainerGeometryIsInsideSlotDropArea(
-      localX, localY, hotZone)
-  end
-
-  function GetSlotHotZone() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetSlotHotZone(windowWidth)
-  end
-
-  function GetOrganSlotHotZone() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetOrganSlotHotZone(windowWidth)
-  end
-
-  function FindPlayerSlotAt(x: int, y: int) -> int
-    return inv_overhaul_container_geometry.ContainerGeometryFindPlayerSlotAt(
-      windowWidth, visibleSlots, x, y)
-  end
-
-  function FindContainerSlotAt(x: int, y: int) -> int
-    return inv_overhaul_container_geometry.ContainerGeometryFindContainerSlotAt(
-      windowWidth, c_iContainerSlots, x, y)
-  end
-
   function FindOrganSlotAt(x: int, y: int) -> int
     if !showOrgans then return -1 end
     return inv_overhaul_container_geometry.ContainerGeometryFindOrganSlotAt(
       windowWidth, c_iOrganSlots, x, y)
   end
 
-  function IsInsideMoney(x: int, y: int) -> bool
-    return inv_overhaul_container_geometry.ContainerGeometryIsInsideMoney(
-      windowWidth, x, y)
-  end
-
   function FindTargetAt(x: int, y: int) -> int
-    local slot: int = FindPlayerSlotAt(x, y)
+    local slot: int =
+      inv_overhaul_container_geometry.ContainerGeometryFindPlayerSlotAt(
+        windowWidth, visibleSlots, x, y)
     if slot >= 0 then return slot end
-    slot = FindContainerSlotAt(x, y)
+    slot = inv_overhaul_container_geometry.ContainerGeometryFindContainerSlotAt(
+      windowWidth, c_iContainerSlots, x, y)
     if slot >= 0 then return c_iTargetContainerBase + slot end
     slot = FindOrganSlotAt(x, y)
     if slot >= 0 then return c_iTargetOrganBase + slot end
@@ -1897,77 +1346,99 @@ maintask InvOverhaulContainerUI do
   end
 
   function IsTargetCompatible(target: int) -> bool
-    if dragKind == 0 then
+    local kind: int = inv_overhaul_container_drag.ContainerDragGetKind()
+    if kind == 0 then
       if target >= 0 && target < visibleSlots then return true end
       if target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then return true end
       return false
     end
-    if dragKind == 1 then
+    if kind == 1 then
       if target >= 0 && target < visibleSlots then return true end
       return target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots
     end
-    if dragKind == 2 then return target >= 0 && target < visibleSlots end
+    if kind == 2 then return target >= 0 && target < visibleSlots end
     return false
   end
 
   function SetHighlightedTarget(target: int) -> void
-    if dragSource >= 0 && target >= 0 && !IsTargetCompatible(target) then target = -1 end
-    if highlightedTarget == target then return end
-    if highlightedTarget >= 0 then native.SendMessage(-21, GetTargetWndName(highlightedTarget)) end
-    highlightedTarget = target
-    if highlightedTarget >= 0 then native.SendMessage(-20, GetTargetWndName(highlightedTarget)) end
+    if inv_overhaul_container_drag.ContainerDragIsActive() &&
+      target >= 0 && !IsTargetCompatible(target) then target = -1 end
+    local previousTarget: int =
+      inv_overhaul_container_drag.ContainerDragGetHighlightedTarget()
+    if previousTarget == target then return end
+    if previousTarget >= 0 then
+      inv_overhaul_container_view.ContainerViewSetTargetHighlighted(
+        previousTarget, visibleSlots, false)
+    end
+    inv_overhaul_container_drag.ContainerDragSetHighlightedTarget(target)
+    if target >= 0 then
+      inv_overhaul_container_view.ContainerViewSetTargetHighlighted(
+        target, visibleSlots, true)
+    end
   end
 
   function ApplyPointerTarget(target: int) -> void
-    if dragSource < 0 then return end
+    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
+    local source: int = inv_overhaul_container_drag.ContainerDragGetSource()
+    local kind: int = inv_overhaul_container_drag.ContainerDragGetKind()
     local sameSource: bool = false
-    if target == dragSource then sameSource = true end
-    if dragKind == 0 && target >= 0 && target < visibleSlots then
-      if GetVisibleCell(target) == dragPlayerCell then sameSource = true else sameSource = false end
+    if target == source then sameSource = true end
+    if kind == 0 && target >= 0 && target < visibleSlots then
+      if GetVisibleCell(target) ==
+        inv_overhaul_container_drag.ContainerDragGetPlayerCell() then
+        sameSource = true
+      else
+        sameSource = false
+      end
     end
-    if dragKind == 1 && target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then
-      if containerPage * c_iContainerSlots + target - c_iTargetContainerBase == dragContainerVisual then sameSource = true else sameSource = false end
+    if kind == 1 && target >= c_iTargetContainerBase &&
+      target < c_iTargetContainerBase + c_iContainerSlots then
+      if containerPage * c_iContainerSlots + target - c_iTargetContainerBase ==
+        inv_overhaul_container_drag.ContainerDragGetContainerVisual() then
+        sameSource = true
+      else
+        sameSource = false
+      end
     end
-    if target >= 0 && !sameSource && IsTargetCompatible(target) then
-      lastValidDropTarget = target
-      invalidDropTargetFrames = 0
-      SetHighlightedTarget(target)
-    else
-      if target < 0 then invalidDropTargetFrames = invalidDropTargetFrames + 1 else invalidDropTargetFrames = 0 end
-      SetHighlightedTarget(-1)
-    end
+    SetHighlightedTarget(
+      inv_overhaul_container_drag.ContainerDragRecordPointerTarget(
+        target, sameSource, IsTargetCompatible(target)))
   end
 
   function StartDragAction(source: int, sender: string) -> void
-    if dragSource >= 0 then return end
+    if inv_overhaul_container_drag.ContainerDragIsActive() then return end
     CancelDragPageHover(0)
     ClearPanelTooltip()
     if !BeginDragCursor(source) then return end
-    dragSource = source
-    lastValidDropTarget = -1
-    invalidDropTargetFrames = 0
     SetHighlightedTarget(-1)
   end
 
   function FinishDrag(target: int) -> void
-    if dragSource < 0 then return end
-    if target < 0 && lastValidDropTarget >= 0 && invalidDropTargetFrames <= 3 then target = lastValidDropTarget end
-    local source: int = dragSource
-    local sourceKind: int = dragKind
+    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
+    target = inv_overhaul_container_drag.ContainerDragResolveReleaseTarget(target)
+    local source: int = inv_overhaul_container_drag.ContainerDragGetSource()
+    local sourceKind: int = inv_overhaul_container_drag.ContainerDragGetKind()
+    local playerCell: int = inv_overhaul_container_drag.ContainerDragGetPlayerCell()
+    local containerVisual: int =
+      inv_overhaul_container_drag.ContainerDragGetContainerVisual()
     inv_overhaul_inventory_tooltip.InventoryTooltipSuspend(0.2)
     ClearPanelTooltip()
     if source >= 0 then
-      native.SendMessage(-130, GetTargetWndName(source))
+      native.SendMessage(
+        -130,
+        inv_overhaul_container_view.ContainerViewGetTargetWndName(source, visibleSlots))
     end
     if target >= 0 then
-      native.SendMessage(-130, GetTargetWndName(target))
+      native.SendMessage(
+        -130,
+        inv_overhaul_container_view.ContainerViewGetTargetWndName(target, visibleSlots))
     end
 
     if IsTargetCompatible(target) then
       if sourceKind == 0 then
         if target >= 0 && target < visibleSlots then
-          if GetVisibleCell(target) != dragPlayerCell then
-            SwapSlotOrderCells(dragPlayerCell, GetVisibleCell(target))
+          if GetVisibleCell(target) != playerCell then
+            SwapSlotOrderCells(playerCell, GetVisibleCell(target))
           end
         else
           if target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then
@@ -1983,16 +1454,15 @@ maintask InvOverhaulContainerUI do
           end
         else
           if sourceKind == 1 && target >= c_iTargetContainerBase && target < c_iTargetContainerBase + c_iContainerSlots then
-            SwapContainerSlotOrderVisuals(dragContainerVisual, containerPage * c_iContainerSlots + target - c_iTargetContainerBase)
+            SwapContainerSlotOrderVisuals(
+              containerVisual,
+              containerPage * c_iContainerSlots + target - c_iTargetContainerBase)
           end
         end
       end
     end
 
-    dragSource = -1
     SetHighlightedTarget(-1)
-    lastValidDropTarget = -1
-    invalidDropTargetFrames = 0
     EndDragCursor()
     CancelDragPageHover(0)
   end
@@ -2000,7 +1470,9 @@ maintask InvOverhaulContainerUI do
   function QuickTransfer(source: int) -> void
     if source >= 0 && source < visibleSlots then
       if !ResolveVisibleSlot(source) then return end
-      local visual: int = FindFirstFreeContainerVisual(GetNormalContainerItemCount())
+      local visual: int =
+        inv_overhaul_container_projection.ContainerProjectionFindFirstFreeContainerVisual(
+          GetNormalContainerItemCount())
       if visual < 0 then
         ShowContainerFull()
         native.Trace("inv_overhaul_container quick player-to-container refused: no visual slot")
@@ -2009,9 +1481,9 @@ maintask InvOverhaulContainerUI do
       quickTransferPreviousContainerPage = containerPage
       containerPage = visual / c_iContainerSlots
       if shiftHeld then
-        MovePlayerAmountToContainer(source, visual - containerPage * c_iContainerSlots, false, -1)
+        MovePlayerAmountToContainer(source, visual - containerPage * c_iContainerSlots, -1)
       else
-        MovePlayerToContainer(source, visual - containerPage * c_iContainerSlots, false)
+        MovePlayerToContainer(source, visual - containerPage * c_iContainerSlots)
       end
       quickTransferPreviousContainerPage = -1
       return
@@ -2052,11 +1524,14 @@ maintask InvOverhaulContainerUI do
     local encoded: int = message - base
     local localX: int = encoded / 100
     local localY: int = encoded - localX * 100
-    local hotZone: int = GetSlotHotZone()
+    local hotZone: int =
+      inv_overhaul_container_geometry.ContainerGeometryGetSlotHotZone(windowWidth)
     if target >= c_iTargetOrganBase && target < c_iTargetOrganBase + c_iOrganSlots then
-      hotZone = GetOrganSlotHotZone()
+      hotZone =
+        inv_overhaul_container_geometry.ContainerGeometryGetOrganSlotHotZone(windowWidth)
     end
-    if IsInsideSlotDropArea(localX, localY, hotZone) then return target end
+    if inv_overhaul_container_geometry.ContainerGeometryIsInsideSlotDropArea(
+      localX, localY, hotZone) then return target end
     return -1
   end
 
@@ -2072,31 +1547,11 @@ maintask InvOverhaulContainerUI do
     inv_overhaul_inventory_tooltip.InventoryTooltipShowText(c_iTargetQuickslotHelp, 1407)
   end
 
-  function IsInsideQuickslotHelp(x: int, y: int) -> bool
-    return inv_overhaul_container_geometry.ContainerGeometryIsInsideQuickslotHelp(
-      windowWidth, x, y)
-  end
-
-  function GetPlayerPageControlX() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlX(windowWidth)
-  end
-
-  function GetPlayerPageControlY() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlY(windowWidth)
-  end
-
-  function GetContainerPageControlX() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlX(windowWidth)
-  end
-
-  function GetContainerPageControlY() -> int
-    return inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlY(
-      windowWidth, c_iContainerSlots)
-  end
-
   function IsInsidePlayerPaging(x: int, y: int) -> bool
     return inv_overhaul_container_geometry.ContainerGeometryIsInsidePageControl(
-      GetMaxPlayerPage(), x, y, GetPlayerPageControlX(), GetPlayerPageControlY())
+      GetMaxPlayerPage(), x, y,
+      inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlX(windowWidth),
+      inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlY(windowWidth))
   end
 
   function UpdatePanelTooltip(x: int, y: int) -> void
@@ -2104,11 +1559,12 @@ maintask InvOverhaulContainerUI do
       ClearPanelTooltip()
       return
     end
-    if dragSource >= 0 then
+    if inv_overhaul_container_drag.ContainerDragIsActive() then
       ClearPanelTooltip()
       return
     end
-    if IsInsideQuickslotHelp(x, y) then
+    if inv_overhaul_container_geometry.ContainerGeometryIsInsideQuickslotHelp(
+      windowWidth, x, y) then
       ShowQuickslotHelpPanelTooltip()
       return
     end
@@ -2116,7 +1572,8 @@ maintask InvOverhaulContainerUI do
       ShowPlayerPagingTooltip()
       return
     end
-    if IsInsideMoney(x, y) then
+    if inv_overhaul_container_geometry.ContainerGeometryIsInsideMoney(
+      windowWidth, x, y) then
       inv_overhaul_inventory_tooltip.InventoryTooltipShowMoneyForTarget(c_iTargetMoney)
       return
     end
@@ -2158,20 +1615,12 @@ maintask InvOverhaulContainerUI do
     StartDragAction(source, "panel_background")
   end
 
-  function GetPanelPointerX(message: int, base: int) -> int
-    return inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerX(message, base)
-  end
-
-  function GetPanelPointerY(message: int, base: int) -> int
-    return inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerY(message, base)
-  end
-
   function HandlePanelPointer(message: int) -> void
     local base: int = c_iPanelPointerMoveBase
     local action: int = 0
     if message >= c_iPanelPointerLeaveBase then
       ClearPanelTooltip()
-      ClearPageControlHover()
+      inv_overhaul_container_view.ContainerViewClearPageControlHover()
       return
     end
     if message >= c_iPanelPointerDragEndBase then
@@ -2199,8 +1648,12 @@ maintask InvOverhaulContainerUI do
       end
     end
 
-    local x: int = GetPanelPointerX(message, base)
-    local y: int = GetPanelPointerY(message, base)
+    local x: int =
+      inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerX(
+        message, base)
+    local y: int =
+      inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerY(
+        message, base)
     if action == 0 then
       UpdatePageControlHover(x, y)
       UpdatePanelTooltip(x, y)
@@ -2221,7 +1674,7 @@ maintask InvOverhaulContainerUI do
       FinishDrag(target)
       return
     end
-    if dragSource >= 0 then ApplyPointerTarget(target) end
+    if inv_overhaul_container_drag.ContainerDragIsActive() then ApplyPointerTarget(target) end
   end
 
   function HandlePageControlAt(x: int, y: int) -> bool
@@ -2229,7 +1682,9 @@ maintask InvOverhaulContainerUI do
     if playerMaxPage > 0 then
       local playerAction: int =
         inv_overhaul_container_geometry.ContainerGeometryGetPageControlAction(
-          x, y, GetPlayerPageControlX(), GetPlayerPageControlY())
+          x, y,
+          inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlX(windowWidth),
+          inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlY(windowWidth))
       if playerAction != 0 then
         if playerAction < 0 && playerPage > 0 then ChangePlayerPage(-1) end
         if playerAction > 0 && playerPage < playerMaxPage then ChangePlayerPage(1) end
@@ -2237,11 +1692,15 @@ maintask InvOverhaulContainerUI do
       end
     end
 
-    local containerMaxPage: int = GetMaxContainerPage()
+    local containerMaxPage: int =
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
     if containerMaxPage > 0 then
       local containerAction: int =
         inv_overhaul_container_geometry.ContainerGeometryGetPageControlAction(
-          x, y, GetContainerPageControlX(), GetContainerPageControlY())
+          x, y,
+          inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlX(windowWidth),
+          inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlY(
+            windowWidth, c_iContainerSlots))
       if containerAction != 0 then
         if containerAction < 0 && containerPage > 0 then ChangeContainerPage(-1) end
         if containerAction > 0 && containerPage < containerMaxPage then ChangeContainerPage(1) end
@@ -2251,38 +1710,33 @@ maintask InvOverhaulContainerUI do
     return false
   end
 
-  function SetPageButtonHover(wnd: string, highlighted: bool) -> void
-    if highlighted then native.SendMessage(-94, wnd) else native.SendMessage(-95, wnd) end
-  end
-
-  function ClearPageControlHover() -> void
-    SetPageButtonHover("player_page_prev", false)
-    SetPageButtonHover("player_page_next", false)
-    SetPageButtonHover("container_page_prev", false)
-    SetPageButtonHover("container_page_next", false)
-  end
-
   function UpdatePageControlHover(x: int, y: int) -> void
-    local playerX: int = GetPlayerPageControlX()
-    local playerY: int = GetPlayerPageControlY()
+    local playerX: int =
+      inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlX(windowWidth)
+    local playerY: int =
+      inv_overhaul_container_geometry.ContainerGeometryGetPlayerPageControlY(windowWidth)
     local playerMaxPage: int = GetMaxPlayerPage()
-    SetPageButtonHover(
+    inv_overhaul_container_view.ContainerViewSetPageButtonHover(
       "player_page_prev",
       inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
         -1, playerPage, playerMaxPage, x, y, playerX, playerY))
-    SetPageButtonHover(
+    inv_overhaul_container_view.ContainerViewSetPageButtonHover(
       "player_page_next",
       inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
         1, playerPage, playerMaxPage, x, y, playerX, playerY))
 
-    local containerX: int = GetContainerPageControlX()
-    local containerY: int = GetContainerPageControlY()
-    local containerMaxPage: int = GetMaxContainerPage()
-    SetPageButtonHover(
+    local containerX: int =
+      inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlX(windowWidth)
+    local containerY: int =
+      inv_overhaul_container_geometry.ContainerGeometryGetContainerPageControlY(
+        windowWidth, c_iContainerSlots)
+    local containerMaxPage: int =
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
+    inv_overhaul_container_view.ContainerViewSetPageButtonHover(
       "container_page_prev",
       inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
         -1, containerPage, containerMaxPage, x, y, containerX, containerY))
-    SetPageButtonHover(
+    inv_overhaul_container_view.ContainerViewSetPageButtonHover(
       "container_page_next",
       inv_overhaul_container_geometry.ContainerGeometryIsPageButtonHovered(
         1, containerPage, containerMaxPage, x, y, containerX, containerY))
@@ -2304,63 +1758,62 @@ maintask InvOverhaulContainerUI do
     if sender == "player_page_prev" && playerPage > 0 then return -1 end
     if sender == "player_page_next" && playerPage < GetMaxPlayerPage() then return 1 end
     if sender == "container_page_prev" && containerPage > 0 then return -2 end
-    if sender == "container_page_next" && containerPage < GetMaxContainerPage() then return 2 end
+    if sender == "container_page_next" && containerPage <
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage() then return 2 end
     return 0
   end
 
   function BeginDragPageHover(sender: string) -> void
-    if dragSource < 0 then return end
+    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
     local action: int = GetDragPageHoverAction(sender)
-    if action == 0 || action == dragPageHoverAction then return end
-    dragPageHoverAction = action
-    dragPageHoverElapsed = 0
-    dragPageHoverConsumed = false
-    native.Trace("inv_overhaul_container page-hover begin sender=" + sender + " action=" + action + " source=" + dragSource)
+    if !inv_overhaul_container_drag.ContainerDragBeginPageHover(action) then return end
+    native.Trace("inv_overhaul_container page-hover begin sender=" + sender + " action=" + action + " source=" + inv_overhaul_container_drag.ContainerDragGetSource())
   end
 
   function CancelDragPageHover(action: int) -> void
-    if action != 0 && dragPageHoverAction != action then return end
-    if dragPageHoverAction != 0 then
-      native.Trace("inv_overhaul_container page-hover cancel action=" + dragPageHoverAction + " elapsed=" + dragPageHoverElapsed)
+    if !inv_overhaul_container_drag.ContainerDragCanCancelPageHover(action) then return end
+    local currentAction: int =
+      inv_overhaul_container_drag.ContainerDragGetPageHoverAction()
+    if currentAction != 0 then
+      native.Trace("inv_overhaul_container page-hover cancel action=" + currentAction + " elapsed=" + inv_overhaul_container_drag.ContainerDragGetPageHoverElapsed())
     end
-    dragPageHoverAction = 0
-    dragPageHoverElapsed = 0
-    dragPageHoverConsumed = false
+    inv_overhaul_container_drag.ContainerDragClearPageHover()
   end
 
   function UpdateDragPageHover(delta: float) -> void
-    if dragSource < 0 || dragPageHoverAction == 0 || dragPageHoverConsumed then return end
-    if dragPageHoverAction == -1 && playerPage <= 0 then
-      CancelDragPageHover(dragPageHoverAction)
+    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
+    local action: int =
+      inv_overhaul_container_drag.ContainerDragGetPageHoverAction()
+    if action == 0 then return end
+    if action == -1 && playerPage <= 0 then
+      CancelDragPageHover(action)
       return
     end
-    if dragPageHoverAction == 1 && playerPage >= GetMaxPlayerPage() then
-      CancelDragPageHover(dragPageHoverAction)
+    if action == 1 && playerPage >= GetMaxPlayerPage() then
+      CancelDragPageHover(action)
       return
     end
-    if dragPageHoverAction == -2 && containerPage <= 0 then
-      CancelDragPageHover(dragPageHoverAction)
+    if action == -2 && containerPage <= 0 then
+      CancelDragPageHover(action)
       return
     end
-    if dragPageHoverAction == 2 && containerPage >= GetMaxContainerPage() then
-      CancelDragPageHover(dragPageHoverAction)
+    if action == 2 && containerPage >=
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage() then
+      CancelDragPageHover(action)
       return
     end
-    dragPageHoverElapsed = dragPageHoverElapsed + delta
-    if dragPageHoverElapsed < c_fPageHoverDelay then return end
-    dragPageHoverConsumed = true
-    lastValidDropTarget = -1
-    invalidDropTargetFrames = 0
+    action = inv_overhaul_container_drag.ContainerDragAdvancePageHover(delta)
+    if action == 0 then return end
     SetHighlightedTarget(-1)
-    native.Trace("inv_overhaul_container page-hover switch action=" + dragPageHoverAction + " player_page=" + playerPage + " container_page=" + containerPage)
-    if dragPageHoverAction == -1 then ChangePlayerPage(-1) end
-    if dragPageHoverAction == 1 then ChangePlayerPage(1) end
-    if dragPageHoverAction == -2 then ChangeContainerPage(-1) end
-    if dragPageHoverAction == 2 then ChangeContainerPage(1) end
+    native.Trace("inv_overhaul_container page-hover switch action=" + action + " player_page=" + playerPage + " container_page=" + containerPage)
+    if action == -1 then ChangePlayerPage(-1) end
+    if action == 1 then ChangePlayerPage(1) end
+    if action == -2 then ChangeContainerPage(-1) end
+    if action == 2 then ChangeContainerPage(1) end
   end
 
   function SyncDragPageHoverFromCursor() -> void
-    if dragSource < 0 then
+    if !inv_overhaul_container_drag.ContainerDragIsActive() then
       CancelDragPageHover(0)
       return
     end
@@ -2370,15 +1823,13 @@ maintask InvOverhaulContainerUI do
     if (hoverTarget == 1 || hoverTarget == 3) && playerPage > 0 then action = -1 end
     if (hoverTarget == 2 || hoverTarget == 4) && playerPage < GetMaxPlayerPage() then action = 1 end
     if hoverTarget == 5 && containerPage > 0 then action = -2 end
-    if hoverTarget == 6 && containerPage < GetMaxContainerPage() then action = 2 end
+    if hoverTarget == 6 && containerPage <
+      inv_overhaul_container_projection.ContainerProjectionGetMaxPage() then action = 2 end
     if action == 0 then
       CancelDragPageHover(0)
       return
     end
-    if action == dragPageHoverAction then return end
-    dragPageHoverAction = action
-    dragPageHoverElapsed = 0
-    dragPageHoverConsumed = false
+    if !inv_overhaul_container_drag.ContainerDragBeginPageHover(action) then return end
     native.Trace("inv_overhaul_container page-hover cursor target=" + hoverTarget + " action=" + action + " player_page=" + playerPage + " container_page=" + containerPage)
   end
 
@@ -2422,7 +1873,10 @@ maintask InvOverhaulContainerUI do
       return
     end
     if sender == "container_page_next" && message == 0 then
-      if containerPage < GetMaxContainerPage() then ChangeContainerPage(1) end
+      if containerPage <
+        inv_overhaul_container_projection.ContainerProjectionGetMaxPage() then
+        ChangeContainerPage(1)
+      end
       return
     end
 
@@ -2440,7 +1894,11 @@ maintask InvOverhaulContainerUI do
     end
     if message >= c_iHoverMessageBase then
       local target: int = GetSlotTargetFromPointerMessage(message, c_iHoverMessageBase, sender)
-      if dragSource >= 0 then ApplyPointerTarget(target) else SetHighlightedTarget(target) end
+      if inv_overhaul_container_drag.ContainerDragIsActive() then
+        ApplyPointerTarget(target)
+      else
+        SetHighlightedTarget(target)
+      end
       return
     end
     if message == 2 || message == 3 then
@@ -2450,11 +1908,15 @@ maintask InvOverhaulContainerUI do
       return
     end
     if message == 7 then
-      if dragSource >= 0 then ApplyPointerTarget(-1) else SetHighlightedTarget(-1) end
+      if inv_overhaul_container_drag.ContainerDragIsActive() then
+        ApplyPointerTarget(-1)
+      else
+        SetHighlightedTarget(-1)
+      end
       return
     end
     if message == 8 then
-      FinishDrag(highlightedTarget)
+      FinishDrag(inv_overhaul_container_drag.ContainerDragGetHighlightedTarget())
       return
     end
     if message == 1 && !data then
@@ -2464,14 +1926,6 @@ maintask InvOverhaulContainerUI do
 
   function OnUpdate(delta: float) -> void
     if windowClosing then return end
-    if rubbishKindRefreshRemaining > 0 then
-      rubbishKindRefreshRemaining = rubbishKindRefreshRemaining - delta
-      rubbishKindRefreshDelay = rubbishKindRefreshDelay - delta
-      if rubbishKindRefreshDelay <= 0 then
-        rubbishKindRefreshDelay = 0.05
-        if RefreshDroppedRubbishKind(true) then return end
-      end
-    end
     inv_overhaul_inventory_tooltip.InventoryTooltipAdvanceSuspension(delta)
     if inventoryFullMessageCooldown > 0 then
       inventoryFullMessageCooldown = inventoryFullMessageCooldown - delta
@@ -2533,15 +1987,17 @@ maintask InvOverhaulContainerUI do
   end
 
   function OnMouseMove(x: int, y: int) -> void
-    if dragSource >= 0 then ApplyPointerTarget(FindTargetAt(x, y)) end
+    if inv_overhaul_container_drag.ContainerDragIsActive() then
+      ApplyPointerTarget(FindTargetAt(x, y))
+    end
   end
 
   function OnMouseLeave() -> void
-    if dragSource >= 0 then SetHighlightedTarget(-1) end
+    if inv_overhaul_container_drag.ContainerDragIsActive() then SetHighlightedTarget(-1) end
   end
 
   function OnLButtonUp(x: int, y: int) -> void
-    if dragSource >= 0 then
+    if inv_overhaul_container_drag.ContainerDragIsActive() then
       local target: int = FindTargetAt(x, y)
       ApplyPointerTarget(target)
       FinishDrag(target)

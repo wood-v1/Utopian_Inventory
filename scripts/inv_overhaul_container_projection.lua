@@ -7,7 +7,6 @@ module inv_overhaul_container_projection do
   local containerOrder: object
   local containerIndexCache: object
   local cachedNormalContainerCount: int
-  local organOrder: object
 
   function ContainerProjectionInitialize() -> void
     local newContainerOrder: object
@@ -21,10 +20,6 @@ module inv_overhaul_container_projection do
     containerIndexCache = newContainerIndexCache
     cachedNormalContainerCount = 0
 
-    local newOrganOrder: object
-    native.CreateIntVector(newOrganOrder)
-    for visual = 0, c_iOrganSlots - 1 do newOrganOrder->add(visual) end
-    organOrder = newOrganOrder
   end
 
   function ContainerProjectionGetContainerOrder(visual: int) -> int
@@ -39,21 +34,6 @@ module inv_overhaul_container_projection do
   function ContainerProjectionSetContainerOrder(visual: int, value: int) -> void
     if visual < 0 || visual >= c_iMaxContainerVisuals then return end
     local values: object = containerOrder
-    values->set(visual, value)
-  end
-
-  function ContainerProjectionGetOrganOrder(visual: int) -> int
-    local order: int = visual
-    if visual >= 0 && visual < c_iOrganSlots then
-      local values: object = organOrder
-      values->get(order, visual)
-    end
-    return order
-  end
-
-  function ContainerProjectionSetOrganOrder(visual: int, value: int) -> void
-    if visual < 0 || visual >= c_iOrganSlots then return end
-    local values: object = organOrder
     values->set(visual, value)
   end
 
@@ -75,19 +55,6 @@ module inv_overhaul_container_projection do
       if !ContainerProjectionIsOrganItem(item) then normalCount = normalCount + 1 end
     end
     return normalCount
-  end
-
-  function ContainerProjectionGetOrganItemCount(container: object) -> int
-    if !container then return 0 end
-    local count: int
-    container->GetItemCount(count)
-    local organCount: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if ContainerProjectionIsOrganItem(item) then organCount = organCount + 1 end
-    end
-    return organCount
   end
 
   function ContainerProjectionBuildIndexCache(container: object) -> void
@@ -144,22 +111,6 @@ module inv_overhaul_container_projection do
     local indexCache: object = containerIndexCache
     indexCache->get(index, ordinal)
     return ContainerProjectionEncodeReference(index, ordinal)
-  end
-
-  function ContainerProjectionResolveOrganOrdinal(container: object, ordinal: int) -> int
-    if ordinal < 0 || !container then return -1 end
-    local count: int
-    container->GetItemCount(count)
-    local current: int = 0
-    for index = 0, count - 1 do
-      local item: object
-      container->GetItem(item, index)
-      if ContainerProjectionIsOrganItem(item) then
-        if current == ordinal then return ContainerProjectionEncodeReference(index, ordinal) end
-        current = current + 1
-      end
-    end
-    return -1
   end
 
   function ContainerProjectionGetOrganSlotByItemID(itemID: int) -> int
@@ -253,43 +204,6 @@ module inv_overhaul_container_projection do
     return true
   end
 
-  function ContainerProjectionFindFirstFreeOrganVisual(itemCount: int) -> int
-    for visual = 0, c_iOrganSlots - 1 do
-      if ContainerProjectionGetOrganOrder(visual) >= itemCount then return visual end
-    end
-    return -1
-  end
-
-  function ContainerProjectionInsertOrganOrdinalAt(
-    insertedOrder: int,
-    beforeCount: int,
-    preferredSlot: int) -> bool
-    if insertedOrder < 0 then return false end
-    local freeSlot: int = -1
-    if preferredSlot >= 0 && preferredSlot < c_iOrganSlots then
-      if ContainerProjectionGetOrganOrder(preferredSlot) >= beforeCount then freeSlot = preferredSlot end
-    end
-    if freeSlot < 0 then freeSlot = ContainerProjectionFindFirstFreeOrganVisual(beforeCount) end
-    if freeSlot < 0 then return false end
-    local preferredOccupied: bool = preferredSlot >= 0 && preferredSlot < c_iOrganSlots &&
-      ContainerProjectionGetOrganOrder(preferredSlot) < beforeCount
-    for visual = 0, c_iOrganSlots - 1 do
-      if visual != freeSlot then
-        local order: int = ContainerProjectionGetOrganOrder(visual)
-        if order >= insertedOrder && order < beforeCount then
-          ContainerProjectionSetOrganOrder(visual, order + 1)
-        end
-      end
-    end
-    if preferredOccupied then
-      ContainerProjectionSetOrganOrder(freeSlot, ContainerProjectionGetOrganOrder(preferredSlot))
-      ContainerProjectionSetOrganOrder(preferredSlot, insertedOrder)
-    else
-      ContainerProjectionSetOrganOrder(freeSlot, insertedOrder)
-    end
-    return true
-  end
-
   function ContainerProjectionRemoveContainerOrdinal(removedOrder: int, beforeCount: int) -> void
     if removedOrder < 0 then return end
     local emptyOrder: int = beforeCount - 1
@@ -305,18 +219,4 @@ module inv_overhaul_container_projection do
     end
   end
 
-  function ContainerProjectionRemoveOrganOrdinal(removedOrder: int, beforeCount: int) -> void
-    if removedOrder < 0 then return end
-    local emptyOrder: int = beforeCount - 1
-    for visual = 0, c_iOrganSlots - 1 do
-      local order: int = ContainerProjectionGetOrganOrder(visual)
-      if order == removedOrder then
-        ContainerProjectionSetOrganOrder(visual, emptyOrder)
-      else
-        if order > removedOrder && order < beforeCount then
-          ContainerProjectionSetOrganOrder(visual, order - 1)
-        end
-      end
-    end
-  end
 end

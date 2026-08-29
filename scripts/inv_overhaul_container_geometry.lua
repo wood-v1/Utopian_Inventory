@@ -3,6 +3,11 @@ module inv_overhaul_container_geometry do
   local const c_iSlotHotZone: int = 52
   local const c_iSlotDropInset: int = 1
 
+  function ContainerGeometryGetVisibleSlots(windowWidth: int) -> int
+    if windowWidth >= 1000 then return 35 end
+    return 24
+  end
+
   function ContainerGeometryGetGridStartX(windowWidth: int) -> int
     if windowWidth >= 1900 then return 825 end
     if windowWidth >= 1200 then return 507 end

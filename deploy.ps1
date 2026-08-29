@@ -148,6 +148,9 @@ if (!$SkipLuaCompile) {
         Remove-DeployedFile -Path (Join-Path $LuaOutDir $staleScript)
     }
     foreach ($lua in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "scripts") -Filter "*.lua" -File) {
+        if (!(Select-String -LiteralPath $lua.FullName -Pattern '^maintask\s' -Quiet)) {
+            continue
+        }
         Invoke-External -WorkingDirectory $LuaCompilerRoot -FilePath "python" -Arguments @(
             ".\compiler.py",
             $lua.FullName,

@@ -219,4 +219,17 @@ module inv_overhaul_container_projection do
     end
   end
 
+  function ContainerProjectionSwapVisuals(
+    sourceVisual: int,
+    targetVisual: int) -> bool
+    if sourceVisual < 0 || sourceVisual >= c_iMaxContainerVisuals then return false end
+    if targetVisual < 0 || targetVisual >= c_iMaxContainerVisuals ||
+      sourceVisual == targetVisual then return false end
+    local sourceOrder: int = ContainerProjectionGetContainerOrder(sourceVisual)
+    local targetOrder: int = ContainerProjectionGetContainerOrder(targetVisual)
+    ContainerProjectionSetContainerOrder(sourceVisual, targetOrder)
+    ContainerProjectionSetContainerOrder(targetVisual, sourceOrder)
+    return true
+  end
+
 end

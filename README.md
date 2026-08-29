@@ -110,8 +110,11 @@ cmake -S . -B build-win32 -A Win32 -DOYNONTOOLS_ROOT="..\OynonTools"
 cmake --build build-win32 --config Release
 ```
 
-Lua sources are compiled by `deploy.ps1` with `pathologic_lua_compiler` and the
-`pathologic_re` definitions.
+Lua sources are grouped by domain under `scripts/`. `deploy.ps1` recursively
+stages them by basename, then compiles all maintasks with
+`pathologic_lua_compiler` and the `pathologic_re` definitions. This preserves
+the flat runtime `.bin` names required by the game. See `scripts/README.md` for
+the package map and validation command.
 
 ## Development deploy
 

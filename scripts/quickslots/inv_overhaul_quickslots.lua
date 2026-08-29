@@ -1,3 +1,8 @@
+import "inv_overhaul_quickslot_activation"
+import "inv_overhaul_quickslot_consumables"
+import "inv_overhaul_quickslot_equipment"
+import "inv_overhaul_quickslot_hands"
+
 maintask InvOverhaulQuickslotPlayerEffect do
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
@@ -36,191 +41,53 @@ maintask InvOverhaulQuickslotPlayerEffect do
   local m_fTrackedWeaponGrace: float
 
   function GetPlayer() -> object
-    local player: object
-    native.self(player)
-    return player
+    return inv_overhaul_quickslot_activation.QuickslotActivationGetPlayer()
   end
 
   function GetItemVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_item_" + slot
+    return inv_overhaul_quickslot_activation.QuickslotActivationItemVariable(slot)
   end
 
   function GetCategoryVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_category_" + slot
+    return inv_overhaul_quickslot_activation.QuickslotActivationCategoryVariable(slot)
   end
 
   function GetOccurrenceVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_occurrence_" + slot
+    return inv_overhaul_quickslot_activation.QuickslotActivationOccurrenceVariable(slot)
   end
 
   function GetDepletedVariable(slot: int) -> string
-    return "inv_overhaul_quickslot_depleted_" + slot
+    return inv_overhaul_quickslot_activation.QuickslotActivationDepletedVariable(slot)
   end
 
   function ClearBinding(slot: int) -> void
-    native.SetVariable(GetItemVariable(slot), -1)
-    native.SetVariable(GetCategoryVariable(slot), -1)
-    native.SetVariable(GetOccurrenceVariable(slot), -1)
-    native.SetVariable(GetDepletedVariable(slot), 1)
+    inv_overhaul_quickslot_activation.QuickslotActivationClearBinding(slot)
   end
 
   function ShowMessage(textID: int) -> void
-    local data: object
-    native.CreateIntVector(data)
-    data->add(textID)
-    native.SendWorldWndMessage(c_iWMHelpMessage, data)
+    inv_overhaul_quickslot_activation.QuickslotActivationShowMessage(textID)
   end
 
   function ShowFeedback(itemID: int) -> void
-    local data: object
-    native.CreateIntVector(data)
-    data->add(itemID)
-    data->add(1)
-    native.SendWorldWndMessage(c_iWMPlayerAddItem, data)
+    inv_overhaul_quickslot_activation.QuickslotActivationShowFeedback(itemID)
   end
 
   function MarkInventoryChanged() -> void
-    local generation: int = 0
-    native.GetVariable("inv_overhaul_inventory_reorder_generation", generation)
-    native.SetVariable("inv_overhaul_inventory_reorder_generation", generation + 1)
-  end
-
-  function GetBackpackOrdinal(targetCategory: int, targetIndex: int) -> int
-    local player: object = GetPlayer()
-    local ordinal: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then
-          if category == targetCategory && index == targetIndex then return ordinal end
-          ordinal = ordinal + 1
-        end
-      end
-    end
-    return -1
+    inv_overhaul_quickslot_activation.QuickslotActivationMarkInventoryChanged()
   end
 
   function PublishRemovalHint(category: int, index: int) -> void
-    local ordinal: int = GetBackpackOrdinal(category, index)
-    if ordinal < 0 then return end
-    native.SetVariable("inv_overhaul_inventory_removed_ordinal_hint", ordinal)
-    native.SetVariable("inv_overhaul_inventory_removed_ordinal_old_count", GetBackpackItemCount())
-    native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 1)
-  end
-
-  function PublishEquipmentRemovalHint(category: int, index: int) -> void
-    local ordinal: int = GetBackpackOrdinal(category, index)
-    if ordinal < 0 then return end
-
-    local currentCount: int = GetBackpackItemCount()
-    local queueCount: int = 0
-    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", queueCount)
-    if queueCount < 0 || queueCount >= 8 then queueCount = 0 end
-    if queueCount > 0 then
-      local previousCount: int = -1
-      native.GetVariable(
-        "inv_overhaul_inventory_equipment_removal_old_count_" + (queueCount - 1),
-        previousCount)
-      if currentCount != previousCount - 1 then queueCount = 0 end
-    end
-
-    native.SetVariable(
-      "inv_overhaul_inventory_equipment_removal_ordinal_" + queueCount,
-      ordinal)
-    native.SetVariable(
-      "inv_overhaul_inventory_equipment_removal_old_count_" + queueCount,
-      currentCount)
-    native.SetVariable(
-      "inv_overhaul_inventory_equipment_removal_count",
-      queueCount + 1)
-    native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0)
-    native.Trace("inv_overhaul_quickslot equipment removal queued ordinal=" + ordinal +
-      " old=" + currentCount + " queue=" + (queueCount + 1))
-  end
-
-  function CancelLastEquipmentRemovalHint() -> void
-    local queueCount: int = 0
-    native.GetVariable("inv_overhaul_inventory_equipment_removal_count", queueCount)
-    if queueCount > 0 then
-      native.SetVariable(
-        "inv_overhaul_inventory_equipment_removal_count",
-        queueCount - 1)
-    end
+    inv_overhaul_quickslot_activation.QuickslotActivationPublishRemovalHint(
+      category, index)
   end
 
   function GetUseEffect(itemID: int) -> string
-    if itemID == 0 then return "item_alpha_pills.bin" end
-    if itemID == 1 then return "item_beta_pills.bin" end
-    if itemID == 2 then return "item_gamma_pills.bin" end
-    if itemID == 3 then return "item_delta_pills.bin" end
-    if itemID == 4 then return "item_black_vaccine.bin" end
-    if itemID == 5 then return "item_blue_vaccine.bin" end
-    if itemID == 6 then return "item_white_vaccine.bin" end
-    if itemID == 7 then return "item_tvirin.bin" end
-    if itemID == 8 then return "item_lemon.bin" end
-    if itemID == 9 then return "item_powder.bin" end
-    if itemID == 10 then return "item_burah_serum.bin" end
-    if itemID == 11 then return "item_neomicin.bin" end
-    if itemID == 12 then return "item_monomicin.bin" end
-    if itemID == 13 then return "item_feromicin.bin" end
-    if itemID == 14 then return "item_meradorm.bin" end
-    if itemID == 15 then return "item_novocaine.bin" end
-    if itemID == 16 then return "item_morfin.bin" end
-    if itemID == 17 then return "item_etorfin.bin" end
-    if itemID == 18 then return "item_bottle_water.bin" end
-    if itemID == 19 then return "item_funduk.bin" end
-    if itemID == 20 then return "item_peanut.bin" end
-    if itemID == 21 then return "item_walnut.bin" end
-    if itemID == 22 then return "item_rusk.bin" end
-    if itemID == 23 then return "item_dried_fish.bin" end
-    if itemID == 24 then return "item_egg.bin" end
-    if itemID == 25 then return "item_vegetables.bin" end
-    if itemID == 26 then return "item_milk.bin" end
-    if itemID == 27 then return "item_dried_meat.bin" end
-    if itemID == 28 then return "item_smoked_meat.bin" end
-    if itemID == 29 then return "item_fresh_fish.bin" end
-    if itemID == 30 then return "item_fresh_meat.bin" end
-    if itemID == 31 then return "item_bandage.bin" end
-    if itemID == 32 then return "item_tourniquet.bin" end
-    if itemID == 33 then return "item_packet.bin" end
-    if itemID == 34 then return "item_bread.bin" end
-    if itemID == 71 then return "item_coffee.bin" end
-    return ""
+    return inv_overhaul_quickslot_consumables.QuickslotConsumablesGetUseEffect(itemID)
   end
 
   function IsEquippable(category: int, itemID: int) -> bool
-    local property: bool
-    if category == c_iCWeapon then
-      native.HasInvItemProperty(property, itemID, "Weapon")
-      return property
-    end
-    if category == c_iCClothes then
-      native.HasInvItemProperty(property, itemID, "Group")
-      return property
-    end
-    return false
-  end
-
-  function IsEquippedItem(category: int, index: int) -> bool
-    if category != c_iCWeapon && category != c_iCClothes then return false end
-    local player: object = GetPlayer()
-    local selected: bool
-    player->IsItemSelected(selected, index, category)
-    return selected
-  end
-
-  function GetBackpackItemCount() -> int
-    local player: object = GetPlayer()
-    local total: int = 0
-    for category = 0, c_iCategoryCount - 1 do
-      local count: int
-      player->GetItemCount(count, category)
-      for index = 0, count - 1 do
-        if !IsEquippedItem(category, index) then total = total + 1 end
-      end
-    end
-    return total
+    return inv_overhaul_quickslot_activation.QuickslotActivationIsEquippable(
+      category, itemID)
   end
 
   function FindBoundItemIndex(
@@ -228,28 +95,8 @@ maintask InvOverhaulQuickslotPlayerEffect do
     itemID: int,
     wantedOccurrence: int
   ) -> int
-    if category < 0 || category >= c_iCategoryCount ||
-      itemID < 0 || wantedOccurrence < 0 then return -1 end
-
-    local player: object = GetPlayer()
-    local count: int
-    local occurrence: int = 0
-    player->GetItemCount(count, category)
-    for candidate = 0, count - 1 do
-      local item: object
-      local candidateID: int
-      player->GetItem(item, candidate, category)
-      if item then
-        item->GetItemID(candidateID)
-        if candidateID == itemID then
-          if occurrence == wantedOccurrence then
-            return candidate
-          end
-          occurrence = occurrence + 1
-        end
-      end
-    end
-    return -1
+    return inv_overhaul_quickslot_activation.QuickslotActivationFindBoundItemIndex(
+      category, itemID, wantedOccurrence)
   end
 
   function UpdateTrackedWeapon(delta: float) -> void
@@ -289,23 +136,8 @@ maintask InvOverhaulQuickslotPlayerEffect do
   end
 
   function AdjustBindingsAfterWeaponDrop(itemID: int, occurrence: int) -> void
-    for slot = 1, c_iQuickslotCount do
-      local assignedCategory: int = -1
-      local assignedItemID: int = -1
-      local assignedOccurrence: int = -1
-      native.GetVariable(GetCategoryVariable(slot), assignedCategory)
-      native.GetVariable(GetItemVariable(slot), assignedItemID)
-      native.GetVariable(GetOccurrenceVariable(slot), assignedOccurrence)
-      if assignedCategory == c_iCWeapon && assignedItemID == itemID then
-        if assignedOccurrence == occurrence then
-          ClearBinding(slot)
-        else
-          if assignedOccurrence > occurrence then
-            native.SetVariable(GetOccurrenceVariable(slot), assignedOccurrence - 1)
-          end
-        end
-      end
-    end
+    inv_overhaul_quickslot_hands.QuickslotHandsAdjustBindingsAfterDrop(
+      itemID, occurrence)
   end
 
   function ScheduleHandsDrop() -> void
@@ -449,66 +281,8 @@ maintask InvOverhaulQuickslotPlayerEffect do
     occurrence: int,
     selected: bool
   ) -> void
-    local player: object = GetPlayer()
-    if category == c_iCWeapon then
-      native.SetVariable("inv_overhaul_quickslot_weapon_item", itemID)
-      native.SetVariable("inv_overhaul_quickslot_weapon_occurrence", occurrence)
-      player->ApplyEffect("inv_overhaul_quickslot_weapon.bin")
-      native.Trace("inv_overhaul_quickslot weapon action dispatched item=" +
-        itemID + " occurrence=" + occurrence + " selected=" + selected)
-      return
-    end
-
-    if selected then
-      if GetBackpackItemCount() >= c_iInventoryCapacity then
-        ShowMessage(c_iInventoryFullTextID)
-        return
-      end
-      player->SelectItem(index, false, category)
-      MarkInventoryChanged()
-      ShowFeedback(itemID)
-      return
-    end
-
-    -- The persistent layout stores backpack ordinals.  Selecting equipment
-    -- removes exactly this ordinal from the backpack, but identical item IDs
-    -- are otherwise indistinguishable during the next snapshot reconcile.
-    -- Publish the ordinal before changing any selection state so the cell of
-    -- the item activated by the quickslot is the one that becomes empty.
-    PublishEquipmentRemovalHint(category, index)
-
-    local group: int
-    native.GetInvItemProperty(group, itemID, "Group")
-    local count: int
-    player->GetItemCount(count, category)
-    for other = 0, count - 1 do
-      local otherItem: object
-      local otherID: int
-      local hasGroup: bool
-      player->GetItem(otherItem, other, category)
-      if otherItem then
-        otherItem->GetItemID(otherID)
-        native.HasInvItemProperty(hasGroup, otherID, "Group")
-        if hasGroup then
-          local otherGroup: int
-          native.GetInvItemProperty(otherGroup, otherID, "Group")
-          if otherGroup == group then player->SelectItem(other, false, category) end
-        end
-      end
-    end
-
-    -- Deselecting the previous item in this equipment group may reorder the
-    -- engine category.  Never reuse the numeric index captured before that
-    -- mutation.
-    local refreshedIndex: int = FindBoundItemIndex(category, itemID, occurrence)
-    if refreshedIndex < 0 then
-      CancelLastEquipmentRemovalHint()
-      ShowMessage(c_iQuickslotMissingTextID)
-      return
-    end
-    player->SelectItem(refreshedIndex, true, category)
-    MarkInventoryChanged()
-    ShowFeedback(itemID)
+    inv_overhaul_quickslot_equipment.QuickslotEquipmentToggle(
+      category, index, itemID, occurrence, selected)
   end
 
   function ProcessPendingConsumption() -> void
@@ -636,6 +410,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
     m_iTrackedWeaponOccurrence = -1
     m_fTrackedWeaponGrace = 0
     native.GetVariable("inv_overhaul_effect_generation", m_iEffectGeneration)
+    inv_overhaul_quickslot_activation.QuickslotActivationInitializePersistentState()
     native.SetVariable("inv_overhaul_quickslot_diag_active", 0)
     native.SetVariable("inv_overhaul_handcombat_request", 0)
     UpdateTrackedWeapon(0)

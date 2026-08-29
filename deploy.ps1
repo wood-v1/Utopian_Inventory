@@ -33,6 +33,7 @@ if ([string]::IsNullOrEmpty($PathologicReRoot)) {
 }
 
 $LuaOutDir = Join-Path $RepoRoot "scripts\out"
+$LuaBuildScript = Join-Path $RepoRoot "scripts\build_lua.ps1"
 $GameModsDir = Join-Path $GameRoot "bin\Final\mods"
 $GameScriptsDir = Join-Path $GameRoot "data\Scripts"
 $GameUiDir = Join-Path $GameRoot "data\UI"
@@ -134,9 +135,7 @@ if (!$SkipBuild) {
 if (!$SkipLuaCompile) {
     Assert-PathExists -Path $LuaCompilerRoot -Description "pathologic_lua_compiler root"
     Assert-PathExists -Path $PathologicReRoot -Description "pathologic_re root"
-    if (!$DryRun -and !(Test-Path -LiteralPath $LuaOutDir)) {
-        New-Item -ItemType Directory -Path $LuaOutDir | Out-Null
-    }
+    Assert-PathExists -Path $LuaBuildScript -Description "Lua build script"
     foreach ($staleScript in @(
         "inv_overhaul_apparatus.bin",
         "inv_overhaul_dapparatus.bin",
@@ -147,18 +146,12 @@ if (!$SkipLuaCompile) {
     )) {
         Remove-DeployedFile -Path (Join-Path $LuaOutDir $staleScript)
     }
-    foreach ($lua in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "scripts") -Filter "*.lua" -File) {
-        if (!(Select-String -LiteralPath $lua.FullName -Pattern '^maintask\s' -Quiet)) {
-            continue
-        }
-        Invoke-External -WorkingDirectory $LuaCompilerRoot -FilePath "python" -Arguments @(
-            ".\compiler.py",
-            $lua.FullName,
-            "-o",
-            $LuaOutDir,
-            "--pathologic-re",
-            $PathologicReRoot)
-    }
+    & $LuaBuildScript `
+        -LuaCompilerRoot $LuaCompilerRoot `
+        -PathologicReRoot $PathologicReRoot `
+        -OutputDir $LuaOutDir `
+        -DryRun:$DryRun
+    if (!$?) { throw "Lua build failed" }
 }
 
 Remove-DeployedFilesMatching -Directory $GameUiTexturesDir -Filter "inv_overhaul_*.png"

@@ -11,6 +11,8 @@ import "inv_overhaul_inventory_view"
 import "inv_overhaul_inventory_paging"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_drop"
+import "inv_overhaul_inventory_presenter"
+import "inv_overhaul_inventory_input_controller"
 
 module inv_overhaul_inventory_controller do
   local const c_sScriptVersion: string = "2026.08.17-fast-open-generation-poll-1"
@@ -225,17 +227,8 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerConfigureSlotRenderSize() -> void
-    local sizeMessage: int = -27
-    local equipSizeMessage: int = -27
-    if windowWidth >= 1200 then sizeMessage = -26 end
-    if windowWidth >= 1900 then equipSizeMessage = -28 end
-    native.SendMessage(equipSizeMessage, "equip_head")
-    native.SendMessage(equipSizeMessage, "equip_body")
-    native.SendMessage(equipSizeMessage, "equip_hands")
-    native.SendMessage(equipSizeMessage, "equip_feet")
-    native.SendMessage(equipSizeMessage, "equip_weapon")
-    native.SendMessage(sizeMessage, "drop_slot")
-    native.SendMessage(sizeMessage, "money")
+    inv_overhaul_inventory_presenter.InventoryPresenterConfigureSlotRenderSize(
+      InventoryControllerReadWindowWidth())
   end
 
   function InventoryControllerUpdateLayout() -> void
@@ -266,14 +259,13 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerSendGridRendererState(slot: int, operation: int, value: int, data: object) -> void
-    if slot < 0 || slot >= c_iInventoryCapacity then return end
-    if value < 0 then value = 0 end
-    if value > 19999 then value = 19999 end
-    inv_overhaul_inventory_view.InventoryViewSendGridRendererState(slot, operation, value, data)
+    inv_overhaul_inventory_presenter.InventoryPresenterSendGridRendererState(
+      slot, c_iInventoryCapacity, operation, value, data)
   end
 
   function InventoryControllerSetGridRendererHighlight(slot: int, enabled: bool) -> void
-    inv_overhaul_inventory_view.InventoryViewSetGridRendererHighlight(slot, enabled)
+    inv_overhaul_inventory_presenter.InventoryPresenterSetGridRendererHighlight(
+      slot, enabled)
   end
 
   function InventoryControllerGetVisibleCell(slot: int) -> int
@@ -452,22 +444,10 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerUpdatePageControls() -> void
-    if visibleSlots >= c_iInventoryCapacity then return end
     local maxPage: int = InventoryControllerGetMaxPage()
-    local visibilityMessage: int = -93
-    native.SendMessage(-112, "page_prev")
-    native.SendMessage(-113, "page_next")
-    if maxPage > 0 then visibilityMessage = -92 end
-    native.SendMessage(visibilityMessage, "page_prev")
-    native.SendMessage(visibilityMessage, "page_counter")
-    native.SendMessage(visibilityMessage, "page_next")
-    if maxPage <= 0 then return end
-    native.SendMessage(-90, "page_prev")
-    native.SendMessage(-91, "page_next")
     local currentPage: int = InventoryControllerReadPage()
-    if currentPage > 0 then native.SendMessage(-97, "page_prev") else native.SendMessage(-96, "page_prev") end
-    if currentPage < maxPage then native.SendMessage(-97, "page_next") else native.SendMessage(-96, "page_next") end
-    native.SendMessage((currentPage + 1) * 100 + maxPage + 1, "page_counter")
+    inv_overhaul_inventory_presenter.InventoryPresenterUpdatePageControls(
+      InventoryControllerReadVisibleSlots(), c_iInventoryCapacity, maxPage, currentPage)
   end
 
   function InventoryControllerResolveVisibleSlot(slot: int) -> int
@@ -484,10 +464,8 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerUpdateMoney() -> void
-    local container: object = InventoryControllerGetPlayerContainer()
-    local money: int
-    container->GetProperty("money", money)
-    native.SendMessage(money, "money")
+    inv_overhaul_inventory_presenter.InventoryPresenterUpdateMoney(
+      InventoryControllerGetPlayerContainer())
   end
 
   function InventoryControllerInitializeQuickslotBindings() -> void
@@ -531,58 +509,21 @@ module inv_overhaul_inventory_controller do
 
   function InventoryControllerUpdateSlot(slot: int) -> void
     local container: object = InventoryControllerGetPlayerContainer()
-    if InventoryControllerGetVisibleCell(slot) < 0 then
-      InventoryControllerSendGridRendererState(slot, inv_overhaul_inventory_protocol.GridRendererHidden, 0, null)
-    else
-      local reference: int = InventoryControllerResolveVisibleSlot(slot)
-      if reference >= 0 then
-        local category: int =
-          inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(reference)
-        local index: int =
-          inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(reference)
-        local item: object
-        local amount: int
-        container->GetItem(item, index, category)
-        container->GetItemAmount(amount, index, category)
-        local itemID: int
-        item->GetItemID(itemID)
-        local quickslot: int = InventoryControllerGetDisplayedQuickslot(category, index, itemID)
-        if amount > 1800 then amount = 1800 end
-        InventoryControllerSendGridRendererState(slot, inv_overhaul_inventory_protocol.GridRendererItem, amount * 11 + quickslot, item)
-      else
-        InventoryControllerSendGridRendererState(slot, inv_overhaul_inventory_protocol.GridRendererEmpty, 0, null)
-      end
-    end
+    local visibleCell: int = InventoryControllerGetVisibleCell(slot)
+    local reference: int = -1
+    if visibleCell >= 0 then reference = InventoryControllerResolveVisibleSlot(slot) end
+    inv_overhaul_inventory_presenter.InventoryPresenterUpdateSlot(
+      slot, c_iInventoryCapacity, visibleCell, reference, container)
   end
 
   function InventoryControllerIsItemTexturePreloaded(itemID: int, cacheEpoch: int) -> bool
-    if itemID < 0 then return false end
-    if cacheEpoch > 0 then
-      local itemEpoch: int = 0
-      native.GetVariable("inv_overhaul_ui_cache_item_" + itemID, itemEpoch)
-      if itemEpoch == cacheEpoch then return true end
-    end
-    local runtimeEpoch: int = 0
-    local loadedEpoch: int = -1
-    native.GetVariable("inv_overhaul_runtime_texture_epoch", runtimeEpoch)
-    if runtimeEpoch <= 0 then return false end
-    native.GetVariable("inv_overhaul_runtime_texture_item_" + itemID, loadedEpoch)
-    return loadedEpoch == runtimeEpoch
+    return inv_overhaul_inventory_presenter.InventoryPresenterIsItemTexturePreloaded(
+      itemID, cacheEpoch)
   end
 
   function InventoryControllerMarkItemTextureLoaded(category: int, index: int) -> void
-    if category < 0 || index < 0 then return end
-    local runtimeEpoch: int = 0
-    native.GetVariable("inv_overhaul_runtime_texture_epoch", runtimeEpoch)
-    if runtimeEpoch <= 0 then return end
-    local container: object = InventoryControllerGetPlayerContainer()
-    local item: object
-    local itemID: int = -1
-    container->GetItem(item, index, category)
-    if item then item->GetItemID(itemID) end
-    if itemID >= 0 then
-      native.SetVariable("inv_overhaul_runtime_texture_item_" + itemID, runtimeEpoch)
-    end
+    inv_overhaul_inventory_presenter.InventoryPresenterMarkItemTextureLoaded(
+      InventoryControllerGetPlayerContainer(), category, index)
   end
 
   function InventoryControllerMeasureInitialTextureCacheCoverage() -> void
@@ -773,21 +714,9 @@ module inv_overhaul_inventory_controller do
     local wndName: string = InventoryControllerGetTargetWndName(inv_overhaul_inventory_protocol.TargetWeapon + cache)
     category = inv_overhaul_inventory_equipment.InventoryEquipmentGetCachedCategory(cache)
     index = inv_overhaul_inventory_equipment.InventoryEquipmentGetCachedIndex(cache)
-    if category >= 0 && index >= 0 then
-      local container: object = InventoryControllerGetPlayerContainer()
-      local item: object
-      container->GetItem(item, index, category)
-      native.SendMessage(0, wndName, item)
-      local itemID: int
-      item->GetItemID(itemID)
-      local quickslot: int = InventoryControllerGetDisplayedQuickslot(category, index, itemID)
-      native.SendMessage(-140, wndName)
-      if quickslot > 0 then native.SendMessage(-140 - quickslot, wndName) end
-    else
-      native.SendMessage(c_iSlotEmpty, wndName)
-      native.SendMessage(-140, wndName)
-    end
-    native.SendMessage(-30 - cache, wndName)
+    inv_overhaul_inventory_presenter.InventoryPresenterUpdateEquipmentSlot(
+      cache, wndName, category, index, InventoryControllerGetPlayerContainer(),
+      c_iSlotEmpty)
   end
 
   function InventoryControllerUpdateEquipmentSlots() -> void
@@ -1212,19 +1141,9 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerGetSlotTargetFromPointerMessage(message: int, base: int, sender: string) -> int
-    local senderSlot: int = inv_overhaul_inventory_protocol.InventoryProtocolGetSlotBySender(sender, InventoryControllerReadVisibleSlots() + 0)
-    if senderSlot < 0 then
-      return -1
-    end
-
-    local encoded: int = message - base
-    local localX: int = encoded / 100
-    local localY: int = encoded - localX * 100
-    local targetSlot: int = -1
-    if InventoryControllerIsInsideSlotDropArea(localX, localY) then
-      targetSlot = senderSlot
-    end
-    return targetSlot
+    return inv_overhaul_inventory_input_controller.InventoryInputGetSlotTargetFromPointerMessage(
+      message, base, sender, InventoryControllerReadVisibleSlots(),
+      InventoryControllerReadWindowWidth(), c_iSlotDropInset)
   end
 
   function InventoryControllerChangePage(delta: int) -> void
@@ -1234,12 +1153,8 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerGetDragPageHoverAction(sender: string) -> int
-    local action: int = 0
-    if sender == "page_prev" then action = -1 end
-    if sender == "page_next" then action = 1 end
-    if inv_overhaul_inventory_paging.InventoryPagingCanMove(
-      action, InventoryControllerGetMaxPage()) then return action end
-    return 0
+    return inv_overhaul_inventory_input_controller.InventoryInputGetDragPageHoverAction(
+      sender, InventoryControllerGetMaxPage())
   end
 
   function InventoryControllerBeginDragPageHover(sender: string) -> void
@@ -1392,20 +1307,22 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerGetPageControlX() -> int
-    return inv_overhaul_inventory_geometry.InventoryGeometryGetPageControlX(InventoryControllerReadWindowWidth() + 0)
+    return inv_overhaul_inventory_input_controller.InventoryInputGetPageControlX(
+      InventoryControllerReadWindowWidth())
   end
 
   function InventoryControllerGetPageControlY() -> int
-    return inv_overhaul_inventory_geometry.InventoryGeometryGetPageControlY(InventoryControllerReadWindowWidth(), InventoryControllerGetBranch())
+    return inv_overhaul_inventory_input_controller.InventoryInputGetPageControlY(
+      InventoryControllerReadWindowWidth(), InventoryControllerGetBranch())
   end
 
   function InventoryControllerIsInsideQuickslotHelp(x: int, y: int) -> bool
-    return inv_overhaul_inventory_geometry.InventoryGeometryIsInsideQuickslotHelp(
+    return inv_overhaul_inventory_input_controller.InventoryInputIsInsideQuickslotHelp(
       InventoryControllerReadWindowWidth(), x, y)
   end
 
   function InventoryControllerIsInsidePlayerPaging(x: int, y: int) -> bool
-    return inv_overhaul_inventory_geometry.InventoryGeometryIsInsidePlayerPaging(
+    return inv_overhaul_inventory_input_controller.InventoryInputIsInsidePlayerPaging(
       InventoryControllerReadWindowWidth(), InventoryControllerGetBranch(),
       InventoryControllerGetMaxPage(), x, y)
   end
@@ -1466,9 +1383,6 @@ module inv_overhaul_inventory_controller do
   end
 
   function InventoryControllerHandlePanelPointer(message: int) -> void
-    local base: int = inv_overhaul_inventory_protocol.PointerMoveBase
-    local action: int = 0
-
     if message >= inv_overhaul_inventory_protocol.PointerLeaveBase then
       inv_overhaul_inventory_tooltip.InventoryTooltipClear()
       native.SendMessage(-95, "page_prev")
@@ -1476,30 +1390,10 @@ module inv_overhaul_inventory_controller do
       return
     end
 
-    if message >= inv_overhaul_inventory_protocol.PointerDragEndBase then
-      base = inv_overhaul_inventory_protocol.PointerDragEndBase
-      action = 3
-    else
-      if message >= inv_overhaul_inventory_protocol.PointerDragBeginBase then
-        base = inv_overhaul_inventory_protocol.PointerDragBeginBase
-        action = 1
-      else
-        if message >= inv_overhaul_inventory_protocol.PointerRightBase then
-          base = inv_overhaul_inventory_protocol.PointerRightBase
-          action = 2
-        else
-          if message >= inv_overhaul_inventory_protocol.PointerUpBase then
-            base = inv_overhaul_inventory_protocol.PointerUpBase
-            action = 3
-          else
-            if message >= inv_overhaul_inventory_protocol.PointerDownBase then
-              base = inv_overhaul_inventory_protocol.PointerDownBase
-              action = 1
-            end
-          end
-        end
-      end
-    end
+    local base: int =
+      inv_overhaul_inventory_input_controller.InventoryInputDecodePanelPointerBase(message)
+    local action: int =
+      inv_overhaul_inventory_input_controller.InventoryInputDecodePanelPointerAction(message)
 
     local x: int = inv_overhaul_inventory_protocol.InventoryProtocolDecodePanelPointerX(message, base)
     local y: int = inv_overhaul_inventory_protocol.InventoryProtocolDecodePanelPointerY(message, base)

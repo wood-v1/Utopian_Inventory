@@ -8,11 +8,11 @@ module inv_overhaul_container_feedback do
 
   local messageCooldown: float
 
-  function ContainerFeedbackInitializeState() -> void
+  function LootFeedbackInitializeState() -> void
     messageCooldown = 0
   end
 
-  function ContainerFeedbackShowInventoryFull() -> void
+  function LootFeedbackShowInventoryFull() -> void
     if messageCooldown > 0 then return end
     local text: object
     native.CreateIntVector(text)
@@ -21,11 +21,11 @@ module inv_overhaul_container_feedback do
     messageCooldown = 1.0
   end
 
-  function ContainerFeedbackShowContainerFull() -> void
+  function ShowContainerFull() -> void
     if messageCooldown > 0 then return end
     local text: object
     native.CreateIntVector(text)
-    if inv_overhaul_container_session.ContainerSessionIsCorpse() then
+    if inv_overhaul_container_session.LootSessionIsCorpse() then
       text->add(CorpseFullTextID)
     else
       text->add(ContainerFullTextID)
@@ -34,7 +34,7 @@ module inv_overhaul_container_feedback do
     messageCooldown = 1.0
   end
 
-  function ContainerFeedbackAdvance(delta: float) -> void
+  function LootFeedbackAdvance(delta: float) -> void
     if messageCooldown <= 0 then return end
     messageCooldown = messageCooldown - delta
     if messageCooldown < 0 then messageCooldown = 0 end

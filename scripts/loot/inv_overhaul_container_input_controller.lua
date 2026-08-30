@@ -23,141 +23,141 @@ module inv_overhaul_container_input_controller do
   local shiftHeld: bool
   local controlHeld: bool
 
-  function ContainerInputInitializeState() -> void
+  function LootInputInitializeState() -> void
     shiftHeld = false
     controlHeld = false
   end
 
-  function ContainerInputAssignHoveredQuickslot(slot: int) -> void
-    if inv_overhaul_container_drag.ContainerDragIsActive() then return end
+  function LootInputAssignHoveredQuickslot(slot: int) -> void
+    if inv_overhaul_container_drag.LootDragIsActive() then return end
     local target: int =
-      inv_overhaul_container_drag.ContainerDragGetHighlightedTarget()
+      inv_overhaul_container_drag.LootDragGetHighlightedTarget()
     if target < 0 then
-      target = inv_overhaul_inventory_tooltip.InventoryTooltipGetTarget()
+      target = inv_overhaul_inventory_tooltip.GetTarget()
     end
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     if target < 0 || target >= visibleSlots then return end
     local reference: int =
-      inv_overhaul_container_presenter.ContainerPresenterResolveVisibleSlot(target)
+      inv_overhaul_container_presenter.LootPresenterResolveVisibleSlot(target)
     if reference < 0 then return end
     local category: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(reference)
+      inv_overhaul_inventory_items.DecodeReferenceCategory(reference)
     local index: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(reference)
-    if inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotAssign(
+      inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
+    if inv_overhaul_inventory_quickslot_bindings.Assign(
       slot, category, index, false) then
-      inv_overhaul_container_presenter.ContainerPresenterUpdatePlayerSlots()
+      inv_overhaul_container_presenter.UpdatePlayerSlots()
     end
   end
 
-  function ContainerInputHandleModifiedDrop(source: int) -> bool
+  function LootInputHandleModifiedDrop(source: int) -> bool
     if !shiftHeld && !controlHeld then return false end
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     if source < 0 || source >= visibleSlots then return false end
     local reference: int =
-      inv_overhaul_container_presenter.ContainerPresenterResolveVisibleSlot(source)
+      inv_overhaul_container_presenter.LootPresenterResolveVisibleSlot(source)
     if reference < 0 then return true end
     if controlHeld && !shiftHeld then
-      inv_overhaul_container_player_actions.ContainerPlayerActionsMoveSlotToOtherPage(
+      inv_overhaul_container_player_actions.LootPlayerActionsMoveSlotToOtherPage(
         source)
       return true
     end
     local amount: int
     local player: object =
-      inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+      inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local category: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(reference)
+      inv_overhaul_inventory_items.DecodeReferenceCategory(reference)
     local index: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(reference)
+      inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
     player->GetItemAmount(amount, index, category)
-    inv_overhaul_container_player_actions.ContainerPlayerActionsDropToWorld(
+    inv_overhaul_container_player_actions.DropToWorld(
       source, amount)
     return true
   end
 
-  function ContainerInputStartPanelPointerDrag(x: int, y: int) -> void
+  function LootInputStartPanelPointerDrag(x: int, y: int) -> void
     local source: int =
-      inv_overhaul_container_drag_controller.ContainerDragControllerFindTargetAt(
+      inv_overhaul_container_drag_controller.LootDragControllerFindTargetAt(
         x, y)
     if source < 0 then return end
-    if ContainerInputHandleModifiedDrop(source) then return end
-    inv_overhaul_container_drag_controller.ContainerDragControllerStart(source)
+    if LootInputHandleModifiedDrop(source) then return end
+    inv_overhaul_container_drag_controller.Start(source)
   end
 
-  function ContainerInputHandlePanelPointer(message: int) -> void
+  function LootInputHandlePanelPointer(message: int) -> void
     local action: int =
-      inv_overhaul_container_protocol.ContainerProtocolGetPanelPointerAction(message)
+      inv_overhaul_container_protocol.GetPanelPointerAction(message)
     if action < 0 then
-      inv_overhaul_container_tooltip_controller.ContainerTooltipClear()
-      inv_overhaul_container_view.ContainerViewClearPageControlHover()
+      inv_overhaul_container_tooltip_controller.LootTooltipClear()
+      inv_overhaul_container_view.ClearPageControlHover()
       return
     end
     local base: int =
-      inv_overhaul_container_protocol.ContainerProtocolGetPanelPointerBase(message)
+      inv_overhaul_container_protocol.GetPanelPointerBase(message)
     local x: int =
-      inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerX(
+      inv_overhaul_container_geometry.LootGeometryDecodePanelPointerX(
         message, base)
     local y: int =
-      inv_overhaul_container_geometry.ContainerGeometryDecodePanelPointerY(
+      inv_overhaul_container_geometry.LootGeometryDecodePanelPointerY(
         message, base)
     if action == 0 then
-      inv_overhaul_container_paging_controller.ContainerPagingUpdateControlHover(
+      inv_overhaul_container_paging_controller.UpdateControlHover(
         x, y)
       local windowWidth: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetWindowWidth()
+        inv_overhaul_container_presenter.GetWindowWidth()
       local visibleSlots: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+        inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
       local playerPage: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+        inv_overhaul_container_presenter.GetPlayerPage()
       local containerPage: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+        inv_overhaul_container_presenter.GetContainerPage()
       local showOrgans: bool =
-        inv_overhaul_container_presenter.ContainerPresenterShowsOrgans()
+        inv_overhaul_container_presenter.LootPresenterShowsOrgans()
       local maxPlayerPage: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetMaxPlayerPage()
-      inv_overhaul_container_tooltip_controller.ContainerTooltipUpdate(
+        inv_overhaul_container_presenter.GetMaxPlayerPage()
+      inv_overhaul_container_tooltip_controller.Update(
         windowWidth, visibleSlots, playerPage, containerPage, showOrgans,
         maxPlayerPage, x, y)
     end
     if action == 1 then
-      inv_overhaul_container_tooltip_controller.ContainerTooltipClear()
-      if inv_overhaul_container_paging_controller.ContainerPagingHandleControlAt(
+      inv_overhaul_container_tooltip_controller.LootTooltipClear()
+      if inv_overhaul_container_paging_controller.HandleControlAt(
         x, y) then return end
-      ContainerInputStartPanelPointerDrag(x, y)
+      LootInputStartPanelPointerDrag(x, y)
       return
     end
     if action == 2 then
       local source: int =
-        inv_overhaul_container_drag_controller.ContainerDragControllerFindTargetAt(
+        inv_overhaul_container_drag_controller.LootDragControllerFindTargetAt(
           x, y)
       local wholeStack: bool = shiftHeld
-      inv_overhaul_container_quick_transfer.ContainerQuickTransferExecute(
+      inv_overhaul_container_quick_transfer.Execute(
         source, wholeStack)
       return
     end
     local target: int =
-      inv_overhaul_container_drag_controller.ContainerDragControllerFindTargetAt(
+      inv_overhaul_container_drag_controller.LootDragControllerFindTargetAt(
         x, y)
     if action == 3 then
-      inv_overhaul_container_drag_controller.ContainerDragControllerApplyPointerTarget(
+      inv_overhaul_container_drag_controller.LootDragControllerApplyPointerTarget(
         target)
-      inv_overhaul_container_drag_controller.ContainerDragControllerFinish(target)
+      inv_overhaul_container_drag_controller.Finish(target)
       return
     end
-    if inv_overhaul_container_drag.ContainerDragIsActive() then
-      inv_overhaul_container_drag_controller.ContainerDragControllerApplyPointerTarget(
+    if inv_overhaul_container_drag.LootDragIsActive() then
+      inv_overhaul_container_drag_controller.LootDragControllerApplyPointerTarget(
         target)
     end
   end
 
-  function ContainerInputHandleLifecycleMessage(
+  function HandleLifecycleMessage(
     message: int,
     sender: string) -> bool
     if message == inv_overhaul_container_protocol.ContainerQuickslotHelpHover &&
       sender == "panel_background" then
-      inv_overhaul_container_tooltip_controller.ContainerTooltipShowQuickslotHelp()
+      inv_overhaul_container_tooltip_controller.ShowQuickslotHelp()
       return true
     end
     if message == inv_overhaul_container_protocol.ContainerGridRendererReady then
@@ -165,100 +165,100 @@ module inv_overhaul_container_input_controller do
       return true
     end
     if message == inv_overhaul_container_protocol.ContainerPageHoverEnter then
-      inv_overhaul_container_paging_controller.ContainerPagingBeginDragHover(sender)
+      inv_overhaul_container_paging_controller.BeginDragHover(sender)
       return true
     end
     if message == inv_overhaul_container_protocol.ContainerPageHoverLeave then
       local action: int =
-        inv_overhaul_container_paging_controller.ContainerPagingGetDragHoverAction(
+        inv_overhaul_container_paging_controller.GetDragHoverAction(
           sender)
-      inv_overhaul_container_drag_controller.ContainerDragControllerCancelPageHover(
+      inv_overhaul_container_drag_controller.CancelPageHover(
         action)
       return true
     end
     if message == -100 && sender == "corpse_marker" then
-      inv_overhaul_container_session.ContainerSessionActivateCorpseMode()
+      inv_overhaul_container_session.ActivateCorpseMode()
       native.SendMessage(-120, "corpse_marker")
       return true
     end
     return false
   end
 
-  function ContainerInputHandlePagingMessage(
+  function HandlePagingMessage(
     message: int,
     sender: string) -> bool
     if sender == "player_page_prev" && message == 0 then
       local page: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+        inv_overhaul_container_presenter.GetPlayerPage()
       if page > 0 then
-        inv_overhaul_container_presenter.ContainerPresenterChangePlayerPage(-1)
+        inv_overhaul_container_presenter.ChangePlayerPage(-1)
       end
       return true
     end
     if sender == "player_page_next" && message == 0 then
       local page: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+        inv_overhaul_container_presenter.GetPlayerPage()
       local maxPage: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetMaxPlayerPage()
+        inv_overhaul_container_presenter.GetMaxPlayerPage()
       if page < maxPage then
-        inv_overhaul_container_presenter.ContainerPresenterChangePlayerPage(1)
+        inv_overhaul_container_presenter.ChangePlayerPage(1)
       end
       return true
     end
     if sender == "container_page_prev" && message == 0 then
       local page: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+        inv_overhaul_container_presenter.GetContainerPage()
       if page > 0 then
-        inv_overhaul_container_presenter.ContainerPresenterChangeContainerPage(-1)
+        inv_overhaul_container_presenter.ChangeContainerPage(-1)
       end
       return true
     end
     if sender == "container_page_next" && message == 0 then
       local page: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+        inv_overhaul_container_presenter.GetContainerPage()
       local maxPage: int =
-        inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
+        inv_overhaul_container_projection.LootProjectionGetMaxPage()
       if page < maxPage then
-        inv_overhaul_container_presenter.ContainerPresenterChangeContainerPage(1)
+        inv_overhaul_container_presenter.ChangeContainerPage(1)
       end
       return true
     end
     return false
   end
 
-  function ContainerInputGetSlotPointerTarget(
+  function GetSlotPointerTarget(
     message: int,
     base: int,
     sender: string) -> int
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     local windowWidth: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetWindowWidth()
-    return inv_overhaul_container_protocol.ContainerProtocolGetSlotTargetFromPointerMessage(
+      inv_overhaul_container_presenter.GetWindowWidth()
+    return inv_overhaul_container_protocol.LootProtocolGetSlotTargetFromPointerMessage(
       message, base, sender, visibleSlots, windowWidth)
   end
 
-  function ContainerInputHandleSlotPointerMessage(
+  function HandleSlotPointerMessage(
     message: int,
     sender: string) -> bool
     local action: int =
-      inv_overhaul_container_protocol.ContainerProtocolGetSlotPointerAction(message)
+      inv_overhaul_container_protocol.GetSlotPointerAction(message)
     local base: int =
-      inv_overhaul_container_protocol.ContainerProtocolGetSlotPointerBase(message)
+      inv_overhaul_container_protocol.GetSlotPointerBase(message)
     if action == 3 || action == 2 then
-      local target: int = ContainerInputGetSlotPointerTarget(message, base, sender)
-      inv_overhaul_container_drag_controller.ContainerDragControllerApplyPointerTarget(
+      local target: int = GetSlotPointerTarget(message, base, sender)
+      inv_overhaul_container_drag_controller.LootDragControllerApplyPointerTarget(
         target)
-      inv_overhaul_container_drag_controller.ContainerDragControllerFinish(target)
+      inv_overhaul_container_drag_controller.Finish(target)
       return true
     end
     if action == 1 then
-      local target: int = ContainerInputGetSlotPointerTarget(message, base, sender)
-      if inv_overhaul_container_drag.ContainerDragIsActive() then
-        inv_overhaul_container_drag_controller.ContainerDragControllerApplyPointerTarget(
+      local target: int = GetSlotPointerTarget(message, base, sender)
+      if inv_overhaul_container_drag.LootDragIsActive() then
+        inv_overhaul_container_drag_controller.LootDragControllerApplyPointerTarget(
           target)
       else
-        inv_overhaul_container_drag_controller.ContainerDragControllerSetHighlightedTarget(
+        inv_overhaul_container_drag_controller.LootDragControllerSetHighlightedTarget(
           target)
       end
       return true
@@ -266,97 +266,97 @@ module inv_overhaul_container_input_controller do
     return false
   end
 
-  function ContainerInputHandleDragLifecycleMessage(
+  function LootInputHandleDragLifecycleMessage(
     message: int,
     sender: string) -> bool
     if message == 2 || message == 3 then
       local source: int =
-        inv_overhaul_container_drag_controller.ContainerDragControllerGetTargetBySender(
+        inv_overhaul_container_drag_controller.LootDragControllerGetTargetBySender(
           sender)
-      if ContainerInputHandleModifiedDrop(source) then return true end
-      inv_overhaul_container_drag_controller.ContainerDragControllerStart(source)
+      if LootInputHandleModifiedDrop(source) then return true end
+      inv_overhaul_container_drag_controller.Start(source)
       return true
     end
     if message == 7 then
-      if inv_overhaul_container_drag.ContainerDragIsActive() then
-        inv_overhaul_container_drag_controller.ContainerDragControllerApplyPointerTarget(
+      if inv_overhaul_container_drag.LootDragIsActive() then
+        inv_overhaul_container_drag_controller.LootDragControllerApplyPointerTarget(
           -1)
       else
-        inv_overhaul_container_drag_controller.ContainerDragControllerSetHighlightedTarget(
+        inv_overhaul_container_drag_controller.LootDragControllerSetHighlightedTarget(
           -1)
       end
       return true
     end
     if message == 8 then
       local target: int =
-        inv_overhaul_container_drag.ContainerDragGetHighlightedTarget()
-      inv_overhaul_container_drag_controller.ContainerDragControllerFinish(target)
+        inv_overhaul_container_drag.LootDragGetHighlightedTarget()
+      inv_overhaul_container_drag_controller.Finish(target)
       return true
     end
     return false
   end
 
-  function ContainerInputHandleRegularSlotMessage(
+  function LootInputHandleRegularSlotMessage(
     message: int,
     sender: string,
     data: object) -> bool
     if message == 1 && !data then
       local source: int =
-        inv_overhaul_container_drag_controller.ContainerDragControllerGetTargetBySender(
+        inv_overhaul_container_drag_controller.LootDragControllerGetTargetBySender(
           sender)
       local wholeStack: bool = shiftHeld
-      inv_overhaul_container_quick_transfer.ContainerQuickTransferExecute(
+      inv_overhaul_container_quick_transfer.Execute(
         source, wholeStack)
       return true
     end
     return false
   end
 
-  function ContainerInputHandleUIMessage(
+  function HandleUIMessage(
     message: int,
     sender: string,
     data: object) -> void
-    if ContainerInputHandleLifecycleMessage(message, sender) then return end
+    if HandleLifecycleMessage(message, sender) then return end
     if sender == "panel_background" &&
-      inv_overhaul_container_protocol.ContainerProtocolIsPanelPointerMessage(
+      inv_overhaul_container_protocol.IsPanelPointerMessage(
         message) then
-      ContainerInputHandlePanelPointer(message)
+      LootInputHandlePanelPointer(message)
       return
     end
-    if ContainerInputHandlePagingMessage(message, sender) then return end
-    if ContainerInputHandleSlotPointerMessage(message, sender) then return end
-    if ContainerInputHandleDragLifecycleMessage(message, sender) then return end
-    ContainerInputHandleRegularSlotMessage(message, sender, data)
+    if HandlePagingMessage(message, sender) then return end
+    if HandleSlotPointerMessage(message, sender) then return end
+    if LootInputHandleDragLifecycleMessage(message, sender) then return end
+    LootInputHandleRegularSlotMessage(message, sender, data)
   end
 
-  function ContainerInputPersistAndClose() -> void
-    if inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeHasQueuedSave() then
-      inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSaveAll()
+  function PersistAndClose() -> void
+    if inv_overhaul_inventory_layout_runtime.HasQueuedSave() then
+      inv_overhaul_inventory_layout_runtime.SaveAll()
     end
-    inv_overhaul_inventory_snapshot.InventorySnapshotPersistCurrent()
-    inv_overhaul_container_session.ContainerSessionCloseWindow()
+    inv_overhaul_inventory_snapshot.PersistCurrent()
+    inv_overhaul_container_session.CloseWindow()
   end
 
-  function ContainerInputHandleChar(char: int) -> void
+  function HandleChar(char: int) -> void
     if char >= 48 && char <= 57 then return end
-    ContainerInputPersistAndClose()
+    PersistAndClose()
   end
 
-  function ContainerInputHandleKeyDown(key: int) -> void
+  function HandleKeyDown(key: int) -> void
     if key == VKShift then shiftHeld = true end
     if key == VKControl then controlHeld = true end
     local quickslot: int =
-      inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetSlotByKey(key)
+      inv_overhaul_inventory_quickslot_bindings.GetSlotByKey(key)
     if quickslot > 0 then
-      ContainerInputAssignHoveredQuickslot(quickslot)
+      LootInputAssignHoveredQuickslot(quickslot)
       return
     end
     if key == 27 || key == 73 || key == 105 then
-      ContainerInputPersistAndClose()
+      PersistAndClose()
     end
   end
 
-  function ContainerInputHandleKeyUp(key: int) -> void
+  function HandleKeyUp(key: int) -> void
     if key == VKShift then shiftHeld = false end
     if key == VKControl then controlHeld = false end
   end

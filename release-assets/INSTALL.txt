@@ -2,7 +2,7 @@ Inventory Overhaul - Utopian Launcher package
 ==============================================
 
 1. Open Utopian Launcher and choose Install Mod.
-2. Select this folder or Pathologic_Inventory_Overhaul_0_1.zip.
+2. Select this folder or Pathologic_Inventory_Overhaul_1_0_0.zip.
 3. Select InventoryOverhaul.dll as the primary DLL.
    OynonTools.dll is the bundled shared runtime dependency.
 4. Under [Strings] in <Pathologic Classic HD>\data\config.ini, keep exactly

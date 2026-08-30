@@ -13,33 +13,33 @@ import "inv_overhaul_inventory_items"
 module inv_overhaul_container_drag_controller do
   local const ContainerSlots: int = 12
 
-  function ContainerDragControllerGetTargetBySender(sender: string) -> int
+  function LootDragControllerGetTargetBySender(sender: string) -> int
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
-    return inv_overhaul_container_protocol.ContainerProtocolGetTargetBySender(
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
+    return inv_overhaul_container_protocol.LootProtocolGetTargetBySender(
       sender, visibleSlots)
   end
 
-  function ContainerDragControllerFindTargetAt(x: int, y: int) -> int
+  function LootDragControllerFindTargetAt(x: int, y: int) -> int
     local windowWidth: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetWindowWidth()
+      inv_overhaul_container_presenter.GetWindowWidth()
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     local showOrgans: bool =
-      inv_overhaul_container_presenter.ContainerPresenterShowsOrgans()
-    return inv_overhaul_container_protocol.ContainerProtocolFindTargetAt(
+      inv_overhaul_container_presenter.LootPresenterShowsOrgans()
+    return inv_overhaul_container_protocol.LootProtocolFindTargetAt(
       windowWidth, visibleSlots, showOrgans, x, y)
   end
 
-  function ContainerDragControllerIsTargetCompatible(target: int) -> bool
-    local kind: int = inv_overhaul_container_drag.ContainerDragGetKind()
+  function LootDragControllerIsTargetCompatible(target: int) -> bool
+    local kind: int = inv_overhaul_container_drag.GetKind()
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
-    return inv_overhaul_container_protocol.ContainerProtocolIsTargetCompatible(
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
+    return inv_overhaul_container_protocol.LootProtocolIsTargetCompatible(
       kind, target, visibleSlots)
   end
 
-  function ContainerDragControllerResolveSource(source: int) -> bool
+  function ResolveSource(source: int) -> bool
     local item: object
     local kind: int = -1
     local playerCategory: int = -1
@@ -49,44 +49,44 @@ module inv_overhaul_container_drag_controller do
     local containerOrdinal: int = -1
     local containerVisual: int = -1
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
 
-    if inv_overhaul_container_protocol.ContainerProtocolIsPlayerTarget(
+    if inv_overhaul_container_protocol.IsPlayerTarget(
       source, visibleSlots) then
       local playerReference: int =
-        inv_overhaul_container_presenter.ContainerPresenterResolveVisibleSlot(source)
+        inv_overhaul_container_presenter.LootPresenterResolveVisibleSlot(source)
       if playerReference < 0 then return false end
       kind = 0
       playerCategory =
-        inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(
+        inv_overhaul_inventory_items.DecodeReferenceCategory(
           playerReference)
       playerIndex =
-        inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(
+        inv_overhaul_inventory_items.DecodeReferenceIndex(
           playerReference)
       playerCell =
-        inv_overhaul_container_presenter.ContainerPresenterGetVisibleCell(source)
+        inv_overhaul_container_presenter.LootPresenterGetVisibleCell(source)
       local player: object =
-        inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+        inv_overhaul_inventory_items.ItemsGetPlayerContainer()
       player->GetItem(item, playerIndex, playerCategory)
     else
       local containerReference: int = -1
-      if inv_overhaul_container_protocol.ContainerProtocolIsContainerTarget(source) then
+      if inv_overhaul_container_protocol.IsContainerTarget(source) then
         local containerSlot: int =
-          inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(source)
+          inv_overhaul_container_protocol.GetContainerSlot(source)
         containerReference =
-          inv_overhaul_container_presenter.ContainerPresenterResolveContainerVisualSlot(
+          inv_overhaul_container_presenter.ResolveContainerVisualSlot(
             containerSlot)
         if containerReference < 0 then return false end
         kind = 1
         local containerPage: int =
-          inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+          inv_overhaul_container_presenter.GetContainerPage()
         containerVisual = containerPage * ContainerSlots + containerSlot
       else
-        if inv_overhaul_container_protocol.ContainerProtocolIsOrganTarget(source) then
+        if inv_overhaul_container_protocol.IsOrganTarget(source) then
           local organSlot: int =
-            inv_overhaul_container_protocol.ContainerProtocolGetOrganSlot(source)
+            inv_overhaul_container_protocol.GetOrganSlot(source)
           containerReference =
-            inv_overhaul_container_presenter.ContainerPresenterResolveOrganVisualSlot(
+            inv_overhaul_container_presenter.ResolveOrganVisualSlot(
               organSlot)
           if containerReference < 0 then return false end
           kind = 2
@@ -95,10 +95,10 @@ module inv_overhaul_container_drag_controller do
         end
       end
       containerIndex =
-        inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(
+        inv_overhaul_container_projection.GetReferenceIndex(
           containerReference)
       containerOrdinal =
-        inv_overhaul_container_projection.ContainerProjectionGetReferenceOrdinal(
+        inv_overhaul_container_projection.GetReferenceOrdinal(
           containerReference)
       local external: object
       native.GetContainer(external)
@@ -108,184 +108,184 @@ module inv_overhaul_container_drag_controller do
     local itemID: int
     item->GetItemID(itemID)
     if kind == 0 then
-      inv_overhaul_container_drag.ContainerDragBeginPlayerSource(
+      inv_overhaul_container_drag.BeginPlayerSource(
         source, itemID, playerCategory, playerIndex, playerCell)
     else
-      inv_overhaul_container_drag.ContainerDragBeginExternalSource(
+      inv_overhaul_container_drag.BeginExternalSource(
         source, kind, itemID, containerIndex, containerOrdinal, containerVisual)
     end
     return true
   end
 
-  function ContainerDragControllerBeginCursor(source: int) -> bool
+  function BeginCursor(source: int) -> bool
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
-    if !ContainerDragControllerResolveSource(source) then return false end
-    local itemID: int = inv_overhaul_container_drag.ContainerDragGetItemID()
+    if !ResolveSource(source) then return false end
+    local itemID: int = inv_overhaul_container_drag.LootDragGetItemID()
     native.SetVariable("inv_overhaul_inventory_drag_item", itemID)
     return true
   end
 
-  function ContainerDragControllerEndCursor() -> void
+  function EndCursor() -> void
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
     native.SetVariable("inv_overhaul_inventory_page_hover", 0)
-    inv_overhaul_container_drag.ContainerDragClearSource()
+    inv_overhaul_container_drag.ClearSource()
   end
 
-  function ContainerDragControllerSetHighlightedTarget(target: int) -> void
-    if inv_overhaul_container_drag.ContainerDragIsActive() && target >= 0 &&
-      !ContainerDragControllerIsTargetCompatible(target) then target = -1 end
+  function LootDragControllerSetHighlightedTarget(target: int) -> void
+    if inv_overhaul_container_drag.LootDragIsActive() && target >= 0 &&
+      !LootDragControllerIsTargetCompatible(target) then target = -1 end
     local previousTarget: int =
-      inv_overhaul_container_drag.ContainerDragGetHighlightedTarget()
+      inv_overhaul_container_drag.LootDragGetHighlightedTarget()
     if previousTarget == target then return end
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     if previousTarget >= 0 then
-      inv_overhaul_container_view.ContainerViewSetTargetHighlighted(
+      inv_overhaul_container_view.SetTargetHighlighted(
         previousTarget, visibleSlots, false)
     end
-    inv_overhaul_container_drag.ContainerDragSetHighlightedTarget(target)
+    inv_overhaul_container_drag.LootDragSetHighlightedTarget(target)
     if target >= 0 then
-      inv_overhaul_container_view.ContainerViewSetTargetHighlighted(
+      inv_overhaul_container_view.SetTargetHighlighted(
         target, visibleSlots, true)
     end
   end
 
-  function ContainerDragControllerApplyPointerTarget(target: int) -> void
-    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
-    local source: int = inv_overhaul_container_drag.ContainerDragGetSource()
-    local kind: int = inv_overhaul_container_drag.ContainerDragGetKind()
+  function LootDragControllerApplyPointerTarget(target: int) -> void
+    if !inv_overhaul_container_drag.LootDragIsActive() then return end
+    local source: int = inv_overhaul_container_drag.GetSource()
+    local kind: int = inv_overhaul_container_drag.GetKind()
     local sameSource: bool = false
     if target == source then sameSource = true end
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
     if kind == 0 &&
-      inv_overhaul_container_protocol.ContainerProtocolIsPlayerTarget(
+      inv_overhaul_container_protocol.IsPlayerTarget(
         target, visibleSlots) then
       local targetCell: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetVisibleCell(target)
-      if targetCell == inv_overhaul_container_drag.ContainerDragGetPlayerCell() then
+        inv_overhaul_container_presenter.LootPresenterGetVisibleCell(target)
+      if targetCell == inv_overhaul_container_drag.GetPlayerCell() then
         sameSource = true
       else
         sameSource = false
       end
     end
     if kind == 1 &&
-      inv_overhaul_container_protocol.ContainerProtocolIsContainerTarget(target) then
+      inv_overhaul_container_protocol.IsContainerTarget(target) then
       local page: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+        inv_overhaul_container_presenter.GetContainerPage()
       if page * ContainerSlots +
-        inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(target) ==
-        inv_overhaul_container_drag.ContainerDragGetContainerVisual() then
+        inv_overhaul_container_protocol.GetContainerSlot(target) ==
+        inv_overhaul_container_drag.GetContainerVisual() then
         sameSource = true
       else
         sameSource = false
       end
     end
-    local compatible: bool = ContainerDragControllerIsTargetCompatible(target)
+    local compatible: bool = LootDragControllerIsTargetCompatible(target)
     local recordedTarget: int =
-      inv_overhaul_container_drag.ContainerDragRecordPointerTarget(
+      inv_overhaul_container_drag.RecordPointerTarget(
         target, sameSource, compatible)
-    ContainerDragControllerSetHighlightedTarget(recordedTarget)
+    LootDragControllerSetHighlightedTarget(recordedTarget)
   end
 
-  function ContainerDragControllerCancelPageHover(action: int) -> void
-    if !inv_overhaul_container_drag.ContainerDragCanCancelPageHover(action) then return end
+  function CancelPageHover(action: int) -> void
+    if !inv_overhaul_container_drag.LootDragCanCancelPageHover(action) then return end
     local currentAction: int =
-      inv_overhaul_container_drag.ContainerDragGetPageHoverAction()
+      inv_overhaul_container_drag.LootDragGetPageHoverAction()
     if currentAction != 0 then
       native.Trace("inv_overhaul_container page-hover cancel action=" +
         currentAction + " elapsed=" +
-        inv_overhaul_container_drag.ContainerDragGetPageHoverElapsed())
+        inv_overhaul_container_drag.LootDragGetPageHoverElapsed())
     end
-    inv_overhaul_container_drag.ContainerDragClearPageHover()
+    inv_overhaul_container_drag.LootDragClearPageHover()
   end
 
-  function ContainerDragControllerStart(source: int) -> void
-    if inv_overhaul_container_drag.ContainerDragIsActive() then return end
-    ContainerDragControllerCancelPageHover(0)
-    inv_overhaul_container_tooltip_controller.ContainerTooltipClear()
-    if !ContainerDragControllerBeginCursor(source) then return end
-    ContainerDragControllerSetHighlightedTarget(-1)
+  function Start(source: int) -> void
+    if inv_overhaul_container_drag.LootDragIsActive() then return end
+    CancelPageHover(0)
+    inv_overhaul_container_tooltip_controller.LootTooltipClear()
+    if !BeginCursor(source) then return end
+    LootDragControllerSetHighlightedTarget(-1)
   end
 
-  function ContainerDragControllerFinish(target: int) -> void
-    if !inv_overhaul_container_drag.ContainerDragIsActive() then return end
-    target = inv_overhaul_container_drag.ContainerDragResolveReleaseTarget(target)
-    local source: int = inv_overhaul_container_drag.ContainerDragGetSource()
-    local sourceKind: int = inv_overhaul_container_drag.ContainerDragGetKind()
+  function Finish(target: int) -> void
+    if !inv_overhaul_container_drag.LootDragIsActive() then return end
+    target = inv_overhaul_container_drag.LootDragResolveReleaseTarget(target)
+    local source: int = inv_overhaul_container_drag.GetSource()
+    local sourceKind: int = inv_overhaul_container_drag.GetKind()
     local playerCell: int =
-      inv_overhaul_container_drag.ContainerDragGetPlayerCell()
+      inv_overhaul_container_drag.GetPlayerCell()
     local containerVisual: int =
-      inv_overhaul_container_drag.ContainerDragGetContainerVisual()
+      inv_overhaul_container_drag.GetContainerVisual()
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
-    inv_overhaul_inventory_tooltip.InventoryTooltipSuspend(0.2)
-    inv_overhaul_container_tooltip_controller.ContainerTooltipClear()
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
+    inv_overhaul_inventory_tooltip.Suspend(0.2)
+    inv_overhaul_container_tooltip_controller.LootTooltipClear()
     if source >= 0 then
       native.SendMessage(
         -130,
-        inv_overhaul_container_view.ContainerViewGetTargetWndName(
+        inv_overhaul_container_view.LootViewGetTargetWndName(
           source, visibleSlots))
     end
     if target >= 0 then
       native.SendMessage(
         -130,
-        inv_overhaul_container_view.ContainerViewGetTargetWndName(
+        inv_overhaul_container_view.LootViewGetTargetWndName(
           target, visibleSlots))
     end
 
-    if ContainerDragControllerIsTargetCompatible(target) then
+    if LootDragControllerIsTargetCompatible(target) then
       if sourceKind == 0 then
-        if inv_overhaul_container_protocol.ContainerProtocolIsPlayerTarget(
+        if inv_overhaul_container_protocol.IsPlayerTarget(
           target, visibleSlots) then
           local targetCell: int =
-            inv_overhaul_container_presenter.ContainerPresenterGetVisibleCell(target)
+            inv_overhaul_container_presenter.LootPresenterGetVisibleCell(target)
           if targetCell != playerCell then
-            inv_overhaul_container_player_actions.ContainerPlayerActionsSwapCells(
+            inv_overhaul_container_player_actions.LootPlayerActionsSwapCells(
               playerCell, targetCell)
           end
         else
-          if inv_overhaul_container_protocol.ContainerProtocolIsContainerTarget(
+          if inv_overhaul_container_protocol.IsContainerTarget(
             target) then
-            inv_overhaul_container_transfer_player.ContainerPlayerTransferExchangeWithContainer(
+            inv_overhaul_container_transfer_player.ExchangeWithContainer(
               source,
-              inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(
+              inv_overhaul_container_protocol.GetContainerSlot(
                 target))
           end
         end
       else
-        if inv_overhaul_container_protocol.ContainerProtocolIsPlayerTarget(
+        if inv_overhaul_container_protocol.IsPlayerTarget(
           target, visibleSlots) then
           if sourceKind == 1 then
-            inv_overhaul_container_transfer_external.ContainerExternalTransferMoveToPlayer(
+            inv_overhaul_container_transfer_external.MoveToPlayer(
               false,
-              inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(source),
+              inv_overhaul_container_protocol.GetContainerSlot(source),
               target, -1)
           else
-            inv_overhaul_container_transfer_external.ContainerExternalTransferMoveToPlayer(
+            inv_overhaul_container_transfer_external.MoveToPlayer(
               true,
-              inv_overhaul_container_protocol.ContainerProtocolGetOrganSlot(source),
+              inv_overhaul_container_protocol.GetOrganSlot(source),
               target, -1)
           end
         else
           if sourceKind == 1 &&
-            inv_overhaul_container_protocol.ContainerProtocolIsContainerTarget(
+            inv_overhaul_container_protocol.IsContainerTarget(
               target) then
             local page: int =
-              inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+              inv_overhaul_container_presenter.GetContainerPage()
             local targetVisual: int = page * ContainerSlots +
-              inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(
+              inv_overhaul_container_protocol.GetContainerSlot(
                 target)
-            if inv_overhaul_container_projection.ContainerProjectionSwapVisuals(
+            if inv_overhaul_container_projection.SwapVisuals(
               containerVisual, targetVisual) then
-              inv_overhaul_container_presenter.ContainerPresenterUpdateContainerSlots()
+              inv_overhaul_container_presenter.UpdateContainerSlots()
             end
           end
         end
       end
     end
-    ContainerDragControllerSetHighlightedTarget(-1)
-    ContainerDragControllerEndCursor()
-    ContainerDragControllerCancelPageHover(0)
+    LootDragControllerSetHighlightedTarget(-1)
+    EndCursor()
+    CancelPageHover(0)
   end
 end

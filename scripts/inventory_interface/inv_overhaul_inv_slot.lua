@@ -77,7 +77,7 @@ maintask InventoryOverhaulSlot do
     return base + x * 100 + y
   end
 
-  function IsInsideSlotForm(x: int, y: int) -> bool
+  function IsInsideForm(x: int, y: int) -> bool
     return x >= 0 && y >= 0 && x < slotWidth && y < slotHeight
   end
 
@@ -132,12 +132,12 @@ maintask InventoryOverhaulSlot do
 
   function OnLButtonUp(x: int, y: int) -> void
     if hidden || blocked then return end
-    if IsInsideSlotForm(x, y) then
+    if IsInsideForm(x, y) then
       native.SendMessageToParent(EncodePointerMessage(c_iReleaseMessageBase, x, y))
     else
       native.SendMessageToParent(8)
     end
-    highlighted = IsInsideSlotForm(x, y)
+    highlighted = IsInsideForm(x, y)
     UpdateBackground()
     dragging = false
   end
@@ -159,12 +159,12 @@ maintask InventoryOverhaulSlot do
 
   function OnDragEnd(x: int, y: int, accepted: bool) -> void
     if hidden || blocked then return end
-    if IsInsideSlotForm(x, y) then
+    if IsInsideForm(x, y) then
       native.SendMessageToParent(EncodePointerMessage(c_iDragEndMessageBase, x, y))
     else
       native.SendMessageToParent(8)
     end
-    highlighted = IsInsideSlotForm(x, y)
+    highlighted = IsInsideForm(x, y)
     UpdateBackground()
   end
 
@@ -183,7 +183,7 @@ maintask InventoryOverhaulSlot do
 
   function OnMouseMove(x: int, y: int) -> void
     if hidden || blocked then return end
-    if IsInsideSlotForm(x, y) then
+    if IsInsideForm(x, y) then
       if !highlighted then
         highlighted = true
         UpdateBackground()

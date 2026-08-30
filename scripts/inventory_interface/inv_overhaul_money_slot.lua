@@ -12,13 +12,13 @@ maintask InvOverhaulMoneySlot do
     native.GetWindowSize(slotWidth, slotHeight)
     if slotWidth <= 0 then slotWidth = 52 end
     if slotHeight <= 0 then slotHeight = 52 end
-    InitMoneySprite()
+    InitSprite()
     native.SetBackground("default")
     native.SetOwnerDraw(true)
     native.ProcessEvents()
   end
 
-  function InitMoneySprite() -> void
+  function InitSprite() -> void
     local moneyID: int
     native.GetInvItemByName(moneyID, "Money")
     if moneyID >= 0 then
@@ -52,14 +52,14 @@ maintask InvOverhaulMoneySlot do
       slotWidth = 82
       slotHeight = 82
       highResolutionSprite = true
-      InitMoneySprite()
+      InitSprite()
       return
     end
     if message == -27 then
       slotWidth = 52
       slotHeight = 52
       highResolutionSprite = false
-      InitMoneySprite()
+      InitSprite()
       return
     end
     moneyAmount = message

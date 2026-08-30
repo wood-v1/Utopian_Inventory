@@ -29,8 +29,12 @@ if ([string]::IsNullOrEmpty($LuaCompilerRoot)) {
     $LuaCompilerRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot "..\pathologic_lua_compiler"))
 }
 if ([string]::IsNullOrEmpty($PathologicReRoot)) {
-    $PathologicReRoot = "C:\Modding\Pathologic\pathologic_re"
+    $PathologicReRoot = [Environment]::GetEnvironmentVariable("PATHOLOGIC_RE_ROOT")
 }
+if ([string]::IsNullOrWhiteSpace($PathologicReRoot)) {
+    throw "PathologicReRoot must be provided with -PathologicReRoot or PATHOLOGIC_RE_ROOT."
+}
+$PathologicReRoot = [System.IO.Path]::GetFullPath($PathologicReRoot)
 
 $LuaOutDir = Join-Path $RepoRoot "scripts\out"
 $LuaBuildScript = Join-Path $RepoRoot "scripts\build_lua.ps1"

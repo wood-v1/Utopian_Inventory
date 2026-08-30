@@ -1,52 +1,52 @@
 import "inv_overhaul_inventory_protocol"
 
 module inv_overhaul_inventory_geometry do
-  function InventoryGeometryGetGridStartX(windowWidth: int) -> int
+  function InterfaceGeometryGetGridStartX(windowWidth: int) -> int
     if windowWidth >= 1900 then return 825 end
     if windowWidth >= 1200 then return 507 end
     if windowWidth >= 1000 then return 460 end
     return 351
   end
 
-  function InventoryGeometryGetGridStartY(windowWidth: int) -> int
+  function InterfaceGeometryGetGridStartY(windowWidth: int) -> int
     if windowWidth >= 1900 then return 245 end
     if windowWidth >= 1200 then return 182 end
     if windowWidth >= 1000 then return 186 end
     return 145
   end
 
-  function InventoryGeometryGetGridStep(windowWidth: int) -> int
+  function InterfaceGeometryGetGridStep(windowWidth: int) -> int
     if windowWidth >= 1900 then return 96 end
     if windowWidth >= 1200 then return 96 end
     if windowWidth >= 1000 then return 61 end
     return 58
   end
 
-  function InventoryGeometryGetGridColumns(windowWidth: int) -> int
+  function InterfaceGeometryGetGridColumns(windowWidth: int) -> int
     if windowWidth >= 1900 then return 7 end
     if windowWidth >= 1200 then return 7 end
     if windowWidth >= 1000 then return 7 end
     return 6
   end
 
-  function InventoryGeometryGetVisibleSlots(windowWidth: int) -> int
+  function InterfaceGeometryGetVisibleSlots(windowWidth: int) -> int
     if windowWidth >= 1900 then return 35 end
     if windowWidth >= 1200 then return 35 end
     if windowWidth >= 1000 then return 35 end
     return 24
   end
 
-  function InventoryGeometryGetSlotSize(windowWidth: int) -> int
+  function GetSlotSize(windowWidth: int) -> int
     if windowWidth >= 1200 then return 82 end
     return 52
   end
 
-  function InventoryGeometryGetEquipmentSlotSize(windowWidth: int) -> int
+  function GetEquipmentSlotSize(windowWidth: int) -> int
     if windowWidth >= 1900 then return 48 end
     return 52
   end
 
-  function InventoryGeometryIsInsideRect(
+  function IsInsideRect(
     x: int,
     y: int,
     left: int,
@@ -56,25 +56,25 @@ module inv_overhaul_inventory_geometry do
     return x >= left && y >= top && x < left + width && y < top + height
   end
 
-  function InventoryGeometryIsInsideSlotDropArea(
+  function InterfaceGeometryIsInsideSlotDropArea(
     windowWidth: int,
     inset: int,
     localX: int,
     localY: int) -> bool
-    local size: int = InventoryGeometryGetSlotSize(windowWidth)
+    local size: int = GetSlotSize(windowWidth)
     return localX >= inset && localY >= inset && localX < size - inset && localY < size - inset
   end
 
-  function InventoryGeometryFindBackpackSlot(
+  function FindBackpackSlot(
     windowWidth: int,
     visibleSlots: int,
     inset: int,
     x: int,
     y: int) -> int
-    local startX: int = InventoryGeometryGetGridStartX(windowWidth)
-    local startY: int = InventoryGeometryGetGridStartY(windowWidth)
-    local step: int = InventoryGeometryGetGridStep(windowWidth)
-    local columns: int = InventoryGeometryGetGridColumns(windowWidth)
+    local startX: int = InterfaceGeometryGetGridStartX(windowWidth)
+    local startY: int = InterfaceGeometryGetGridStartY(windowWidth)
+    local step: int = InterfaceGeometryGetGridStep(windowWidth)
+    local columns: int = InterfaceGeometryGetGridColumns(windowWidth)
     if x < startX || y < startY then return -1 end
 
     local rows: int = (visibleSlots + columns - 1) / columns
@@ -86,14 +86,14 @@ module inv_overhaul_inventory_geometry do
 
     local localX: int = x - startX - column * step
     local localY: int = y - startY - row * step
-    if !InventoryGeometryIsInsideSlotDropArea(windowWidth, inset, localX, localY) then return -1 end
+    if !InterfaceGeometryIsInsideSlotDropArea(windowWidth, inset, localX, localY) then return -1 end
 
     local slot: int = row * columns + column
     if slot < 0 || slot >= visibleSlots then return -1 end
     return slot
   end
 
-  function InventoryGeometryGetSpecialTargetLeft(windowWidth: int, branch: int, target: int) -> int
+  function GetSpecialTargetLeft(windowWidth: int, branch: int, target: int) -> int
     local clara: bool = branch == 2
     if windowWidth >= 1900 then
       if target == inv_overhaul_inventory_protocol.TargetWeapon then return 660 end
@@ -155,7 +155,7 @@ module inv_overhaul_inventory_geometry do
     return -1000
   end
 
-  function InventoryGeometryGetSpecialTargetTop(windowWidth: int, branch: int, target: int) -> int
+  function GetSpecialTargetTop(windowWidth: int, branch: int, target: int) -> int
     local clara: bool = branch == 2
     local headOffset: int = 8
     if windowWidth >= 1900 then
@@ -240,29 +240,29 @@ module inv_overhaul_inventory_geometry do
     return -1000
   end
 
-  function InventoryGeometryIsInsideSpecialTarget(
+  function InterfaceGeometryIsInsideSpecialTarget(
     windowWidth: int,
     branch: int,
     target: int,
     x: int,
     y: int) -> bool
-    local left: int = InventoryGeometryGetSpecialTargetLeft(windowWidth, branch, target)
-    local top: int = InventoryGeometryGetSpecialTargetTop(windowWidth, branch, target)
-    local size: int = InventoryGeometryGetEquipmentSlotSize(windowWidth)
+    local left: int = GetSpecialTargetLeft(windowWidth, branch, target)
+    local top: int = GetSpecialTargetTop(windowWidth, branch, target)
+    local size: int = GetEquipmentSlotSize(windowWidth)
     if target == inv_overhaul_inventory_protocol.TargetDrop then
-      size = InventoryGeometryGetSlotSize(windowWidth)
+      size = GetSlotSize(windowWidth)
     end
-    return InventoryGeometryIsInsideRect(x, y, left, top, size, size)
+    return IsInsideRect(x, y, left, top, size, size)
   end
 
-  function InventoryGeometryGetMoneyLeft(windowWidth: int) -> int
+  function InterfaceGeometryGetMoneyLeft(windowWidth: int) -> int
     if windowWidth >= 1900 then return 1390 end
     if windowWidth >= 1200 then return 1100 end
     if windowWidth >= 1000 then return 864 end
     return 655
   end
 
-  function InventoryGeometryGetMoneyTop(windowWidth: int, branch: int) -> int
+  function InterfaceGeometryGetMoneyTop(windowWidth: int, branch: int) -> int
     if windowWidth >= 1900 then return 780 end
     if windowWidth >= 1200 then return 690 end
     if windowWidth >= 1000 then
@@ -273,24 +273,24 @@ module inv_overhaul_inventory_geometry do
     return 465
   end
 
-  function InventoryGeometryIsInsideMoney(windowWidth: int, branch: int, x: int, y: int) -> bool
-    return InventoryGeometryIsInsideRect(
+  function InterfaceGeometryIsInsideMoney(windowWidth: int, branch: int, x: int, y: int) -> bool
+    return IsInsideRect(
       x,
       y,
-      InventoryGeometryGetMoneyLeft(windowWidth),
-      InventoryGeometryGetMoneyTop(windowWidth, branch),
-      InventoryGeometryGetSlotSize(windowWidth),
-      InventoryGeometryGetSlotSize(windowWidth))
+      InterfaceGeometryGetMoneyLeft(windowWidth),
+      InterfaceGeometryGetMoneyTop(windowWidth, branch),
+      GetSlotSize(windowWidth),
+      GetSlotSize(windowWidth))
   end
 
-  function InventoryGeometryGetPageControlX(windowWidth: int) -> int
+  function InterfaceGeometryGetPageControlX(windowWidth: int) -> int
     if windowWidth >= 1900 then return 1082 end
     if windowWidth >= 1200 then return 778 end
     if windowWidth >= 1000 then return 622 end
     return 463
   end
 
-  function InventoryGeometryGetPageControlY(windowWidth: int, branch: int) -> int
+  function InterfaceGeometryGetPageControlY(windowWidth: int, branch: int) -> int
     if windowWidth >= 1900 then return 826 end
     if windowWidth >= 1200 then return 736 end
     if windowWidth >= 1000 then
@@ -301,23 +301,23 @@ module inv_overhaul_inventory_geometry do
     return 481
   end
 
-  function InventoryGeometryIsInsidePlayerPaging(
+  function InterfaceGeometryIsInsidePlayerPaging(
     windowWidth: int,
     branch: int,
     maxPage: int,
     x: int,
     y: int) -> bool
     if maxPage <= 0 then return false end
-    return InventoryGeometryIsInsideRect(
+    return IsInsideRect(
       x,
       y,
-      InventoryGeometryGetPageControlX(windowWidth),
-      InventoryGeometryGetPageControlY(windowWidth, branch),
+      InterfaceGeometryGetPageControlX(windowWidth),
+      InterfaceGeometryGetPageControlY(windowWidth, branch),
       132,
       36)
   end
 
-  function InventoryGeometryIsInsideQuickslotHelp(windowWidth: int, x: int, y: int) -> bool
+  function InterfaceGeometryIsInsideQuickslotHelp(windowWidth: int, x: int, y: int) -> bool
     local helpX: int = 701
     local helpY: int = 121
     if windowWidth >= 1900 then
@@ -334,53 +334,53 @@ module inv_overhaul_inventory_geometry do
         end
       end
     end
-    return InventoryGeometryIsInsideRect(x, y, helpX, helpY, 28, 28)
+    return IsInsideRect(x, y, helpX, helpY, 28, 28)
   end
 
-  function InventoryGeometryGetDollLeft(layoutWidth: int) -> int
+  function GetDollLeft(layoutWidth: int) -> int
     if layoutWidth >= 1900 then return 395 end
     if layoutWidth >= 1200 then return 75 end
     if layoutWidth >= 1000 then return 60 end
     return 50
   end
 
-  function InventoryGeometryGetDollTop(layoutWidth: int) -> int
+  function GetDollTop(layoutWidth: int) -> int
     if layoutWidth >= 1900 then return 290 end
     if layoutWidth >= 1200 then return 230 end
     if layoutWidth >= 1000 then return 187 end
     return 157
   end
 
-  function InventoryGeometryGetDollTargetMessage(
+  function GetDollTargetMessage(
     layoutWidth: int,
     branch: int,
     globalX: int,
     globalY: int) -> int
     local target: int = inv_overhaul_inventory_protocol.TargetWeapon
-    if InventoryGeometryIsInsideRect(
+    if IsInsideRect(
       globalX, globalY,
-      InventoryGeometryGetSpecialTargetLeft(layoutWidth, branch, target),
-      InventoryGeometryGetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -50 end
+      GetSpecialTargetLeft(layoutWidth, branch, target),
+      GetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -50 end
     target = inv_overhaul_inventory_protocol.TargetClothesBase + 1
-    if InventoryGeometryIsInsideRect(
+    if IsInsideRect(
       globalX, globalY,
-      InventoryGeometryGetSpecialTargetLeft(layoutWidth, branch, target),
-      InventoryGeometryGetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -51 end
+      GetSpecialTargetLeft(layoutWidth, branch, target),
+      GetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -51 end
     target = inv_overhaul_inventory_protocol.TargetClothesBase + 2
-    if InventoryGeometryIsInsideRect(
+    if IsInsideRect(
       globalX, globalY,
-      InventoryGeometryGetSpecialTargetLeft(layoutWidth, branch, target),
-      InventoryGeometryGetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -52 end
+      GetSpecialTargetLeft(layoutWidth, branch, target),
+      GetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -52 end
     target = inv_overhaul_inventory_protocol.TargetClothesBase + 3
-    if InventoryGeometryIsInsideRect(
+    if IsInsideRect(
       globalX, globalY,
-      InventoryGeometryGetSpecialTargetLeft(layoutWidth, branch, target),
-      InventoryGeometryGetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -53 end
+      GetSpecialTargetLeft(layoutWidth, branch, target),
+      GetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -53 end
     target = inv_overhaul_inventory_protocol.TargetClothesBase + 4
-    if InventoryGeometryIsInsideRect(
+    if IsInsideRect(
       globalX, globalY,
-      InventoryGeometryGetSpecialTargetLeft(layoutWidth, branch, target),
-      InventoryGeometryGetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -54 end
+      GetSpecialTargetLeft(layoutWidth, branch, target),
+      GetSpecialTargetTop(layoutWidth, branch, target), 52, 52) then return -54 end
     return 0
   end
 end

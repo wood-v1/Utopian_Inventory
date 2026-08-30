@@ -11,42 +11,42 @@ module inv_overhaul_container_quick_transfer do
   local const InventoryCapacity: int = 56
   local const ContainerSlots: int = 12
 
-  function ContainerQuickTransferExecute(source: int, wholeStack: bool) -> void
+  function Execute(source: int, wholeStack: bool) -> void
     local visibleSlots: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
-    if inv_overhaul_container_protocol.ContainerProtocolIsPlayerTarget(
+      inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
+    if inv_overhaul_container_protocol.IsPlayerTarget(
       source, visibleSlots) then
-      if inv_overhaul_container_presenter.ContainerPresenterResolveVisibleSlot(
+      if inv_overhaul_container_presenter.LootPresenterResolveVisibleSlot(
         source) < 0 then return end
       local normalCount: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetNormalContainerItemCount()
+        inv_overhaul_container_presenter.GetNormalContainerItemCount()
       local visual: int =
-        inv_overhaul_container_projection.ContainerProjectionFindFirstFreeContainerVisual(
+        inv_overhaul_container_projection.FindFirstFreeContainerVisual(
           normalCount)
       if visual < 0 then
-        inv_overhaul_container_feedback.ContainerFeedbackShowContainerFull()
+        inv_overhaul_container_feedback.ShowContainerFull()
         native.Trace("inv_overhaul_container quick player-to-container refused: no visual slot")
         return
       end
       local previousPage: int =
-        inv_overhaul_container_presenter.ContainerPresenterGetContainerPage()
+        inv_overhaul_container_presenter.GetContainerPage()
       local targetPage: int = visual / ContainerSlots
-      inv_overhaul_container_presenter.ContainerPresenterSetContainerPage(targetPage)
+      inv_overhaul_container_presenter.SetContainerPage(targetPage)
       local targetSlot: int = visual - targetPage * ContainerSlots
       if wholeStack then
-        inv_overhaul_container_transfer_player.ContainerPlayerTransferMoveAmountToContainer(
+        inv_overhaul_container_transfer_player.MoveAmountToContainer(
           source, targetSlot, -1, previousPage)
       else
-        inv_overhaul_container_transfer_player.ContainerPlayerTransferMoveToContainer(
+        inv_overhaul_container_transfer_player.MoveToContainer(
           source, targetSlot, previousPage)
       end
       return
     end
 
     local backpackCount: int =
-      inv_overhaul_inventory_items.InventoryItemsGetBackpackCount()
+      inv_overhaul_inventory_items.GetBackpackCount()
     local playerVisual: int =
-      inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeFindFirstFreeCell(
+      inv_overhaul_inventory_layout_runtime.FindFirstFreeCell(
         backpackCount, visibleSlots)
     if playerVisual < 0 then playerVisual = 0 end
     local playerLinear: int = playerVisual
@@ -55,30 +55,30 @@ module inv_overhaul_container_quick_transfer do
       if playerLinear < 0 then playerLinear = playerLinear + InventoryCapacity end
     end
     local previousPage: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+      inv_overhaul_container_presenter.GetPlayerPage()
     local targetPage: int = playerLinear / visibleSlots
-    inv_overhaul_container_presenter.ContainerPresenterSetPlayerPage(targetPage)
+    inv_overhaul_container_presenter.SetPlayerPage(targetPage)
     local playerTarget: int = playerLinear - targetPage * visibleSlots
-    if inv_overhaul_container_protocol.ContainerProtocolIsContainerTarget(source) then
+    if inv_overhaul_container_protocol.IsContainerTarget(source) then
       local containerSlot: int =
-        inv_overhaul_container_protocol.ContainerProtocolGetContainerSlot(source)
+        inv_overhaul_container_protocol.GetContainerSlot(source)
       if wholeStack then
-        inv_overhaul_container_transfer_external.ContainerExternalTransferMoveAmountToPlayer(
+        inv_overhaul_container_transfer_external.MoveAmountToPlayer(
           false, containerSlot, playerTarget, -1, previousPage)
       else
-        inv_overhaul_container_transfer_external.ContainerExternalTransferMoveToPlayer(
+        inv_overhaul_container_transfer_external.MoveToPlayer(
           false, containerSlot, playerTarget, previousPage)
       end
       return
     end
-    if inv_overhaul_container_protocol.ContainerProtocolIsOrganTarget(source) then
+    if inv_overhaul_container_protocol.IsOrganTarget(source) then
       local organSlot: int =
-        inv_overhaul_container_protocol.ContainerProtocolGetOrganSlot(source)
+        inv_overhaul_container_protocol.GetOrganSlot(source)
       if wholeStack then
-        inv_overhaul_container_transfer_external.ContainerExternalTransferMoveAmountToPlayer(
+        inv_overhaul_container_transfer_external.MoveAmountToPlayer(
           true, organSlot, playerTarget, -1, previousPage)
       else
-        inv_overhaul_container_transfer_external.ContainerExternalTransferMoveToPlayer(
+        inv_overhaul_container_transfer_external.MoveToPlayer(
           true, organSlot, playerTarget, previousPage)
       end
     end

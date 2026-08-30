@@ -26,27 +26,27 @@ maintask InvOverhaulQuickslotFeedback do
     return player
   end
 
-  function GetQuickslotItemVariable(slot: int) -> string
+  function GetItemVariable(slot: int) -> string
     return "inv_overhaul_quickslot_item_" + slot
   end
 
-  function GetQuickslotCategoryVariable(slot: int) -> string
+  function GetCategoryVariable(slot: int) -> string
     return "inv_overhaul_quickslot_category_" + slot
   end
 
-  function GetQuickslotOccurrenceVariable(slot: int) -> string
+  function GetOccurrenceVariable(slot: int) -> string
     return "inv_overhaul_quickslot_occurrence_" + slot
   end
 
-  function GetQuickslotDepletedVariable(slot: int) -> string
+  function GetDepletedVariable(slot: int) -> string
     return "inv_overhaul_quickslot_depleted_" + slot
   end
 
-  function ClearQuickslotBinding(slot: int) -> void
-    native.SetVariable(GetQuickslotItemVariable(slot), -1)
-    native.SetVariable(GetQuickslotCategoryVariable(slot), -1)
-    native.SetVariable(GetQuickslotOccurrenceVariable(slot), -1)
-    native.SetVariable(GetQuickslotDepletedVariable(slot), 1)
+  function ClearBinding(slot: int) -> void
+    native.SetVariable(GetItemVariable(slot), -1)
+    native.SetVariable(GetCategoryVariable(slot), -1)
+    native.SetVariable(GetOccurrenceVariable(slot), -1)
+    native.SetVariable(GetDepletedVariable(slot), 1)
     native.Trace("inv_overhaul_quickslot UI cleared exhausted binding slot=" + slot)
   end
 
@@ -250,7 +250,7 @@ maintask InvOverhaulQuickslotFeedback do
     if remaining <= 0 then
       PublishRemovalHint(removalOrdinal, oldBackpackCount)
       player->RemoveItem(index, 1, category)
-      ClearQuickslotBinding(slot)
+      ClearBinding(slot)
     else
       player->SetItemAmount(remaining, index, category)
     end
@@ -260,21 +260,21 @@ maintask InvOverhaulQuickslotFeedback do
       " remaining=" + remaining)
   end
 
-  function ActivateQuickslot(slot: int) -> void
+  function Activate(slot: int) -> void
     if slot < 1 || slot > c_iQuickslotCount then return end
     local category: int = -1
     local boundItemID: int = -1
     local occurrence: int = -1
-    native.GetVariable(GetQuickslotCategoryVariable(slot), category)
-    native.GetVariable(GetQuickslotItemVariable(slot), boundItemID)
-    native.GetVariable(GetQuickslotOccurrenceVariable(slot), occurrence)
+    native.GetVariable(GetCategoryVariable(slot), category)
+    native.GetVariable(GetItemVariable(slot), boundItemID)
+    native.GetVariable(GetOccurrenceVariable(slot), occurrence)
     native.Trace("inv_overhaul_quickslot UI request slot=" + slot +
       " category=" + category + " item=" + boundItemID +
       " occurrence=" + occurrence)
 
     if category < 0 || boundItemID < 0 then
       local depleted: int = 0
-      native.GetVariable(GetQuickslotDepletedVariable(slot), depleted)
+      native.GetVariable(GetDepletedVariable(slot), depleted)
       if depleted == 1 then ShowMessage(c_iQuickslotMissingTextID) end
       return
     end
@@ -292,12 +292,12 @@ maintask InvOverhaulQuickslotFeedback do
     end
   end
 
-  function ProcessQuickslotRequest() -> void
+  function ProcessRequest() -> void
     local request: int = 0
     native.GetVariable("inv_overhaul_quickslot_ui_request", request)
     if request <= 0 then return end
     native.SetVariable("inv_overhaul_quickslot_ui_request", 0)
-    ActivateQuickslot(request)
+    Activate(request)
   end
 
   function init() -> void
@@ -334,7 +334,7 @@ maintask InvOverhaulQuickslotFeedback do
   end
 
   function OnUpdate(delta: float) -> void
-    ProcessQuickslotRequest()
+    ProcessRequest()
     if messageCooldown > 0 then
       messageCooldown = messageCooldown - delta
       if messageCooldown < 0 then messageCooldown = 0 end

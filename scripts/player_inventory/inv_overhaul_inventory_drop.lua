@@ -3,7 +3,7 @@ import "inv_overhaul_inventory_items"
 module inv_overhaul_inventory_drop do
   local const WeaponCategory: int = 0
 
-  function InventoryDropSlot(category: int, index: int, requestedAmount: int) -> bool
+  function Slot(category: int, index: int, requestedAmount: int) -> bool
     local container: object
     native.GetContainer(container)
     if !container then
@@ -12,7 +12,7 @@ module inv_overhaul_inventory_drop do
     end
 
     local playerContainer: object =
-      inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+      inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local item: object
     playerContainer->GetItem(item, index, category)
     if !item then return false end

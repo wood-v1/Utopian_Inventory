@@ -11,7 +11,7 @@ module inv_overhaul_inventory_quickslot_bindings do
   local categoryCache: object
   local occurrenceCache: object
 
-  function InventoryQuickslotInitializeState() -> void
+  function QuickslotBindingsInitializeState() -> void
     local newItemCache: object
     local newCategoryCache: object
     local newOccurrenceCache: object
@@ -28,48 +28,48 @@ module inv_overhaul_inventory_quickslot_bindings do
     end
   end
 
-  function InventoryQuickslotGetItemVariable(slot: int) -> string
+  function GetItemVariable(slot: int) -> string
     return "inv_overhaul_quickslot_item_" + slot
   end
 
-  function InventoryQuickslotGetCategoryVariable(slot: int) -> string
+  function GetCategoryVariable(slot: int) -> string
     return "inv_overhaul_quickslot_category_" + slot
   end
 
-  function InventoryQuickslotGetDepletedVariable(slot: int) -> string
+  function GetDepletedVariable(slot: int) -> string
     return "inv_overhaul_quickslot_depleted_" + slot
   end
 
-  function InventoryQuickslotGetOccurrenceVariable(slot: int) -> string
+  function GetOccurrenceVariable(slot: int) -> string
     return "inv_overhaul_quickslot_occurrence_" + slot
   end
 
-  function InventoryQuickslotInitializeBindings() -> void
+  function InitializeBindings() -> void
     local version: int = 0
     native.GetVariable("inv_overhaul_quickslot_version", version)
     if version == QuickslotVersion then return end
     for slot = 1, QuickslotCount do
-      native.SetVariable(InventoryQuickslotGetItemVariable(slot), -1)
-      native.SetVariable(InventoryQuickslotGetCategoryVariable(slot), -1)
+      native.SetVariable(GetItemVariable(slot), -1)
+      native.SetVariable(GetCategoryVariable(slot), -1)
     end
     native.SetVariable("inv_overhaul_quickslot_version", QuickslotVersion)
   end
 
-  function InventoryQuickslotRefreshCache() -> void
+  function RefreshCache() -> void
     for slot = 1, QuickslotCount do
       local assignedCategory: int = -1
       local assignedItem: int = -1
       local assignedOccurrence: int = -1
-      native.GetVariable(InventoryQuickslotGetCategoryVariable(slot), assignedCategory)
-      native.GetVariable(InventoryQuickslotGetItemVariable(slot), assignedItem)
-      native.GetVariable(InventoryQuickslotGetOccurrenceVariable(slot), assignedOccurrence)
+      native.GetVariable(GetCategoryVariable(slot), assignedCategory)
+      native.GetVariable(GetItemVariable(slot), assignedItem)
+      native.GetVariable(GetOccurrenceVariable(slot), assignedOccurrence)
       categoryCache->set(slot - 1, assignedCategory)
       itemCache->set(slot - 1, assignedItem)
       occurrenceCache->set(slot - 1, assignedOccurrence)
     end
   end
 
-  function InventoryQuickslotGetItemBinding(
+  function GetItemBinding(
     category: int,
     itemID: int) -> int
     for slot = 1, QuickslotCount do
@@ -82,12 +82,12 @@ module inv_overhaul_inventory_quickslot_bindings do
     return 0
   end
 
-  function InventoryQuickslotGetDisplayedBinding(
+  function GetDisplayedBinding(
     category: int,
     index: int,
     itemID: int) -> int
-    if InventoryQuickslotGetItemBinding(category, itemID) <= 0 then return 0 end
-    local occurrence: int = inv_overhaul_inventory_items.InventoryItemsGetOccurrence(category, index, itemID)
+    if GetItemBinding(category, itemID) <= 0 then return 0 end
+    local occurrence: int = inv_overhaul_inventory_items.GetOccurrence(category, index, itemID)
     for slot = 1, QuickslotCount do
       local assignedCategory: int = -1
       local assignedItem: int = -1
@@ -101,7 +101,7 @@ module inv_overhaul_inventory_quickslot_bindings do
     return 0
   end
 
-  function InventoryQuickslotIsEligible(category: int, itemID: int) -> bool
+  function IsEligible(category: int, itemID: int) -> bool
     if category == WeaponCategory then
       local weapon: bool
       native.HasInvItemProperty(weapon, itemID, "Weapon")
@@ -115,32 +115,32 @@ module inv_overhaul_inventory_quickslot_bindings do
     return category >= 2 && category < CategoryCount
   end
 
-  function InventoryQuickslotAssign(
+  function Assign(
     slot: int,
     category: int,
     index: int,
     emitTrace: bool) -> bool
     if slot < 1 || slot > QuickslotCount then return false end
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local item: object
     local itemID: int
     container->GetItem(item, index, category)
     if !item then return false end
     item->GetItemID(itemID)
-    if !InventoryQuickslotIsEligible(category, itemID) then return false end
-    local occurrence: int = inv_overhaul_inventory_items.InventoryItemsGetOccurrence(category, index, itemID)
+    if !IsEligible(category, itemID) then return false end
+    local occurrence: int = inv_overhaul_inventory_items.GetOccurrence(category, index, itemID)
 
     local oldCategory: int = -1
     local oldItem: int = -1
     local oldOccurrence: int = 0
-    native.GetVariable(InventoryQuickslotGetCategoryVariable(slot), oldCategory)
-    native.GetVariable(InventoryQuickslotGetItemVariable(slot), oldItem)
-    native.GetVariable(InventoryQuickslotGetOccurrenceVariable(slot), oldOccurrence)
+    native.GetVariable(GetCategoryVariable(slot), oldCategory)
+    native.GetVariable(GetItemVariable(slot), oldItem)
+    native.GetVariable(GetOccurrenceVariable(slot), oldOccurrence)
     if oldCategory == category && oldItem == itemID && oldOccurrence == occurrence then
-      native.SetVariable(InventoryQuickslotGetCategoryVariable(slot), -1)
-      native.SetVariable(InventoryQuickslotGetItemVariable(slot), -1)
-      native.SetVariable(InventoryQuickslotGetDepletedVariable(slot), 0)
-      native.SetVariable(InventoryQuickslotGetOccurrenceVariable(slot), -1)
+      native.SetVariable(GetCategoryVariable(slot), -1)
+      native.SetVariable(GetItemVariable(slot), -1)
+      native.SetVariable(GetDepletedVariable(slot), 0)
+      native.SetVariable(GetOccurrenceVariable(slot), -1)
       categoryCache->set(slot - 1, -1)
       itemCache->set(slot - 1, -1)
       occurrenceCache->set(slot - 1, -1)
@@ -152,23 +152,23 @@ module inv_overhaul_inventory_quickslot_bindings do
         local otherCategory: int = -1
         local otherItem: int = -1
         local otherOccurrence: int = 0
-        native.GetVariable(InventoryQuickslotGetCategoryVariable(other), otherCategory)
-        native.GetVariable(InventoryQuickslotGetItemVariable(other), otherItem)
-        native.GetVariable(InventoryQuickslotGetOccurrenceVariable(other), otherOccurrence)
+        native.GetVariable(GetCategoryVariable(other), otherCategory)
+        native.GetVariable(GetItemVariable(other), otherItem)
+        native.GetVariable(GetOccurrenceVariable(other), otherOccurrence)
         if otherCategory == category && otherItem == itemID && otherOccurrence == occurrence then
-          native.SetVariable(InventoryQuickslotGetCategoryVariable(other), -1)
-          native.SetVariable(InventoryQuickslotGetItemVariable(other), -1)
-          native.SetVariable(InventoryQuickslotGetDepletedVariable(other), 0)
-          native.SetVariable(InventoryQuickslotGetOccurrenceVariable(other), -1)
+          native.SetVariable(GetCategoryVariable(other), -1)
+          native.SetVariable(GetItemVariable(other), -1)
+          native.SetVariable(GetDepletedVariable(other), 0)
+          native.SetVariable(GetOccurrenceVariable(other), -1)
           categoryCache->set(other - 1, -1)
           itemCache->set(other - 1, -1)
           occurrenceCache->set(other - 1, -1)
         end
       end
-      native.SetVariable(InventoryQuickslotGetCategoryVariable(slot), category)
-      native.SetVariable(InventoryQuickslotGetItemVariable(slot), itemID)
-      native.SetVariable(InventoryQuickslotGetDepletedVariable(slot), 0)
-      native.SetVariable(InventoryQuickslotGetOccurrenceVariable(slot), occurrence)
+      native.SetVariable(GetCategoryVariable(slot), category)
+      native.SetVariable(GetItemVariable(slot), itemID)
+      native.SetVariable(GetDepletedVariable(slot), 0)
+      native.SetVariable(GetOccurrenceVariable(slot), occurrence)
       categoryCache->set(slot - 1, category)
       itemCache->set(slot - 1, itemID)
       occurrenceCache->set(slot - 1, occurrence)
@@ -180,7 +180,7 @@ module inv_overhaul_inventory_quickslot_bindings do
     return true
   end
 
-  function InventoryQuickslotGetSlotByKey(key: int) -> int
+  function GetSlotByKey(key: int) -> int
     if key >= 49 && key <= 57 then return key - 48 end
     if key == 48 then return 10 end
     if key >= 97 && key <= 105 then return key - 96 end

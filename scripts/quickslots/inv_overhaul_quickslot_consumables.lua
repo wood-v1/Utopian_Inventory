@@ -1,5 +1,5 @@
 module inv_overhaul_quickslot_consumables do
-  function QuickslotConsumablesGetUseEffect(itemID: int) -> string
+  function GetUseEffect(itemID: int) -> string
     if itemID == 0 then return "item_alpha_pills.bin" end
     if itemID == 1 then return "item_beta_pills.bin" end
     if itemID == 2 then return "item_gamma_pills.bin" end

@@ -13,20 +13,20 @@ module inv_overhaul_container_transfer_external do
 
   local moneyItemID: int
 
-  function ContainerExternalTransferInitializeState() -> void
+  function ExternalTransferInitializeState() -> void
     moneyItemID =
-      inv_overhaul_inventory_tooltip.InventoryTooltipGetMoneyItemID()
+      inv_overhaul_inventory_tooltip.GetMoneyItemID()
   end
 
-  function ContainerExternalTransferGetAppendedBackpackOrdinal(
+  function GetAppendedBackpackOrdinal(
     category: int,
     beforeCount: int) -> int
     if beforeCount < 0 || beforeCount > InventoryCapacity then return -1 end
-    return inv_overhaul_inventory_items.InventoryItemsGetAppendedCategoryOrdinal(
+    return inv_overhaul_inventory_items.GetAppendedCategoryOrdinal(
       category, beforeCount)
   end
 
-  function ContainerExternalTransferInsertPlayerCache(
+  function InsertPlayerCache(
     insertedOrdinal: int,
     beforeCount: int,
     category: int,
@@ -37,15 +37,15 @@ module inv_overhaul_container_transfer_external do
       native.Trace("inv_overhaul_container cache insert rejected ordinal=" +
         insertedOrdinal + " before=" + beforeCount + " category=" + category +
         " index=" + index)
-      inv_overhaul_inventory_items.InventoryItemsBuildIndexCache()
+      inv_overhaul_inventory_items.ItemsBuildIndexCache()
       return false
     end
-    inv_overhaul_inventory_items.InventoryItemsInsertCachedEntry(
+    inv_overhaul_inventory_items.InsertCachedEntry(
       insertedOrdinal, beforeCount, category, index)
     return true
   end
 
-  function ContainerExternalTransferMoveAmountToPlayer(
+  function MoveAmountToPlayer(
     organSource: bool,
     sourceSlot: int,
     targetSlot: int,
@@ -53,33 +53,33 @@ module inv_overhaul_container_transfer_external do
     restorePageIfMerged: int) -> void
     local sourceIndex: int = -1
     local sourceOrdinal: int = -1
-    if inv_overhaul_container_drag.ContainerDragGetKind() >= 1 &&
-      inv_overhaul_container_drag.ContainerDragGetContainerIndex() >= 0 then
-      sourceIndex = inv_overhaul_container_drag.ContainerDragGetContainerIndex()
-      sourceOrdinal = inv_overhaul_container_drag.ContainerDragGetContainerOrdinal()
+    if inv_overhaul_container_drag.GetKind() >= 1 &&
+      inv_overhaul_container_drag.GetContainerIndex() >= 0 then
+      sourceIndex = inv_overhaul_container_drag.GetContainerIndex()
+      sourceOrdinal = inv_overhaul_container_drag.GetContainerOrdinal()
     else
       local reference: int
       if organSource then
         reference =
-          inv_overhaul_container_presenter.ContainerPresenterResolveOrganVisualSlot(
+          inv_overhaul_container_presenter.ResolveOrganVisualSlot(
             sourceSlot)
       else
         reference =
-          inv_overhaul_container_presenter.ContainerPresenterResolveContainerVisualSlot(
+          inv_overhaul_container_presenter.ResolveContainerVisualSlot(
             sourceSlot)
       end
       if reference < 0 then return end
       sourceIndex =
-        inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(reference)
+        inv_overhaul_container_projection.GetReferenceIndex(reference)
       sourceOrdinal =
-        inv_overhaul_container_projection.ContainerProjectionGetReferenceOrdinal(reference)
+        inv_overhaul_container_projection.GetReferenceOrdinal(reference)
     end
-    ContainerExternalTransferMoveResolvedAmountToPlayer(
+    MoveResolvedAmountToPlayer(
       organSource, sourceIndex, sourceOrdinal, sourceSlot, targetSlot,
       requestedAmount, restorePageIfMerged)
   end
 
-  function ContainerExternalTransferMoveResolvedAmountToPlayer(
+  function MoveResolvedAmountToPlayer(
     organSource: bool,
     sourceIndex: int,
     sourceOrdinal: int,
@@ -90,15 +90,15 @@ module inv_overhaul_container_transfer_external do
     local external: object
     native.GetContainer(external)
     local player: object =
-      inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+      inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local beforeNormal: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetNormalContainerItemCount()
+      inv_overhaul_container_presenter.GetNormalContainerItemCount()
     local beforeBackpack: int =
-      inv_overhaul_inventory_items.InventoryItemsGetCachedBackpackCount()
+      inv_overhaul_inventory_items.GetCachedBackpackCount()
     if beforeBackpack < 0 then
-      inv_overhaul_inventory_items.InventoryItemsBuildIndexCache()
+      inv_overhaul_inventory_items.ItemsBuildIndexCache()
       beforeBackpack =
-        inv_overhaul_inventory_items.InventoryItemsGetCachedBackpackCount()
+        inv_overhaul_inventory_items.GetCachedBackpackCount()
     end
     local item: object
     local amount: int
@@ -106,7 +106,7 @@ module inv_overhaul_container_transfer_external do
     external->GetItemAmount(amount, sourceIndex)
     if !item || amount <= 0 then return end
     local transferAmount: int =
-      inv_overhaul_container_transfer.ContainerTransferNormalizeAmount(
+      inv_overhaul_container_transfer.NormalizeAmount(
         requestedAmount, amount)
     if transferAmount <= 0 then return end
 
@@ -119,62 +119,62 @@ module inv_overhaul_container_transfer_external do
       player->SetProperty("money", money + amount)
       external->RemoveItem(sourceIndex, amount)
       if !organSource then
-        inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(
+        inv_overhaul_container_projection.RemoveContainerOrdinal(
           sourceOrdinal, beforeNormal)
       end
       native.Trace("inv_overhaul_container took money amount=" + amount)
       if organSource then
-        inv_overhaul_container_presenter.ContainerPresenterUpdateOrganSlots()
+        inv_overhaul_container_presenter.UpdateOrganSlots()
       else
-        inv_overhaul_container_presenter.ContainerPresenterRefreshVisibleContainerItem(
+        inv_overhaul_container_presenter.RefreshVisibleContainerItem(
           itemID, sourceSlot)
       end
-      inv_overhaul_container_presenter.ContainerPresenterUpdateMoney()
+      inv_overhaul_container_presenter.LootPresenterUpdateMoney()
       return
     end
 
     local category: int
     native.GetInvItemProperty(category, itemID, "Category")
     local mergeIndex: int =
-      inv_overhaul_container_transfer.ContainerTransferFindPlayerMergeIndex(
+      inv_overhaul_container_transfer.FindPlayerMergeIndex(
         player, category, itemID)
     if beforeBackpack >= InventoryCapacity && mergeIndex < 0 then
-      inv_overhaul_container_feedback.ContainerFeedbackShowInventoryFull()
+      inv_overhaul_container_feedback.LootFeedbackShowInventoryFull()
       native.Trace("inv_overhaul_container container-to-player refused: inventory full")
       return
     end
     local outcome: object =
-      inv_overhaul_container_transfer.ContainerTransferMoveExternalItemAmountToPlayer(
+      inv_overhaul_container_transfer.MoveExternalItemAmountToPlayer(
         player, external, item, organSource, sourceIndex, amount,
         transferAmount, category, itemID)
-    if inv_overhaul_container_transfer.ContainerTransferExternalToPlayerWasRejected(
+    if inv_overhaul_container_transfer.ExternalToPlayerWasRejected(
       outcome) then
-      inv_overhaul_container_feedback.ContainerFeedbackShowInventoryFull()
+      inv_overhaul_container_feedback.LootFeedbackShowInventoryFull()
       local success: bool =
-        inv_overhaul_container_transfer.ContainerTransferGetExternalToPlayerSuccess(
+        inv_overhaul_container_transfer.GetExternalToPlayerSuccess(
           outcome)
       local beforePlayerAmount: int =
-        inv_overhaul_container_transfer.ContainerTransferGetExternalToPlayerBeforeAmount(
+        inv_overhaul_container_transfer.GetExternalToPlayerBeforeAmount(
           outcome)
       local afterPlayerAmount: int =
-        inv_overhaul_container_transfer.ContainerTransferGetExternalToPlayerAfterAmount(
+        inv_overhaul_container_transfer.GetExternalToPlayerAfterAmount(
           outcome)
       native.Trace("inv_overhaul_container container-to-player rejected source=" +
         sourceSlot + " success=" + success + " before_amount=" +
         beforePlayerAmount + " after_amount=" + afterPlayerAmount)
       if organSource then
-        inv_overhaul_container_presenter.ContainerPresenterUpdateOrganSlots()
+        inv_overhaul_container_presenter.UpdateOrganSlots()
       else
-        inv_overhaul_container_presenter.ContainerPresenterRefreshVisibleContainerItem(
+        inv_overhaul_container_presenter.RefreshVisibleContainerItem(
           itemID, sourceSlot)
       end
       return
     end
 
-    if inv_overhaul_container_transfer.ContainerTransferExternalToPlayerSourceDepleted(
+    if inv_overhaul_container_transfer.ExternalToPlayerSourceDepleted(
       outcome) then
       if !organSource then
-        inv_overhaul_container_projection.ContainerProjectionRemoveContainerOrdinal(
+        inv_overhaul_container_projection.RemoveContainerOrdinal(
           sourceOrdinal, beforeNormal)
       end
     end
@@ -182,63 +182,63 @@ module inv_overhaul_container_transfer_external do
     local afterCategoryCount: int
     player->GetItemCount(afterCategoryCount, category)
     local afterBackpack: int =
-      inv_overhaul_inventory_items.InventoryItemsGetBackpackCount()
+      inv_overhaul_inventory_items.GetBackpackCount()
     if restorePageIfMerged >= 0 && afterBackpack == beforeBackpack then
-      inv_overhaul_container_presenter.ContainerPresenterSetPlayerPage(
+      inv_overhaul_container_presenter.SetPlayerPage(
         restorePageIfMerged)
     end
     local insertedIntoPlayerCache: bool = false
     if afterBackpack > beforeBackpack then
       local insertedIndex: int = afterCategoryCount - 1
       local insertedOrder: int =
-        ContainerExternalTransferGetAppendedBackpackOrdinal(category, beforeBackpack)
-      insertedIntoPlayerCache = ContainerExternalTransferInsertPlayerCache(
+        GetAppendedBackpackOrdinal(category, beforeBackpack)
+      insertedIntoPlayerCache = InsertPlayerCache(
         insertedOrder, beforeBackpack, category, insertedIndex)
       if insertedIntoPlayerCache then
         local page: int =
-          inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+          inv_overhaul_container_presenter.GetPlayerPage()
         local visibleSlots: int =
-          inv_overhaul_container_presenter.ContainerPresenterGetVisibleSlots()
-        inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeInsertOrdinalExactAtVisibleSlot(
+          inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()
+        inv_overhaul_inventory_layout_runtime.InsertOrdinalExactAtVisibleSlot(
           insertedOrder, beforeBackpack, page, visibleSlots, targetSlot)
       end
       mergeIndex = insertedIndex
     end
     if organSource then native.PlaySound("take_organ") end
     local renderedPage: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetRenderedPlayerPage()
+      inv_overhaul_container_presenter.GetRenderedPlayerPage()
     local currentPage: int =
-      inv_overhaul_container_presenter.ContainerPresenterGetPlayerPage()
+      inv_overhaul_container_presenter.GetPlayerPage()
     if afterBackpack > beforeBackpack && insertedIntoPlayerCache &&
       renderedPage != currentPage then
-      inv_overhaul_container_presenter.ContainerPresenterUpdatePlayerSlots()
+      inv_overhaul_container_presenter.UpdatePlayerSlots()
     else
       if afterBackpack > beforeBackpack && insertedIntoPlayerCache then
-        inv_overhaul_container_presenter.ContainerPresenterUpdatePlayerSlot(targetSlot)
-        inv_overhaul_container_presenter.ContainerPresenterUpdatePlayerPageControls()
+        inv_overhaul_container_presenter.UpdatePlayerSlot(targetSlot)
+        inv_overhaul_container_presenter.UpdatePlayerPageControls()
       else
         if afterBackpack > beforeBackpack then
-          inv_overhaul_container_presenter.ContainerPresenterUpdatePlayerSlots()
+          inv_overhaul_container_presenter.UpdatePlayerSlots()
         end
-        inv_overhaul_container_presenter.ContainerPresenterQueueCachedPlayerEntryRefresh(
+        inv_overhaul_container_presenter.QueueCachedPlayerEntryRefresh(
           category, mergeIndex)
       end
     end
     if organSource then
-      inv_overhaul_container_presenter.ContainerPresenterUpdateOrganSlots()
+      inv_overhaul_container_presenter.UpdateOrganSlots()
     else
-      inv_overhaul_container_presenter.ContainerPresenterRefreshVisibleContainerItem(
+      inv_overhaul_container_presenter.RefreshVisibleContainerItem(
         itemID, sourceSlot)
     end
-    inv_overhaul_container_presenter.ContainerPresenterUpdateMoney()
+    inv_overhaul_container_presenter.LootPresenterUpdateMoney()
   end
 
-  function ContainerExternalTransferMoveToPlayer(
+  function MoveToPlayer(
     organSource: bool,
     sourceSlot: int,
     targetSlot: int,
     restorePageIfMerged: int) -> void
-    ContainerExternalTransferMoveAmountToPlayer(
+    MoveAmountToPlayer(
       organSource, sourceSlot, targetSlot, 1, restorePageIfMerged)
   end
 end

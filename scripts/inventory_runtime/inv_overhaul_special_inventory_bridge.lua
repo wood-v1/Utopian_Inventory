@@ -1,9 +1,9 @@
 module inv_overhaul_special_inventory_bridge do
-  function SpecialInventoryBridgeReset() -> void
+  function Reset() -> void
     native.SetVariable("inv_overhaul_special_inventory_remap_request", 0)
   end
 
-  function SpecialInventoryBridgeProcess() -> void
+  function Process() -> void
     local request: int = 0
     native.GetVariable("inv_overhaul_special_inventory_remap_request", request)
     if request != 1 then return end

@@ -6,23 +6,6 @@ maintask InventoryOverhaulBackground do
   local const c_iBranchBurah: int = 1
   local const c_iBranchKlara: int = 2
   local const c_iInventoryCapacity: int = 56
-  local const c_iPointerMoveBase: int = 1000000
-  local const c_iPointerDownBase: int = 4000000
-  local const c_iPointerUpBase: int = 7000000
-  local const c_iPointerRightBase: int = 10000000
-  local const c_iPointerDragBeginBase: int = 13000000
-  local const c_iPointerDragEndBase: int = 16000000
-  local const c_iPointerLeaveBase: int = 19000000
-  local const c_iPointerStride: int = 2000
-  local const c_iGridRendererMessageBase: int = 30000000
-  local const c_iGridRendererSlotStride: int = 100000
-  local const c_iGridRendererOperationStride: int = 20000
-  local const c_iGridRendererItem: int = 1
-  local const c_iGridRendererEmpty: int = 2
-  local const c_iGridRendererHidden: int = 3
-  local const c_iGridRendererHighlight: int = 4
-  local const c_iGridRendererReady: int = 29900000
-  local const c_iQuickslotHelpHover: int = 29800001
   local const c_iTooltipNone: int = -1
   local const c_iTooltipInvObject: int = 1
   local const c_iReleaseResources: int = -200
@@ -146,7 +129,7 @@ maintask InventoryOverhaulBackground do
     end
     native.SetOwnerDraw(true)
     native.ProcessEvents()
-    native.SendMessageToParent(c_iGridRendererReady)
+    native.SendMessageToParent(inv_overhaul_inventory_protocol.GridRendererReady)
     if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_end") end
   end
 
@@ -168,18 +151,18 @@ maintask InventoryOverhaulBackground do
     local globalX: int = GetPanelLeft() + x
     local globalY: int = GetPanelTop() + y
     native.SendMessageToParent(
-      inv_overhaul_inventory_protocol.InventoryProtocolEncodePanelPointer(base, globalX, globalY))
+      inv_overhaul_inventory_protocol.EncodePanelPointer(base, globalX, globalY))
   end
 
   function DrawSlot(slot: int) -> void
-    local columns: int = inv_overhaul_inventory_geometry.InventoryGeometryGetGridColumns(rootWidth)
+    local columns: int = inv_overhaul_inventory_geometry.InterfaceGeometryGetGridColumns(rootWidth)
     local column: int = slot - (slot / columns) * columns
     local row: int = slot / columns
-    local size: int = inv_overhaul_inventory_geometry.InventoryGeometryGetSlotSize(rootWidth)
-    local x: int = inv_overhaul_inventory_geometry.InventoryGeometryGetGridStartX(rootWidth) -
-      GetPanelLeft() + column * inv_overhaul_inventory_geometry.InventoryGeometryGetGridStep(rootWidth)
-    local y: int = inv_overhaul_inventory_geometry.InventoryGeometryGetGridStartY(rootWidth) -
-      GetPanelTop() + row * inv_overhaul_inventory_geometry.InventoryGeometryGetGridStep(rootWidth)
+    local size: int = inv_overhaul_inventory_geometry.GetSlotSize(rootWidth)
+    local x: int = inv_overhaul_inventory_geometry.InterfaceGeometryGetGridStartX(rootWidth) -
+      GetPanelLeft() + column * inv_overhaul_inventory_geometry.InterfaceGeometryGetGridStep(rootWidth)
+    local y: int = inv_overhaul_inventory_geometry.InterfaceGeometryGetGridStartY(rootWidth) -
+      GetPanelTop() + row * inv_overhaul_inventory_geometry.InterfaceGeometryGetGridStep(rootWidth)
     local hidden: int
     hiddenSlots->get(hidden, slot)
     if hidden == 1 then return end
@@ -217,7 +200,7 @@ maintask InventoryOverhaulBackground do
     if perfDiagnostics == 1 && !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_begin") end
     native.StretchBlit(image, 0, 0, panelWidth, panelHeight)
     if gridEnabled && rootWidth > 0 then
-      for slot = 0, inv_overhaul_inventory_geometry.InventoryGeometryGetVisibleSlots(rootWidth) - 1 do
+      for slot = 0, inv_overhaul_inventory_geometry.InterfaceGeometryGetVisibleSlots(rootWidth) - 1 do
         DrawSlot(slot)
       end
     end
@@ -233,7 +216,7 @@ maintask InventoryOverhaulBackground do
     if x >= helpX && x < helpX + 28 && y >= 71 && y < 99 then
       if !helpHoverActive then
         helpHoverActive = true
-        native.SendMessageToParent(c_iQuickslotHelpHover)
+        native.SendMessageToParent(inv_overhaul_inventory_protocol.QuickslotHelpHover)
       end
       native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
       native.SetVariable("inv_overhaul_inventory_tooltip_text_id", 1407)
@@ -242,7 +225,7 @@ maintask InventoryOverhaulBackground do
       return
     end
     helpHoverActive = false
-    SendPointer(c_iPointerMoveBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerMoveBase, x, y)
   end
 
   function OnMouseLeave() -> void
@@ -251,56 +234,56 @@ maintask InventoryOverhaulBackground do
     native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
     native.SetVariable("inv_overhaul_inventory_tooltip_type", c_iTooltipNone)
     tooltipActive = false
-    native.SendMessageToParent(c_iPointerLeaveBase)
+    native.SendMessageToParent(inv_overhaul_inventory_protocol.PointerLeaveBase)
   end
 
   function OnLButtonDown(x: int, y: int) -> void
-    SendPointer(c_iPointerDownBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerDownBase, x, y)
   end
 
   function OnLButtonUp(x: int, y: int) -> void
-    SendPointer(c_iPointerUpBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerUpBase, x, y)
   end
 
   function OnRButtonDown(x: int, y: int) -> void
-    SendPointer(c_iPointerRightBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerRightBase, x, y)
   end
 
   function OnDragBegin(x: int, y: int) -> void
-    SendPointer(c_iPointerDragBeginBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerDragBeginBase, x, y)
   end
 
   function OnDragEnd(x: int, y: int, accepted: bool) -> void
-    SendPointer(c_iPointerDragEndBase, x, y)
+    SendPointer(inv_overhaul_inventory_protocol.PointerDragEndBase, x, y)
   end
 
   function HandleGridRendererMessage(message: int, data: object) -> bool
-    if message < c_iGridRendererMessageBase then return false end
-    local slot: int = inv_overhaul_inventory_protocol.InventoryProtocolDecodeGridRendererSlot(message)
+    if message < inv_overhaul_inventory_protocol.GridRendererMessageBase then return false end
+    local slot: int = inv_overhaul_inventory_protocol.DecodeGridRendererSlot(message)
     if slot < 0 || slot >= c_iInventoryCapacity then return true end
-    local operation: int = inv_overhaul_inventory_protocol.InventoryProtocolDecodeGridRendererOperation(message)
-    local value: int = inv_overhaul_inventory_protocol.InventoryProtocolDecodeGridRendererValue(message)
+    local operation: int = inv_overhaul_inventory_protocol.DecodeGridRendererOperation(message)
+    local value: int = inv_overhaul_inventory_protocol.DecodeGridRendererValue(message)
 
-    if operation == c_iGridRendererHighlight then
+    if operation == inv_overhaul_inventory_protocol.GridRendererHighlight then
       highlightedSlots->set(slot, value)
       return true
     end
 
-    if operation == c_iGridRendererHidden then
+    if operation == inv_overhaul_inventory_protocol.GridRendererHidden then
       hiddenSlots->set(slot, 1)
       highlightedSlots->set(slot, 0)
       return true
     end
 
     hiddenSlots->set(slot, 0)
-    if operation == c_iGridRendererEmpty then
+    if operation == inv_overhaul_inventory_protocol.GridRendererEmpty then
       itemIDs->set(slot, -1)
       amounts->set(slot, 1)
       quickslots->set(slot, 0)
       return true
     end
 
-    if operation == c_iGridRendererItem && data then
+    if operation == inv_overhaul_inventory_protocol.GridRendererItem && data then
       local itemID: int
       data->GetItemID(itemID)
       local loadedItemID: int

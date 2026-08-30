@@ -9,26 +9,26 @@ module inv_overhaul_container_session do
   local organVisibilityRefresh: float
   local deferredContainerRefresh: float
 
-  function ContainerSessionInitializeState() -> void
+  function LootSessionInitializeState() -> void
     isCorpse = false
     showOrgans = false
     corpseVisualPending = false
     organVisibilityRefresh = 0.5
     deferredContainerRefresh = 0
-    inv_overhaul_container_presenter.ContainerPresenterSetCorpseMode(false, false)
+    inv_overhaul_container_presenter.SetCorpseMode(false, false)
   end
 
-  function ContainerSessionIsCorpse() -> bool
+  function LootSessionIsCorpse() -> bool
     local value: bool = isCorpse
     return value
   end
 
-  function ContainerSessionShowsOrgans() -> bool
+  function LootSessionShowsOrgans() -> bool
     local value: bool = showOrgans
     return value
   end
 
-  function ContainerSessionActivateCorpseMode() -> void
+  function ActivateCorpseMode() -> void
     isCorpse = true
     corpseVisualPending = true
     organVisibilityRefresh = 0.5
@@ -36,19 +36,19 @@ module inv_overhaul_container_session do
     native.GetVariable("branch", branch)
     showOrgans = branch == BranchBurah
     local organs: bool = showOrgans
-    inv_overhaul_container_presenter.ContainerPresenterSetCorpseMode(true, organs)
+    inv_overhaul_container_presenter.SetCorpseMode(true, organs)
     native.Trace("inv_overhaul_container corpse marker branch=" + branch +
       " organs=" + organs)
     native.SendMessage(-100, "loot_doll")
-    inv_overhaul_container_presenter.ContainerPresenterUpdateContainerSlots()
-    inv_overhaul_container_presenter.ContainerPresenterUpdateOrganSlots()
+    inv_overhaul_container_presenter.UpdateContainerSlots()
+    inv_overhaul_container_presenter.UpdateOrganSlots()
     deferredContainerRefresh = 0.05
   end
 
-  function ContainerSessionDetectContainerKind() -> void
+  function DetectContainerKind() -> void
     isCorpse = false
     showOrgans = false
-    inv_overhaul_container_presenter.ContainerPresenterSetCorpseMode(false, false)
+    inv_overhaul_container_presenter.SetCorpseMode(false, false)
     local external: object
     native.GetContainer(external)
     -- Generic Container actors do not expose Actor properties. Only the
@@ -57,7 +57,7 @@ module inv_overhaul_container_session do
     native.IsCorpseContainer(nativeCorpse)
     if nativeCorpse then
       native.Trace("inv_overhaul_container corpse detected by engine container kind")
-      ContainerSessionActivateCorpseMode()
+      ActivateCorpseMode()
       return
     end
     if external then
@@ -71,7 +71,7 @@ module inv_overhaul_container_session do
         item->HasProperty(organ, "Organ")
         if organ then
           native.Trace("inv_overhaul_container corpse detected by organ item")
-          ContainerSessionActivateCorpseMode()
+          ActivateCorpseMode()
           return
         end
       end
@@ -79,11 +79,11 @@ module inv_overhaul_container_session do
     native.Trace("inv_overhaul_container kind awaiting corpse marker")
   end
 
-  function ContainerSessionAdvance(delta: float) -> void
+  function LootSessionAdvance(delta: float) -> void
     if organVisibilityRefresh > 0 then
       organVisibilityRefresh = organVisibilityRefresh - delta
       if organVisibilityRefresh <= 0 then
-        inv_overhaul_container_presenter.ContainerPresenterUpdateOrganSlots()
+        inv_overhaul_container_presenter.UpdateOrganSlots()
       end
     end
     if corpseVisualPending then
@@ -93,12 +93,12 @@ module inv_overhaul_container_session do
     if deferredContainerRefresh > 0 then
       deferredContainerRefresh = deferredContainerRefresh - delta
       if deferredContainerRefresh <= 0 then
-        inv_overhaul_container_presenter.ContainerPresenterUpdateContainerSlots()
+        inv_overhaul_container_presenter.UpdateContainerSlots()
       end
     end
   end
 
-  function ContainerSessionCloseWindow() -> void
+  function CloseWindow() -> void
     native.SetCursor("default")
     native.DestroyWindow()
   end

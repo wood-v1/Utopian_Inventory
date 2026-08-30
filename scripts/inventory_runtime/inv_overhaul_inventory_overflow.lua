@@ -3,18 +3,18 @@ module inv_overhaul_inventory_overflow do
   local const InventoryOverflowClothesCategory: int = 1
   local const InventoryOverflowCategoryCount: int = 5
 
-  function InventoryOverflowGetPlayer() -> object
+  function OverflowGetPlayer() -> object
     local player: object
     native.self(player)
     return player
   end
 
-  function InventoryOverflowIsEquippedItem(category: int, index: int) -> bool
+  function OverflowIsEquippedItem(category: int, index: int) -> bool
     if category != InventoryOverflowWeaponCategory &&
       category != InventoryOverflowClothesCategory then return false end
 
     local selected: bool
-    local player: object = InventoryOverflowGetPlayer()
+    local player: object = OverflowGetPlayer()
     player->IsItemSelected(selected, index, category)
     if !selected then return false end
 
@@ -32,14 +32,14 @@ module inv_overhaul_inventory_overflow do
     return group
   end
 
-  function InventoryOverflowGetBackpackItemCount() -> int
-    local player: object = InventoryOverflowGetPlayer()
+  function OverflowGetBackpackItemCount() -> int
+    local player: object = OverflowGetPlayer()
     local total: int = 0
     for category = 0, InventoryOverflowCategoryCount - 1 do
       local count: int
       player->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !InventoryOverflowIsEquippedItem(category, index) then
+        if !OverflowIsEquippedItem(category, index) then
           total = total + 1
         end
       end
@@ -47,26 +47,26 @@ module inv_overhaul_inventory_overflow do
     return total
   end
 
-  function InventoryOverflowShouldQueue(
+  function ShouldQueue(
     allowedSlots: int,
     previousCategoryCount: int,
     currentCategoryCount: int
   ) -> bool
-    return InventoryOverflowGetBackpackItemCount() > allowedSlots &&
+    return OverflowGetBackpackItemCount() > allowedSlots &&
       currentCategoryCount > previousCategoryCount
   end
 
-  function InventoryOverflowDropItem(
+  function DropItem(
     index: int,
     itemID: int,
     category: int
   ) -> bool
     if category < 0 || category >= InventoryOverflowCategoryCount then return false end
-    local player: object = InventoryOverflowGetPlayer()
+    local player: object = OverflowGetPlayer()
     local count: int
     player->GetItemCount(count, category)
     if index < 0 || index >= count ||
-      InventoryOverflowIsEquippedItem(category, index) then return false end
+      OverflowIsEquippedItem(category, index) then return false end
 
     local item: object
     local amount: int
@@ -82,7 +82,7 @@ module inv_overhaul_inventory_overflow do
     return true
   end
 
-  function InventoryOverflowAdvanceContentGeneration() -> void
+  function AdvanceContentGeneration() -> void
     local generation: int = 0
     native.GetVariable("inv_overhaul_inventory_content_generation", generation)
     generation = generation + 1

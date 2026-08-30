@@ -2,3 +2,5 @@ build*/
 release/
 scripts/out/
 tmp/
+/AGENTS.md
+/.agents/

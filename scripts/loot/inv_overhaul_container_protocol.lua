@@ -28,44 +28,44 @@ module inv_overhaul_container_protocol do
   local const ContainerSlots: int = 12
   local const OrganSlots: int = 4
 
-  function ContainerProtocolIsPlayerTarget(target: int, visibleSlots: int) -> bool
+  function IsPlayerTarget(target: int, visibleSlots: int) -> bool
     return target >= 0 && target < visibleSlots
   end
 
-  function ContainerProtocolIsContainerTarget(target: int) -> bool
+  function IsContainerTarget(target: int) -> bool
     return target >= TargetContainerBase &&
       target < TargetContainerBase + ContainerSlots
   end
 
-  function ContainerProtocolIsOrganTarget(target: int) -> bool
+  function IsOrganTarget(target: int) -> bool
     return target >= TargetOrganBase && target < TargetOrganBase + OrganSlots
   end
 
-  function ContainerProtocolGetContainerSlot(target: int) -> int
-    if !ContainerProtocolIsContainerTarget(target) then return -1 end
+  function GetContainerSlot(target: int) -> int
+    if !IsContainerTarget(target) then return -1 end
     return target - TargetContainerBase
   end
 
-  function ContainerProtocolGetOrganSlot(target: int) -> int
-    if !ContainerProtocolIsOrganTarget(target) then return -1 end
+  function GetOrganSlot(target: int) -> int
+    if !IsOrganTarget(target) then return -1 end
     return target - TargetOrganBase
   end
 
-  function ContainerProtocolGetTargetBySender(
+  function LootProtocolGetTargetBySender(
     sender: string,
     visibleSlots: int) -> int
     for slot = 0, visibleSlots - 1 do
-      if sender == inv_overhaul_container_view.ContainerViewGetPlayerSlotWndName(slot) then
+      if sender == inv_overhaul_container_view.GetPlayerSlotWndName(slot) then
         return slot
       end
     end
     for slot = 0, ContainerSlots - 1 do
-      if sender == inv_overhaul_container_view.ContainerViewGetContainerSlotWndName(slot) then
+      if sender == inv_overhaul_container_view.GetContainerSlotWndName(slot) then
         return TargetContainerBase + slot
       end
     end
     for slot = 0, OrganSlots - 1 do
-      if sender == inv_overhaul_container_view.ContainerViewGetOrganSlotWndName(slot) then
+      if sender == inv_overhaul_container_view.GetOrganSlotWndName(slot) then
         return TargetOrganBase + slot
       end
     end
@@ -73,72 +73,72 @@ module inv_overhaul_container_protocol do
     return -1
   end
 
-  function ContainerProtocolFindTargetAt(
+  function LootProtocolFindTargetAt(
     windowWidth: int,
     visibleSlots: int,
     showOrgans: bool,
     x: int,
     y: int) -> int
     local slot: int =
-      inv_overhaul_container_geometry.ContainerGeometryFindPlayerSlotAt(
+      inv_overhaul_container_geometry.FindPlayerSlotAt(
         windowWidth, visibleSlots, x, y)
     if slot >= 0 then return slot end
-    slot = inv_overhaul_container_geometry.ContainerGeometryFindContainerSlotAt(
+    slot = inv_overhaul_container_geometry.FindContainerSlotAt(
       windowWidth, ContainerSlots, x, y)
     if slot >= 0 then return TargetContainerBase + slot end
     if showOrgans then
-      slot = inv_overhaul_container_geometry.ContainerGeometryFindOrganSlotAt(
+      slot = inv_overhaul_container_geometry.FindOrganSlotAt(
         windowWidth, OrganSlots, x, y)
       if slot >= 0 then return TargetOrganBase + slot end
     end
     return -1
   end
 
-  function ContainerProtocolIsTargetCompatible(
+  function LootProtocolIsTargetCompatible(
     sourceKind: int,
     target: int,
     visibleSlots: int) -> bool
     if sourceKind == 0 then
-      return ContainerProtocolIsPlayerTarget(target, visibleSlots) ||
-        ContainerProtocolIsContainerTarget(target)
+      return IsPlayerTarget(target, visibleSlots) ||
+        IsContainerTarget(target)
     end
     if sourceKind == 1 then
-      return ContainerProtocolIsPlayerTarget(target, visibleSlots) ||
-        ContainerProtocolIsContainerTarget(target)
+      return IsPlayerTarget(target, visibleSlots) ||
+        IsContainerTarget(target)
     end
     if sourceKind == 2 then
-      return ContainerProtocolIsPlayerTarget(target, visibleSlots)
+      return IsPlayerTarget(target, visibleSlots)
     end
     return false
   end
 
-  function ContainerProtocolGetSlotTargetFromPointerMessage(
+  function LootProtocolGetSlotTargetFromPointerMessage(
     message: int,
     base: int,
     sender: string,
     visibleSlots: int,
     windowWidth: int) -> int
-    local target: int = ContainerProtocolGetTargetBySender(sender, visibleSlots)
+    local target: int = LootProtocolGetTargetBySender(sender, visibleSlots)
     if target < 0 then return -1 end
     local encoded: int = message - base
     local localX: int = encoded / SlotPointerStride
     local localY: int = encoded - localX * SlotPointerStride
     local hotZone: int =
-      inv_overhaul_container_geometry.ContainerGeometryGetSlotHotZone(windowWidth)
-    if ContainerProtocolIsOrganTarget(target) then
+      inv_overhaul_container_geometry.GetSlotHotZone(windowWidth)
+    if IsOrganTarget(target) then
       hotZone =
-        inv_overhaul_container_geometry.ContainerGeometryGetOrganSlotHotZone(windowWidth)
+        inv_overhaul_container_geometry.GetOrganSlotHotZone(windowWidth)
     end
-    if inv_overhaul_container_geometry.ContainerGeometryIsInsideSlotDropArea(
+    if inv_overhaul_container_geometry.LootGeometryIsInsideSlotDropArea(
       localX, localY, hotZone) then return target end
     return -1
   end
 
-  function ContainerProtocolIsPanelPointerMessage(message: int) -> bool
+  function IsPanelPointerMessage(message: int) -> bool
     return message >= PanelPointerMoveBase
   end
 
-  function ContainerProtocolGetPanelPointerAction(message: int) -> int
+  function GetPanelPointerAction(message: int) -> int
     if message >= PanelPointerLeaveBase then return -1 end
     if message >= PanelPointerDragEndBase then return 3 end
     if message >= PanelPointerDragBeginBase then return 1 end
@@ -148,7 +148,7 @@ module inv_overhaul_container_protocol do
     return 0
   end
 
-  function ContainerProtocolGetPanelPointerBase(message: int) -> int
+  function GetPanelPointerBase(message: int) -> int
     if message >= PanelPointerDragEndBase then return PanelPointerDragEndBase end
     if message >= PanelPointerDragBeginBase then return PanelPointerDragBeginBase end
     if message >= PanelPointerRightBase then return PanelPointerRightBase end
@@ -157,14 +157,14 @@ module inv_overhaul_container_protocol do
     return PanelPointerMoveBase
   end
 
-  function ContainerProtocolGetSlotPointerAction(message: int) -> int
+  function GetSlotPointerAction(message: int) -> int
     if message >= DragEndMessageBase then return 3 end
     if message >= ReleaseMessageBase then return 2 end
     if message >= HoverMessageBase then return 1 end
     return 0
   end
 
-  function ContainerProtocolGetSlotPointerBase(message: int) -> int
+  function GetSlotPointerBase(message: int) -> int
     if message >= DragEndMessageBase then return DragEndMessageBase end
     if message >= ReleaseMessageBase then return ReleaseMessageBase end
     if message >= HoverMessageBase then return HoverMessageBase end

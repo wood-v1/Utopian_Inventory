@@ -7,67 +7,67 @@ module inv_overhaul_inventory_layout_runtime do
   local savePending: bool
   local saveNextCell: int
 
-  function InventoryLayoutRuntimeInitialize() -> void
+  function LayoutRuntimeInitialize() -> void
     local newOrder: object
     native.CreateIntVector(newOrder)
     slotOrder = newOrder
     for cell = 0, InventoryCapacity - 1 do
-      slotOrder->add(inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(cell))
+      slotOrder->add(inv_overhaul_inventory_layout.GetDefaultOrderForCell(cell))
     end
     savePending = false
     saveNextCell = -1
   end
 
-  function InventoryLayoutRuntimeGetOrderValue(cell: int) -> int
+  function LayoutRuntimeGetOrderValue(cell: int) -> int
     local order: int = cell
     if cell >= 0 && cell < InventoryCapacity then slotOrder->get(order, cell) end
     return order
   end
 
-  function InventoryLayoutRuntimeSetOrderValue(cell: int, value: int) -> void
+  function SetOrderValue(cell: int, value: int) -> void
     if cell >= 0 && cell < InventoryCapacity then slotOrder->set(cell, value) end
   end
 
-  function InventoryLayoutRuntimeGetCellVariableName(cell: int) -> string
+  function GetCellVariableName(cell: int) -> string
     return "inv_overhaul_inventory_cell_" + cell
   end
 
-  function InventoryLayoutRuntimeIsOrderUsedBefore(cell: int, order: int) -> bool
+  function IsOrderUsedBefore(cell: int, order: int) -> bool
     for candidateCell = 0, cell - 1 do
-      if InventoryLayoutRuntimeGetOrderValue(candidateCell) == order then return true end
+      if LayoutRuntimeGetOrderValue(candidateCell) == order then return true end
     end
     return false
   end
 
-  function InventoryLayoutRuntimeIsOrderUsedAtOrBefore(cell: int, order: int) -> bool
+  function IsOrderUsedAtOrBefore(cell: int, order: int) -> bool
     for candidateCell = 0, cell do
-      if InventoryLayoutRuntimeGetOrderValue(candidateCell) == order then return true end
+      if LayoutRuntimeGetOrderValue(candidateCell) == order then return true end
     end
     return false
   end
 
-  function InventoryLayoutRuntimeFindFirstUnusedOrder(cell: int) -> int
+  function FindFirstUnusedOrder(cell: int) -> int
     for candidate = 0, InventoryCapacity - 1 do
-      if !InventoryLayoutRuntimeIsOrderUsedAtOrBefore(cell, candidate) then return candidate end
+      if !IsOrderUsedAtOrBefore(cell, candidate) then return candidate end
     end
     return cell
   end
 
-  function InventoryLayoutRuntimeNormalize() -> void
+  function Normalize() -> void
     for cell = 0, InventoryCapacity - 1 do
-      local order: int = InventoryLayoutRuntimeGetOrderValue(cell)
+      local order: int = LayoutRuntimeGetOrderValue(cell)
       if order < 0 || order >= InventoryCapacity ||
-        InventoryLayoutRuntimeIsOrderUsedBefore(cell, order) then
-        InventoryLayoutRuntimeSetOrderValue(cell, InventoryLayoutRuntimeFindFirstUnusedOrder(cell))
+        IsOrderUsedBefore(cell, order) then
+        SetOrderValue(cell, FindFirstUnusedOrder(cell))
       end
     end
   end
 
-  function InventoryLayoutRuntimeSaveAll() -> void
+  function SaveAll() -> void
     for cell = 0, InventoryCapacity - 1 do
       native.SetVariable(
-        InventoryLayoutRuntimeGetCellVariableName(cell),
-        InventoryLayoutRuntimeGetOrderValue(cell))
+        GetCellVariableName(cell),
+        LayoutRuntimeGetOrderValue(cell))
     end
     native.SetVariable("inv_overhaul_inventory_layout_initialized", 1)
     native.SetVariable("inv_overhaul_inventory_layout_version", LayoutVersion)
@@ -75,70 +75,70 @@ module inv_overhaul_inventory_layout_runtime do
     saveNextCell = 0
   end
 
-  function InventoryLayoutRuntimeQueueSave() -> void
+  function QueueSave() -> void
     savePending = true
     saveNextCell = 0
   end
 
-  function InventoryLayoutRuntimeHasQueuedSave() -> bool return savePending end
+  function HasQueuedSave() -> bool return savePending end
 
-  function InventoryLayoutRuntimeContinueQueuedSave() -> void
+  function ContinueQueuedSave() -> void
     if !savePending then return end
     for batch = 0, 1 do
       if saveNextCell < InventoryCapacity then
         local cell: int = saveNextCell
-        InventoryLayoutRuntimeSaveCell(cell)
+        SaveCell(cell)
         saveNextCell = saveNextCell + 1
       end
     end
     if saveNextCell >= InventoryCapacity then
-      InventoryLayoutRuntimeFinishIncrementalSave()
+      FinishIncrementalSave()
       savePending = false
       saveNextCell = 0
     end
   end
 
-  function InventoryLayoutRuntimeLoad() -> void
+  function Load() -> void
     local initialized: int = 0
     local layoutVersion: int = 0
     native.GetVariable("inv_overhaul_inventory_layout_initialized", initialized)
     native.GetVariable("inv_overhaul_inventory_layout_version", layoutVersion)
     if initialized != 1 then
-      InventoryLayoutRuntimeSaveAll()
+      SaveAll()
       return
     end
 
     local storedSlots: int = InventoryCapacity
     if layoutVersion == 3 then storedSlots = 40 end
     if layoutVersion != 3 && layoutVersion != LayoutVersion then
-      InventoryLayoutRuntimeSaveAll()
+      SaveAll()
       return
     end
 
     if layoutVersion == 3 then
-      for cell = 0, 15 do InventoryLayoutRuntimeSetOrderValue(cell, cell + 40) end
+      for cell = 0, 15 do SetOrderValue(cell, cell + 40) end
       for legacyCell = 0, 39 do
         local legacyOrder: int = legacyCell
-        native.GetVariable(InventoryLayoutRuntimeGetCellVariableName(legacyCell), legacyOrder)
+        native.GetVariable(GetCellVariableName(legacyCell), legacyOrder)
         if legacyOrder < 0 || legacyOrder >= 40 then legacyOrder = legacyCell end
-        InventoryLayoutRuntimeSetOrderValue(legacyCell + 16, legacyOrder)
+        SetOrderValue(legacyCell + 16, legacyOrder)
       end
     else
       for cell = 0, storedSlots - 1 do
-        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(cell)
-        native.GetVariable(InventoryLayoutRuntimeGetCellVariableName(cell), order)
+        local order: int = inv_overhaul_inventory_layout.GetDefaultOrderForCell(cell)
+        native.GetVariable(GetCellVariableName(cell), order)
         if order < 0 || order >= storedSlots then
-          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(cell)
+          order = inv_overhaul_inventory_layout.GetDefaultOrderForCell(cell)
         end
-        InventoryLayoutRuntimeSetOrderValue(cell, order)
+        SetOrderValue(cell, order)
       end
     end
-    InventoryLayoutRuntimeNormalize()
-    if layoutVersion == 3 then InventoryLayoutRuntimeSaveAll() end
+    Normalize()
+    if layoutVersion == 3 then SaveAll() end
     native.Trace("inv_overhaul_inventory layout loaded from variables")
   end
 
-  function InventoryLayoutRuntimeContinueIncrementalLoad(loadStartCell: int) -> bool
+  function ContinueIncrementalLoad(loadStartCell: int) -> bool
     local nextCell: int = loadStartCell
     if nextCell < 0 then
       local initialized: int = 0
@@ -146,53 +146,53 @@ module inv_overhaul_inventory_layout_runtime do
       native.GetVariable("inv_overhaul_inventory_layout_initialized", initialized)
       native.GetVariable("inv_overhaul_inventory_layout_version", layoutVersion)
       if initialized != 1 || layoutVersion != LayoutVersion then
-        InventoryLayoutRuntimeLoad()
+        Load()
         return true
       end
       nextCell = 0
     end
     for batch = 0, InventoryCapacity - 1 do
       if nextCell < InventoryCapacity then
-        local order: int = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(nextCell)
-        native.GetVariable(InventoryLayoutRuntimeGetCellVariableName(nextCell), order)
+        local order: int = inv_overhaul_inventory_layout.GetDefaultOrderForCell(nextCell)
+        native.GetVariable(GetCellVariableName(nextCell), order)
         if order < 0 || order >= InventoryCapacity then
-          order = inv_overhaul_inventory_layout.InventoryLayoutGetDefaultOrderForCell(nextCell)
+          order = inv_overhaul_inventory_layout.GetDefaultOrderForCell(nextCell)
         end
-        InventoryLayoutRuntimeSetOrderValue(nextCell, order)
+        SetOrderValue(nextCell, order)
         nextCell = nextCell + 1
       end
     end
     if nextCell >= InventoryCapacity then
-      InventoryLayoutRuntimeNormalize()
+      Normalize()
       return true
     end
     return false
   end
 
-  function InventoryLayoutRuntimeSaveCell(cell: int) -> void
+  function SaveCell(cell: int) -> void
     if cell < 0 || cell >= InventoryCapacity then return end
     native.SetVariable(
-      InventoryLayoutRuntimeGetCellVariableName(cell),
-      InventoryLayoutRuntimeGetOrderValue(cell))
+      GetCellVariableName(cell),
+      LayoutRuntimeGetOrderValue(cell))
   end
 
-  function InventoryLayoutRuntimeFinishIncrementalSave() -> void
+  function FinishIncrementalSave() -> void
     native.SetVariable("inv_overhaul_inventory_layout_initialized", 1)
     native.SetVariable("inv_overhaul_inventory_layout_version", LayoutVersion)
   end
 
-  function InventoryLayoutRuntimeOrderFreeCellsByDisplay(
+  function LayoutRuntimeOrderFreeCellsByDisplay(
     itemCount: int,
     visibleSlots: int) -> bool
     if itemCount > InventoryCapacity then return false end
     local nextFreeOrder: int = itemCount
     local changed: bool = false
     for linear = 0, InventoryCapacity - 1 do
-      local cell: int = inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+      local cell: int = inv_overhaul_inventory_layout.LayoutGetCellForLinearSlot(
         linear, visibleSlots, InventoryCapacity)
-      if cell >= 0 && InventoryLayoutRuntimeGetOrderValue(cell) >= itemCount then
-        if InventoryLayoutRuntimeGetOrderValue(cell) != nextFreeOrder then
-          InventoryLayoutRuntimeSetOrderValue(cell, nextFreeOrder)
+      if cell >= 0 && LayoutRuntimeGetOrderValue(cell) >= itemCount then
+        if LayoutRuntimeGetOrderValue(cell) != nextFreeOrder then
+          SetOrderValue(cell, nextFreeOrder)
           changed = true
         end
         nextFreeOrder = nextFreeOrder + 1
@@ -201,16 +201,16 @@ module inv_overhaul_inventory_layout_runtime do
     return changed
   end
 
-  function InventoryLayoutRuntimeSwapCells(sourceCell: int, targetCell: int) -> bool
+  function LayoutRuntimeSwapCells(sourceCell: int, targetCell: int) -> bool
     if sourceCell == targetCell || sourceCell < 0 || targetCell < 0 then return false end
-    local sourceOrder: int = InventoryLayoutRuntimeGetOrderValue(sourceCell)
-    local targetOrder: int = InventoryLayoutRuntimeGetOrderValue(targetCell)
-    InventoryLayoutRuntimeSetOrderValue(sourceCell, targetOrder)
-    InventoryLayoutRuntimeSetOrderValue(targetCell, sourceOrder)
+    local sourceOrder: int = LayoutRuntimeGetOrderValue(sourceCell)
+    local targetOrder: int = LayoutRuntimeGetOrderValue(targetCell)
+    SetOrderValue(sourceCell, targetOrder)
+    SetOrderValue(targetCell, sourceOrder)
     return true
   end
 
-  function InventoryLayoutRuntimeRemoveOrdinal(
+  function RemoveOrdinal(
     removedOrder: int,
     beforeCount: int,
     currentCount: int,
@@ -218,85 +218,85 @@ module inv_overhaul_inventory_layout_runtime do
     if removedOrder < 0 then return end
     local emptyOrder: int = beforeCount - 1
     for cell = 0, InventoryCapacity - 1 do
-      local order: int = InventoryLayoutRuntimeGetOrderValue(cell)
+      local order: int = LayoutRuntimeGetOrderValue(cell)
       if order == removedOrder then
-        InventoryLayoutRuntimeSetOrderValue(cell, emptyOrder)
+        SetOrderValue(cell, emptyOrder)
       else
         if order > removedOrder && order < beforeCount then
-          InventoryLayoutRuntimeSetOrderValue(cell, order - 1)
+          SetOrderValue(cell, order - 1)
         end
       end
     end
-    InventoryLayoutRuntimeNormalize()
-    InventoryLayoutRuntimeOrderFreeCellsByDisplay(currentCount, visibleSlots)
+    Normalize()
+    LayoutRuntimeOrderFreeCellsByDisplay(currentCount, visibleSlots)
   end
 
-  function InventoryLayoutRuntimeRemoveOrdinalExact(
+  function RemoveOrdinalExact(
     removedOrder: int,
     beforeCount: int) -> bool
     if removedOrder < 0 then return false end
     local emptyOrder: int = beforeCount - 1
     for cell = 0, InventoryCapacity - 1 do
-      local order: int = InventoryLayoutRuntimeGetOrderValue(cell)
+      local order: int = LayoutRuntimeGetOrderValue(cell)
       if order == removedOrder then
-        InventoryLayoutRuntimeSetOrderValue(cell, emptyOrder)
+        SetOrderValue(cell, emptyOrder)
       else
         if order > removedOrder && order < beforeCount then
-          InventoryLayoutRuntimeSetOrderValue(cell, order - 1)
+          SetOrderValue(cell, order - 1)
         end
       end
     end
-    InventoryLayoutRuntimeQueueSave()
+    QueueSave()
     return true
   end
 
-  function InventoryLayoutRuntimeFindFirstFreeCell(itemCount: int, visibleSlots: int) -> int
+  function FindFirstFreeCell(itemCount: int, visibleSlots: int) -> int
     for linear = 0, InventoryCapacity - 1 do
-      local cell: int = inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+      local cell: int = inv_overhaul_inventory_layout.LayoutGetCellForLinearSlot(
         linear, visibleSlots, InventoryCapacity)
-      if cell >= 0 && InventoryLayoutRuntimeGetOrderValue(cell) >= itemCount then return cell end
+      if cell >= 0 && LayoutRuntimeGetOrderValue(cell) >= itemCount then return cell end
     end
     return -1
   end
 
-  function InventoryLayoutRuntimeInsertOrdinal(
+  function InsertOrdinal(
     insertedOrder: int,
     beforeCount: int,
     targetCell: int,
     currentCount: int,
     visibleSlots: int) -> bool
     if insertedOrder < 0 || targetCell < 0 || targetCell >= InventoryCapacity then return false end
-    local freeCell: int = InventoryLayoutRuntimeFindFirstFreeCell(beforeCount, visibleSlots)
+    local freeCell: int = FindFirstFreeCell(beforeCount, visibleSlots)
     if freeCell < 0 then return false end
 
-    local targetOrder: int = InventoryLayoutRuntimeGetOrderValue(targetCell)
+    local targetOrder: int = LayoutRuntimeGetOrderValue(targetCell)
     local targetOccupied: bool = targetOrder >= 0 && targetOrder < beforeCount
     local displacedOrder: int = targetOrder
     if targetOccupied && displacedOrder >= insertedOrder then displacedOrder = displacedOrder + 1 end
 
     for cell = 0, InventoryCapacity - 1 do
-      local order: int = InventoryLayoutRuntimeGetOrderValue(cell)
+      local order: int = LayoutRuntimeGetOrderValue(cell)
       if order >= insertedOrder && order < beforeCount then
-        InventoryLayoutRuntimeSetOrderValue(cell, order + 1)
+        SetOrderValue(cell, order + 1)
       end
     end
 
     if freeCell != targetCell then
       if targetOccupied then
-        InventoryLayoutRuntimeSetOrderValue(freeCell, displacedOrder)
+        SetOrderValue(freeCell, displacedOrder)
       else
-        InventoryLayoutRuntimeSetOrderValue(freeCell, targetOrder)
+        SetOrderValue(freeCell, targetOrder)
       end
     end
-    InventoryLayoutRuntimeSetOrderValue(targetCell, insertedOrder)
-    InventoryLayoutRuntimeNormalize()
-    InventoryLayoutRuntimeOrderFreeCellsByDisplay(currentCount, visibleSlots)
+    SetOrderValue(targetCell, insertedOrder)
+    Normalize()
+    LayoutRuntimeOrderFreeCellsByDisplay(currentCount, visibleSlots)
     native.Trace("inv_overhaul_inventory inserted ordinal=" + insertedOrder + " targetCell=" + targetCell +
       " displacedCell=" + freeCell + " occupied=" + targetOccupied)
     return true
   end
 
-  function InventoryLayoutRuntimeInsertOrdinalExactAtVisibleSlot(
+  function InsertOrdinalExactAtVisibleSlot(
     insertedOrder: int,
     beforeCount: int,
     page: int,
@@ -306,30 +306,30 @@ module inv_overhaul_inventory_layout_runtime do
 
     local insertedCell: int = -1
     for cell = 0, InventoryCapacity - 1 do
-      if InventoryLayoutRuntimeGetOrderValue(cell) == beforeCount then
+      if LayoutRuntimeGetOrderValue(cell) == beforeCount then
         insertedCell = cell
       end
     end
     if insertedCell < 0 then return false end
 
     for cell = 0, InventoryCapacity - 1 do
-      local order: int = InventoryLayoutRuntimeGetOrderValue(cell)
+      local order: int = LayoutRuntimeGetOrderValue(cell)
       if cell != insertedCell && order >= insertedOrder && order < beforeCount then
-        InventoryLayoutRuntimeSetOrderValue(cell, order + 1)
+        SetOrderValue(cell, order + 1)
       end
     end
-    InventoryLayoutRuntimeSetOrderValue(insertedCell, insertedOrder)
+    SetOrderValue(insertedCell, insertedOrder)
 
     local preferredCell: int =
-      inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+      inv_overhaul_inventory_layout.LayoutGetCellForLinearSlot(
         page * visibleSlots + preferredSlot, visibleSlots, InventoryCapacity)
     if preferredSlot >= 0 && preferredSlot < visibleSlots &&
       preferredCell != insertedCell then
-      local preferredOrder: int = InventoryLayoutRuntimeGetOrderValue(preferredCell)
-      InventoryLayoutRuntimeSetOrderValue(preferredCell, insertedOrder)
-      InventoryLayoutRuntimeSetOrderValue(insertedCell, preferredOrder)
+      local preferredOrder: int = LayoutRuntimeGetOrderValue(preferredCell)
+      SetOrderValue(preferredCell, insertedOrder)
+      SetOrderValue(insertedCell, preferredOrder)
     end
-    InventoryLayoutRuntimeQueueSave()
+    QueueSave()
     return true
   end
 end

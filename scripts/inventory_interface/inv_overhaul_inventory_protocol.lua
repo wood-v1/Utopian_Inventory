@@ -19,6 +19,10 @@ module inv_overhaul_inventory_protocol do
 
   local const TargetWeapon: int = 100
   local const TargetClothesBase: int = 100
+  local const TargetFeet: int = 101
+  local const TargetHead: int = 102
+  local const TargetBody: int = 103
+  local const TargetHands: int = 104
   local const TargetDrop: int = 200
   local const TargetMoney: int = 300
   local const TargetPaging: int = 400
@@ -27,37 +31,37 @@ module inv_overhaul_inventory_protocol do
   local const PageHoverEnter: int = -110
   local const PageHoverLeave: int = -111
 
-  function InventoryProtocolEncodePanelPointer(base: int, x: int, y: int) -> int
+  function EncodePanelPointer(base: int, x: int, y: int) -> int
     return base + x * PointerStride + y
   end
 
-  function InventoryProtocolDecodePanelPointerX(message: int, base: int) -> int
+  function InterfaceProtocolDecodePanelPointerX(message: int, base: int) -> int
     return (message - base) / PointerStride
   end
 
-  function InventoryProtocolDecodePanelPointerY(message: int, base: int) -> int
+  function InterfaceProtocolDecodePanelPointerY(message: int, base: int) -> int
     local encoded: int = message - base
     local x: int = encoded / PointerStride
     return encoded - x * PointerStride
   end
 
-  function InventoryProtocolEncodeGridRenderer(slot: int, operation: int, value: int) -> int
+  function EncodeGridRenderer(slot: int, operation: int, value: int) -> int
     return GridRendererMessageBase + slot * GridRendererSlotStride +
       operation * GridRendererOperationStride + value
   end
 
-  function InventoryProtocolDecodeGridRendererSlot(message: int) -> int
+  function DecodeGridRendererSlot(message: int) -> int
     return (message - GridRendererMessageBase) / GridRendererSlotStride
   end
 
-  function InventoryProtocolDecodeGridRendererOperation(message: int) -> int
+  function DecodeGridRendererOperation(message: int) -> int
     local encoded: int = message - GridRendererMessageBase
     local slot: int = encoded / GridRendererSlotStride
     encoded = encoded - slot * GridRendererSlotStride
     return encoded / GridRendererOperationStride
   end
 
-  function InventoryProtocolDecodeGridRendererValue(message: int) -> int
+  function DecodeGridRendererValue(message: int) -> int
     local encoded: int = message - GridRendererMessageBase
     local slot: int = encoded / GridRendererSlotStride
     encoded = encoded - slot * GridRendererSlotStride
@@ -65,20 +69,20 @@ module inv_overhaul_inventory_protocol do
     return encoded - operation * GridRendererOperationStride
   end
 
-  function InventoryProtocolGetSlotWindowName(slot: int) -> string
+  function GetSlotWindowName(slot: int) -> string
     local number: int = slot + 1
     if number < 10 then return "slot0" + number end
     return "slot" + number
   end
 
-  function InventoryProtocolGetSlotBySender(sender: string, visibleSlots: int) -> int
+  function GetSlotBySender(sender: string, visibleSlots: int) -> int
     for slot = 0, visibleSlots - 1 do
-      if sender == InventoryProtocolGetSlotWindowName(slot) then return slot end
+      if sender == GetSlotWindowName(slot) then return slot end
     end
     return -1
   end
 
-  function InventoryProtocolGetSpecialTargetBySender(sender: string) -> int
+  function GetSpecialTargetBySender(sender: string) -> int
     if sender == "equip_weapon" then return TargetWeapon end
     if sender == "equip_feet" then return TargetClothesBase + 1 end
     if sender == "equip_head" then return TargetClothesBase + 2 end
@@ -88,7 +92,7 @@ module inv_overhaul_inventory_protocol do
     return -1
   end
 
-  function InventoryProtocolGetDollTargetByHoverMessage(message: int) -> int
+  function GetDollTargetByHoverMessage(message: int) -> int
     if message == -50 then return TargetWeapon end
     if message == -51 then return TargetClothesBase + 1 end
     if message == -52 then return TargetClothesBase + 2 end
@@ -97,14 +101,14 @@ module inv_overhaul_inventory_protocol do
     return -1
   end
 
-  function InventoryProtocolGetDollTargetBySourceMessage(message: int, base: int) -> int
+  function GetDollTargetBySourceMessage(message: int, base: int) -> int
     local offset: int = base - message
     if offset == 0 then return TargetWeapon end
     if offset >= 1 && offset <= 4 then return TargetClothesBase + offset end
     return -1
   end
 
-  function InventoryProtocolGetDollSourceMessage(targetMessage: int, base: int) -> int
+  function GetDollSourceMessage(targetMessage: int, base: int) -> int
     if targetMessage == -50 then return base end
     if targetMessage <= -51 && targetMessage >= -54 then
       return base - (-50 - targetMessage)

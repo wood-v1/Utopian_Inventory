@@ -1,10 +1,10 @@
 module inv_overhaul_inventory_layout do
-  function InventoryLayoutGetDefaultOrderForCell(cell: int) -> int
+  function GetDefaultOrderForCell(cell: int) -> int
     if cell < 16 then return cell + 40 end
     return cell - 16
   end
 
-  function InventoryLayoutGetCellForLinearSlot(
+  function LayoutGetCellForLinearSlot(
     linear: int,
     visibleSlots: int,
     inventoryCapacity: int) -> int
@@ -15,7 +15,7 @@ module inv_overhaul_inventory_layout do
     return linear
   end
 
-  function InventoryLayoutGetMaxPage(inventoryCapacity: int, visibleSlots: int) -> int
+  function LayoutGetMaxPage(inventoryCapacity: int, visibleSlots: int) -> int
     if visibleSlots <= 0 then return 0 end
     return (inventoryCapacity - 1) / visibleSlots
   end

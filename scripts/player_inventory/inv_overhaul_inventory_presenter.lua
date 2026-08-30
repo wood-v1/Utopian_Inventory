@@ -4,7 +4,7 @@ import "inv_overhaul_inventory_items"
 import "inv_overhaul_inventory_quickslot_bindings"
 
 module inv_overhaul_inventory_presenter do
-  function InventoryPresenterConfigureSlotRenderSize(windowWidth: int) -> void
+  function PlayerPresenterConfigureSlotRenderSize(windowWidth: int) -> void
     local sizeMessage: int = -27
     local equipSizeMessage: int = -27
     if windowWidth >= 1200 then sizeMessage = -26 end
@@ -18,7 +18,7 @@ module inv_overhaul_inventory_presenter do
     native.SendMessage(sizeMessage, "money")
   end
 
-  function InventoryPresenterSendGridRendererState(
+  function PlayerPresenterSendGridRendererState(
     slot: int,
     capacity: int,
     operation: int,
@@ -28,15 +28,15 @@ module inv_overhaul_inventory_presenter do
     if slot < 0 || slot >= capacity then return end
     if value < 0 then value = 0 end
     if value > 19999 then value = 19999 end
-    inv_overhaul_inventory_view.InventoryViewSendGridRendererState(
+    inv_overhaul_inventory_view.PlayerViewSendGridRendererState(
       slot, operation, value, data)
   end
 
-  function InventoryPresenterSetGridRendererHighlight(slot: int, enabled: bool) -> void
-    inv_overhaul_inventory_view.InventoryViewSetGridRendererHighlight(slot, enabled)
+  function PlayerPresenterSetGridRendererHighlight(slot: int, enabled: bool) -> void
+    inv_overhaul_inventory_view.PlayerViewSetGridRendererHighlight(slot, enabled)
   end
 
-  function InventoryPresenterUpdatePageControls(
+  function PlayerPresenterUpdatePageControls(
     visibleSlots: int,
     capacity: int,
     maxPage: int,
@@ -66,13 +66,13 @@ module inv_overhaul_inventory_presenter do
     native.SendMessage((currentPage + 1) * 100 + maxPage + 1, "page_counter")
   end
 
-  function InventoryPresenterUpdateMoney(container: object) -> void
+  function PlayerPresenterUpdateMoney(container: object) -> void
     local money: int
     container->GetProperty("money", money)
     native.SendMessage(money, "money")
   end
 
-  function InventoryPresenterUpdateSlot(
+  function PlayerPresenterUpdateSlot(
     slot: int,
     capacity: int,
     visibleCell: int,
@@ -80,20 +80,20 @@ module inv_overhaul_inventory_presenter do
     container: object
   ) -> void
     if visibleCell < 0 then
-      InventoryPresenterSendGridRendererState(
+      PlayerPresenterSendGridRendererState(
         slot, capacity, inv_overhaul_inventory_protocol.GridRendererHidden, 0, null)
       return
     end
     if reference < 0 then
-      InventoryPresenterSendGridRendererState(
+      PlayerPresenterSendGridRendererState(
         slot, capacity, inv_overhaul_inventory_protocol.GridRendererEmpty, 0, null)
       return
     end
 
     local category: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(reference)
+      inv_overhaul_inventory_items.DecodeReferenceCategory(reference)
     local index: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(reference)
+      inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
     local item: object
     local amount: int
     container->GetItem(item, index, category)
@@ -101,15 +101,15 @@ module inv_overhaul_inventory_presenter do
     local itemID: int
     item->GetItemID(itemID)
     local quickslot: int =
-      inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetDisplayedBinding(
+      inv_overhaul_inventory_quickslot_bindings.GetDisplayedBinding(
         category, index, itemID)
     if amount > 1800 then amount = 1800 end
-    InventoryPresenterSendGridRendererState(
+    PlayerPresenterSendGridRendererState(
       slot, capacity, inv_overhaul_inventory_protocol.GridRendererItem,
       amount * 11 + quickslot, item)
   end
 
-  function InventoryPresenterUpdateEquipmentSlot(
+  function UpdateEquipmentSlot(
     cache: int,
     wndName: string,
     category: int,
@@ -124,7 +124,7 @@ module inv_overhaul_inventory_presenter do
       local itemID: int
       item->GetItemID(itemID)
       local quickslot: int =
-        inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetDisplayedBinding(
+        inv_overhaul_inventory_quickslot_bindings.GetDisplayedBinding(
           category, index, itemID)
       native.SendMessage(-140, wndName)
       if quickslot > 0 then native.SendMessage(-140 - quickslot, wndName) end
@@ -135,7 +135,7 @@ module inv_overhaul_inventory_presenter do
     native.SendMessage(-30 - cache, wndName)
   end
 
-  function InventoryPresenterIsItemTexturePreloaded(
+  function PlayerPresenterIsItemTexturePreloaded(
     itemID: int,
     cacheEpoch: int
   ) -> bool
@@ -153,7 +153,7 @@ module inv_overhaul_inventory_presenter do
     return loadedEpoch == runtimeEpoch
   end
 
-  function InventoryPresenterMarkItemTextureLoaded(
+  function PlayerPresenterMarkItemTextureLoaded(
     container: object,
     category: int,
     index: int

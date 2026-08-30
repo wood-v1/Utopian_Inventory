@@ -84,30 +84,30 @@ maintask InvOverhaulCharacterDoll do
     end
   end
 
-  function GetDollLeft() -> int
-    return inv_overhaul_inventory_geometry.InventoryGeometryGetDollLeft(layoutWidth)
+  function GetLeft() -> int
+    return inv_overhaul_inventory_geometry.GetDollLeft(layoutWidth)
   end
 
-  function GetDollTop() -> int
-    return inv_overhaul_inventory_geometry.InventoryGeometryGetDollTop(layoutWidth)
+  function GetTop() -> int
+    return inv_overhaul_inventory_geometry.GetDollTop(layoutWidth)
   end
 
   function IsInside(x: int, y: int, left: int, top: int) -> bool
-    return inv_overhaul_inventory_geometry.InventoryGeometryIsInsideRect(x, y, left, top, 52, 52)
+    return inv_overhaul_inventory_geometry.IsInsideRect(x, y, left, top, 52, 52)
   end
 
   function HitsTarget(rawX: int, rawY: int, left: int, top: int) -> bool
-    return inv_overhaul_inventory_geometry.InventoryGeometryIsInsideRect(rawX, rawY, left, top, 52, 52)
+    return inv_overhaul_inventory_geometry.IsInsideRect(rawX, rawY, left, top, 52, 52)
   end
 
   function GetTargetMessage(globalX: int, globalY: int) -> int
-    return inv_overhaul_inventory_geometry.InventoryGeometryGetDollTargetMessage(
+    return inv_overhaul_inventory_geometry.GetDollTargetMessage(
       layoutWidth, characterBranch, globalX, globalY)
   end
 
   function OnMouseMove(x: int, y: int) -> void
-    local globalX: int = GetDollLeft() + x
-    local globalY: int = GetDollTop() + y
+    local globalX: int = GetLeft() + x
+    local globalY: int = GetTop() + y
     local targetMessage: int = GetTargetMessage(globalX, globalY)
     if targetMessage != 0 then
       native.SendMessageToParent(targetMessage)
@@ -118,11 +118,11 @@ maintask InvOverhaulCharacterDoll do
   end
 
   function GetTargetAtLocalPoint(x: int, y: int) -> int
-    return GetTargetMessage(GetDollLeft() + x, GetDollTop() + y)
+    return GetTargetMessage(GetLeft() + x, GetTop() + y)
   end
 
   function OnLButtonDown(x: int, y: int) -> void
-    local message: int = inv_overhaul_inventory_protocol.InventoryProtocolGetDollSourceMessage(
+    local message: int = inv_overhaul_inventory_protocol.GetDollSourceMessage(
       GetTargetAtLocalPoint(x, y), -60)
     if message != 0 then
       native.Trace("inv_overhaul_character_doll equipment left message=" + message)
@@ -131,7 +131,7 @@ maintask InvOverhaulCharacterDoll do
   end
 
   function OnRButtonDown(x: int, y: int) -> void
-    local message: int = inv_overhaul_inventory_protocol.InventoryProtocolGetDollSourceMessage(
+    local message: int = inv_overhaul_inventory_protocol.GetDollSourceMessage(
       GetTargetAtLocalPoint(x, y), -70)
     if message != 0 then
       native.Trace("inv_overhaul_character_doll equipment right message=" + message)
@@ -140,7 +140,7 @@ maintask InvOverhaulCharacterDoll do
   end
 
   function OnDragBegin(x: int, y: int) -> void
-    local message: int = inv_overhaul_inventory_protocol.InventoryProtocolGetDollSourceMessage(
+    local message: int = inv_overhaul_inventory_protocol.GetDollSourceMessage(
       GetTargetAtLocalPoint(x, y), -60)
     if message != 0 then
       native.SendMessageToParent(message)

@@ -254,7 +254,7 @@ maintask InvOverhaulQuickslotUIRuntime do
     ShowFeedback(itemID)
   end
 
-  function ActivateQuickslot(slot: int) -> void
+  function Activate(slot: int) -> void
     if slot < 1 || slot > c_iQuickslotCount then return end
     local category: int = -1
     local itemID: int = -1
@@ -295,7 +295,7 @@ maintask InvOverhaulQuickslotUIRuntime do
     native.SetVariable("ui_message_display", 0)
     native.SetVariable("ui_message_busy", 0)
     native.Trace("INV_OVERHAUL_QUICKSLOT_ACTION_VERSION 2026.07.30-inventory-context-1 request=" + request)
-    if request > 0 then ActivateQuickslot(request) end
+    if request > 0 then Activate(request) end
     native.DestroyWindow()
   end
 end

@@ -5,11 +5,11 @@ module inv_overhaul_inventory_snapshot_seed do
   local const InventorySnapshotSeedCategoryCount: int = 5
   local const InventorySnapshotSeedVersion: int = 1
 
-  function InventorySnapshotSeedVariableName(ordinal: int) -> string
+  function VariableName(ordinal: int) -> string
     return "inv_overhaul_inventory_snapshot_" + ordinal
   end
 
-  function InventorySnapshotSeedInitializeIfMissing() -> void
+  function InitializeIfMissing() -> void
     local valid: int = 0
     local version: int = 0
     native.GetVariable("inv_overhaul_inventory_snapshot_valid", valid)
@@ -17,20 +17,20 @@ module inv_overhaul_inventory_snapshot_seed do
     if valid == 1 && version == InventorySnapshotSeedVersion then return end
 
     local player: object =
-      inv_overhaul_inventory_overflow.InventoryOverflowGetPlayer()
+      inv_overhaul_inventory_overflow.OverflowGetPlayer()
     local ordinal: int = 0
     for category = 0, InventorySnapshotSeedCategoryCount - 1 do
       local count: int
       player->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !inv_overhaul_inventory_overflow.InventoryOverflowIsEquippedItem(
+        if !inv_overhaul_inventory_overflow.OverflowIsEquippedItem(
           category, index) then
           if ordinal < InventorySnapshotSeedCapacity then
             local item: object
             local itemID: int = -1
             player->GetItem(item, index, category)
             if item then item->GetItemID(itemID) end
-            native.SetVariable(InventorySnapshotSeedVariableName(ordinal), itemID)
+            native.SetVariable(VariableName(ordinal), itemID)
           end
           ordinal = ordinal + 1
         end
@@ -41,7 +41,7 @@ module inv_overhaul_inventory_snapshot_seed do
       storedCount = InventorySnapshotSeedCapacity
     end
     for emptyOrdinal = storedCount, InventorySnapshotSeedCapacity - 1 do
-      native.SetVariable(InventorySnapshotSeedVariableName(emptyOrdinal), -1)
+      native.SetVariable(VariableName(emptyOrdinal), -1)
     end
     native.SetVariable("inv_overhaul_inventory_snapshot_count", storedCount)
     native.SetVariable("inv_overhaul_inventory_snapshot_version", InventorySnapshotSeedVersion)

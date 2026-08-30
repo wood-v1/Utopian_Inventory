@@ -13,7 +13,7 @@ module inv_overhaul_inventory_snapshot do
   local usedLayoutCell: object
   local lastBackpackItemCount: int
 
-  function InventorySnapshotInitializeState() -> void
+  function SnapshotInitializeState() -> void
     local newBackpackSnapshot: object
     local newCurrentBackpackSnapshot: object
     local newOldToNewOrder: object
@@ -39,38 +39,38 @@ module inv_overhaul_inventory_snapshot do
     lastBackpackItemCount = 0
   end
 
-  function InventorySnapshotGetLastBackpackItemCount() -> int
+  function GetLastBackpackItemCount() -> int
     return lastBackpackItemCount
   end
 
-  function InventorySnapshotCapturePrevious() -> void
+  function CapturePrevious() -> void
     local snapshot: object = backpackSnapshot
     lastBackpackItemCount =
-      inv_overhaul_inventory_items.InventoryItemsCaptureIdentitySnapshot(snapshot)
+      inv_overhaul_inventory_items.CaptureIdentitySnapshot(snapshot)
   end
 
-  function InventorySnapshotClampLastBackpackItemCount() -> void
+  function ClampLastBackpackItemCount() -> void
     if lastBackpackItemCount > InventoryCapacity then lastBackpackItemCount = InventoryCapacity end
   end
 
-  function InventorySnapshotCaptureCurrentCount() -> int
+  function CaptureCurrentCount() -> int
     local snapshot: object = currentBackpackSnapshot
-    return inv_overhaul_inventory_items.InventoryItemsCaptureIdentitySnapshot(snapshot)
+    return inv_overhaul_inventory_items.CaptureIdentitySnapshot(snapshot)
   end
 
-  function InventorySnapshotBuildIndexCacheAndPrevious() -> int
+  function BuildIndexCacheAndPrevious() -> int
     local snapshot: object = backpackSnapshot
     lastBackpackItemCount =
-      inv_overhaul_inventory_items.InventoryItemsBuildIndexCacheAndSnapshot(
+      inv_overhaul_inventory_items.BuildIndexCacheAndSnapshot(
         snapshot)
     return lastBackpackItemCount
   end
 
-  function InventorySnapshotGetVariableName(ordinal: int) -> string
+  function GetVariableName(ordinal: int) -> string
     return "inv_overhaul_inventory_snapshot_" + ordinal
   end
 
-  function InventorySnapshotLoadPersistent() -> bool
+  function LoadPersistent() -> bool
     local valid: int = 0
     local version: int = 0
     local count: int = 0
@@ -82,14 +82,14 @@ module inv_overhaul_inventory_snapshot do
     end
     for ordinal = 0, InventoryCapacity - 1 do
       local itemID: int = -1
-      if ordinal < count then native.GetVariable(InventorySnapshotGetVariableName(ordinal), itemID) end
+      if ordinal < count then native.GetVariable(GetVariableName(ordinal), itemID) end
       backpackSnapshot->set(ordinal, itemID)
     end
     lastBackpackItemCount = count
     return true
   end
 
-  function InventorySnapshotCanReusePersistent() -> bool
+  function CanReusePersistent() -> bool
     local valid: int = 0
     local version: int = 0
     local count: int = 0
@@ -109,14 +109,14 @@ module inv_overhaul_inventory_snapshot do
       snapshotContentGeneration == currentContentGeneration
   end
 
-  function InventorySnapshotSavePersistent() -> void
+  function SavePersistent() -> void
     local count: int = lastBackpackItemCount
     if count < 0 then count = 0 end
     if count > InventoryCapacity then count = InventoryCapacity end
     for ordinal = 0, InventoryCapacity - 1 do
       local itemID: int = -1
       backpackSnapshot->get(itemID, ordinal)
-      native.SetVariable(InventorySnapshotGetVariableName(ordinal), itemID)
+      native.SetVariable(GetVariableName(ordinal), itemID)
     end
     native.SetVariable("inv_overhaul_inventory_snapshot_count", count)
     native.SetVariable("inv_overhaul_inventory_snapshot_version", SnapshotVersion)
@@ -129,7 +129,7 @@ module inv_overhaul_inventory_snapshot do
     native.SetVariable("inv_overhaul_inventory_snapshot_valid", 1)
   end
 
-  function InventorySnapshotCopyCurrent(newCount: int) -> void
+  function CopyCurrent(newCount: int) -> void
     for ordinal = 0, InventoryCapacity - 1 do
       local itemID: int = -1
       currentBackpackSnapshot->get(itemID, ordinal)
@@ -139,7 +139,7 @@ module inv_overhaul_inventory_snapshot do
     if lastBackpackItemCount > InventoryCapacity then lastBackpackItemCount = InventoryCapacity end
   end
 
-  function InventorySnapshotDiffers(newCount: int) -> bool
+  function Differs(newCount: int) -> bool
     local comparableCount: int = newCount
     if comparableCount > InventoryCapacity then comparableCount = InventoryCapacity end
     if comparableCount != lastBackpackItemCount then return true end
@@ -153,19 +153,19 @@ module inv_overhaul_inventory_snapshot do
     return false
   end
 
-  function InventorySnapshotPersistCurrent() -> void
-    InventorySnapshotCapturePrevious()
-    InventorySnapshotClampLastBackpackItemCount()
-    InventorySnapshotSavePersistent()
+  function PersistCurrent() -> void
+    CapturePrevious()
+    ClampLastBackpackItemCount()
+    SavePersistent()
   end
 
-  function InventorySnapshotGetCellForLinearSlot(linear: int, visibleSlots: int) -> int
-    return inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+  function SnapshotGetCellForLinearSlot(linear: int, visibleSlots: int) -> int
+    return inv_overhaul_inventory_layout.LayoutGetCellForLinearSlot(
       linear, visibleSlots, InventoryCapacity)
   end
-  function InventorySnapshotFindFirstUnusedDisplayCell(visibleSlots: int) -> int
+  function FindFirstUnusedDisplayCell(visibleSlots: int) -> int
     for linear = 0, InventoryCapacity - 1 do
-      local cell: int = InventorySnapshotGetCellForLinearSlot(linear, visibleSlots)
+      local cell: int = SnapshotGetCellForLinearSlot(linear, visibleSlots)
       local used: int = 0
       usedLayoutCell->get(used, cell)
       if used == 0 then return cell end
@@ -173,7 +173,7 @@ module inv_overhaul_inventory_snapshot do
     return -1
   end
 
-  function InventorySnapshotReconcile(
+  function Reconcile(
     newCount: int,
     visibleSlots: int) -> void
     local oldCount: int = lastBackpackItemCount
@@ -305,12 +305,12 @@ module inv_overhaul_inventory_snapshot do
     if removalHintValid == 1 then native.SetVariable("inv_overhaul_inventory_removed_ordinal_valid", 0) end
 
     for cell = 0, InventoryCapacity - 1 do
-      local oldOrder: int = inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(cell)
+      local oldOrder: int = inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(cell)
       if oldOrder >= 0 && oldOrder < oldCount then
         local mappedOrder: int
         oldToNewOrder->get(mappedOrder, oldOrder)
         if mappedOrder >= 0 then
-          inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(cell, mappedOrder)
+          inv_overhaul_inventory_layout_runtime.SetOrderValue(cell, mappedOrder)
           usedLayoutCell->set(cell, 1)
         end
       end
@@ -320,9 +320,9 @@ module inv_overhaul_inventory_snapshot do
       local claimed: int
       claimedNewOrder->get(claimed, insertedOrder)
       if claimed == 0 then
-        local freeCell: int = InventorySnapshotFindFirstUnusedDisplayCell(visibleSlots)
+        local freeCell: int = FindFirstUnusedDisplayCell(visibleSlots)
         if freeCell >= 0 then
-          inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(freeCell, insertedOrder)
+          inv_overhaul_inventory_layout_runtime.SetOrderValue(freeCell, insertedOrder)
           usedLayoutCell->set(freeCell, 1)
         end
       end
@@ -330,25 +330,25 @@ module inv_overhaul_inventory_snapshot do
 
     local freeOrder: int = newCount
     for linear = 0, InventoryCapacity - 1 do
-      local freeCell: int = InventorySnapshotGetCellForLinearSlot(linear, visibleSlots)
+      local freeCell: int = SnapshotGetCellForLinearSlot(linear, visibleSlots)
       local used: int
       usedLayoutCell->get(used, freeCell)
       if used == 0 then
-        inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(freeCell, freeOrder)
+        inv_overhaul_inventory_layout_runtime.SetOrderValue(freeCell, freeOrder)
         freeOrder = freeOrder + 1
       end
     end
-    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeNormalize()
+    inv_overhaul_inventory_layout_runtime.Normalize()
     native.Trace("inv_overhaul_inventory reconciled generic snapshot old=" + oldCount + " new=" + newCount)
   end
 
-  function InventorySnapshotRestoreAfterEquipmentReplacement(
+  function RestoreAfterEquipmentReplacement(
     replacedOrder: int,
     itemCount: int,
     visibleSlots: int) -> bool
     if replacedOrder < 0 || replacedOrder >= itemCount then return false end
     local currentSnapshot: object = currentBackpackSnapshot
-    local currentCount: int = inv_overhaul_inventory_items.InventoryItemsCaptureIdentitySnapshot(currentSnapshot)
+    local currentCount: int = inv_overhaul_inventory_items.CaptureIdentitySnapshot(currentSnapshot)
     if currentCount != itemCount then return false end
 
     for i = 0, InventoryCapacity - 1 do
@@ -387,40 +387,40 @@ module inv_overhaul_inventory_snapshot do
     if replacementOrder < 0 then return false end
 
     for cell = 0, InventoryCapacity - 1 do
-      local oldOrder: int = inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(cell)
+      local oldOrder: int = inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(cell)
       if oldOrder >= 0 && oldOrder < itemCount then
         local mappedOrder: int = replacementOrder
         if oldOrder != replacedOrder then oldToNewOrder->get(mappedOrder, oldOrder) end
         if mappedOrder < 0 then return false end
-        inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(cell, mappedOrder)
+        inv_overhaul_inventory_layout_runtime.SetOrderValue(cell, mappedOrder)
         usedLayoutCell->set(cell, 1)
       end
     end
 
     local freeOrder: int = itemCount
     for linear = 0, InventoryCapacity - 1 do
-      local freeCell: int = InventorySnapshotGetCellForLinearSlot(linear, visibleSlots)
+      local freeCell: int = SnapshotGetCellForLinearSlot(linear, visibleSlots)
       local used: int
       usedLayoutCell->get(used, freeCell)
       if used == 0 then
-        inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(freeCell, freeOrder)
+        inv_overhaul_inventory_layout_runtime.SetOrderValue(freeCell, freeOrder)
         freeOrder = freeOrder + 1
       end
     end
-    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeNormalize()
-    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeOrderFreeCellsByDisplay(itemCount, visibleSlots)
+    inv_overhaul_inventory_layout_runtime.Normalize()
+    inv_overhaul_inventory_layout_runtime.LayoutRuntimeOrderFreeCellsByDisplay(itemCount, visibleSlots)
     native.Trace("inv_overhaul_inventory equipment replacement restored sourceOrder=" + replacedOrder +
       " replacementOrder=" + replacementOrder)
     return true
   end
 
-  function InventorySnapshotRestoreAfterEquipmentSelection(
+  function RestoreAfterEquipmentSelection(
     removedOrder: int,
     beforeCount: int,
     visibleSlots: int) -> bool
     if removedOrder < 0 || removedOrder >= beforeCount then return false end
     local currentSnapshot: object = currentBackpackSnapshot
-    local afterCount: int = inv_overhaul_inventory_items.InventoryItemsCaptureIdentitySnapshot(currentSnapshot)
+    local afterCount: int = inv_overhaul_inventory_items.CaptureIdentitySnapshot(currentSnapshot)
     if afterCount != beforeCount - 1 then return false end
 
     for i = 0, InventoryCapacity - 1 do
@@ -448,15 +448,15 @@ module inv_overhaul_inventory_snapshot do
     end
 
     for cell = 0, InventoryCapacity - 1 do
-      local oldOrder: int = inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(cell)
+      local oldOrder: int = inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(cell)
       if oldOrder >= 0 && oldOrder < beforeCount then
         if oldOrder == removedOrder then
-          inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(cell, afterCount)
+          inv_overhaul_inventory_layout_runtime.SetOrderValue(cell, afterCount)
         else
           local mappedOrder: int
           oldToNewOrder->get(mappedOrder, oldOrder)
           if mappedOrder < 0 then return false end
-          inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(cell, mappedOrder)
+          inv_overhaul_inventory_layout_runtime.SetOrderValue(cell, mappedOrder)
           usedLayoutCell->set(cell, 1)
         end
       end
@@ -464,16 +464,16 @@ module inv_overhaul_inventory_snapshot do
 
     local freeOrder: int = afterCount
     for linear = 0, InventoryCapacity - 1 do
-      local freeCell: int = InventorySnapshotGetCellForLinearSlot(linear, visibleSlots)
+      local freeCell: int = SnapshotGetCellForLinearSlot(linear, visibleSlots)
       local used: int
       usedLayoutCell->get(used, freeCell)
       if used == 0 then
-        inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeSetOrderValue(freeCell, freeOrder)
+        inv_overhaul_inventory_layout_runtime.SetOrderValue(freeCell, freeOrder)
         freeOrder = freeOrder + 1
       end
     end
-    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeNormalize()
-    inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeOrderFreeCellsByDisplay(afterCount, visibleSlots)
+    inv_overhaul_inventory_layout_runtime.Normalize()
+    inv_overhaul_inventory_layout_runtime.LayoutRuntimeOrderFreeCellsByDisplay(afterCount, visibleSlots)
     native.Trace("inv_overhaul_inventory equipment selection restored removedOrder=" + removedOrder +
       " before=" + beforeCount + " after=" + afterCount)
     return true

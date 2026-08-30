@@ -17,7 +17,7 @@ module inv_overhaul_inventory_drag do
   local pageHoverElapsed: float
   local pageHoverConsumed: bool
 
-  function InventoryDragInitializeState() -> void
+  function PlayerDragInitializeState() -> void
     sourceSlot = -1
     sourceCell = -1
     hoverTarget = -1
@@ -35,7 +35,7 @@ module inv_overhaul_inventory_drag do
     pageHoverConsumed = false
   end
 
-  function InventoryDragBeginItem(
+  function BeginItem(
     newItemID: int,
     newCategory: int,
     newIndex: int,
@@ -48,7 +48,7 @@ module inv_overhaul_inventory_drag do
     itemIsWeapon = newIsWeapon
   end
 
-  function InventoryDragClearItem() -> void
+  function ClearItem() -> void
     itemID = -1
     itemCategory = -1
     itemIndex = -1
@@ -56,7 +56,7 @@ module inv_overhaul_inventory_drag do
     itemIsWeapon = false
   end
 
-  function InventoryDragBeginTransaction(newSourceSlot: int, newSourceCell: int) -> void
+  function BeginTransaction(newSourceSlot: int, newSourceCell: int) -> void
     sourceSlot = newSourceSlot
     sourceCell = newSourceCell
     hoverTarget = newSourceSlot
@@ -65,7 +65,7 @@ module inv_overhaul_inventory_drag do
     invalidTargetFrames = 0
   end
 
-  function InventoryDragClearTransaction() -> void
+  function ClearTransaction() -> void
     sourceSlot = -1
     sourceCell = -1
     hoverTarget = -1
@@ -74,21 +74,21 @@ module inv_overhaul_inventory_drag do
     invalidTargetFrames = 0
   end
 
-  function InventoryDragIsActive() -> bool return sourceSlot >= 0 end
-  function InventoryDragGetSourceSlot() -> int return sourceSlot end
-  function InventoryDragGetSourceCell() -> int return sourceCell end
-  function InventoryDragGetHoverTarget() -> int return hoverTarget end
-  function InventoryDragSetHoverTarget(target: int) -> void hoverTarget = target end
-  function InventoryDragGetHighlightedTarget() -> int return highlightedTarget end
-  function InventoryDragSetHighlightedTarget(target: int) -> void highlightedTarget = target end
-  function InventoryDragHasMoved() -> bool return moved end
-  function InventoryDragGetItemID() -> int return itemID end
-  function InventoryDragGetItemCategory() -> int return itemCategory end
-  function InventoryDragGetItemIndex() -> int return itemIndex end
-  function InventoryDragGetItemGroup() -> int return itemGroup end
-  function InventoryDragGetItemIsWeapon() -> bool return itemIsWeapon end
+  function PlayerDragIsActive() -> bool return sourceSlot >= 0 end
+  function GetSourceSlot() -> int return sourceSlot end
+  function GetSourceCell() -> int return sourceCell end
+  function GetHoverTarget() -> int return hoverTarget end
+  function SetHoverTarget(target: int) -> void hoverTarget = target end
+  function PlayerDragGetHighlightedTarget() -> int return highlightedTarget end
+  function PlayerDragSetHighlightedTarget(target: int) -> void highlightedTarget = target end
+  function HasMoved() -> bool return moved end
+  function PlayerDragGetItemID() -> int return itemID end
+  function GetItemCategory() -> int return itemCategory end
+  function GetItemIndex() -> int return itemIndex end
+  function GetItemGroup() -> int return itemGroup end
+  function GetItemIsWeapon() -> bool return itemIsWeapon end
 
-  function InventoryDragApplyPointerTarget(target: int, sameSource: bool) -> int
+  function PlayerDragApplyPointerTarget(target: int, sameSource: bool) -> int
     if target >= 0 && !sameSource then
       moved = true
       latchedTarget = target
@@ -103,14 +103,14 @@ module inv_overhaul_inventory_drag do
     return -1
   end
 
-  function InventoryDragResolveReleaseTarget(target: int) -> int
+  function PlayerDragResolveReleaseTarget(target: int) -> int
     if target < 0 && latchedTarget >= 0 && invalidTargetFrames <= 3 then
       return latchedTarget
     end
     return target
   end
 
-  function InventoryDragBeginPageHover(action: int) -> bool
+  function PlayerDragBeginPageHover(action: int) -> bool
     if action == 0 || pageHoverAction == action then return false end
     pageHoverAction = action
     pageHoverElapsed = 0
@@ -118,20 +118,20 @@ module inv_overhaul_inventory_drag do
     return true
   end
 
-  function InventoryDragCanCancelPageHover(action: int) -> bool
+  function PlayerDragCanCancelPageHover(action: int) -> bool
     return action == 0 || pageHoverAction == action
   end
 
-  function InventoryDragClearPageHover() -> void
+  function PlayerDragClearPageHover() -> void
     pageHoverAction = 0
     pageHoverElapsed = 0
     pageHoverConsumed = false
   end
 
-  function InventoryDragGetPageHoverAction() -> int return pageHoverAction end
-  function InventoryDragGetPageHoverElapsed() -> float return pageHoverElapsed end
+  function PlayerDragGetPageHoverAction() -> int return pageHoverAction end
+  function PlayerDragGetPageHoverElapsed() -> float return pageHoverElapsed end
 
-  function InventoryDragAdvancePageHover(delta: float) -> int
+  function PlayerDragAdvancePageHover(delta: float) -> int
     if sourceSlot < 0 || pageHoverAction == 0 || pageHoverConsumed then return 0 end
     pageHoverElapsed = pageHoverElapsed + delta
     if pageHoverElapsed < InventoryDragPageHoverDelay then return 0 end

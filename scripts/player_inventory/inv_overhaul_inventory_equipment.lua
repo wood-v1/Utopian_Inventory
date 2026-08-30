@@ -8,7 +8,7 @@ module inv_overhaul_inventory_equipment do
   local categoryCache: object
   local indexCache: object
 
-  function InventoryEquipmentInitializeCache() -> void
+  function InitializeCache() -> void
     local newCategoryCache: object
     local newIndexCache: object
     native.CreateIntVector(newCategoryCache)
@@ -21,12 +21,12 @@ module inv_overhaul_inventory_equipment do
     end
   end
 
-  function InventoryEquipmentBuildCache() -> void
+  function BuildCache() -> void
     for cache = 0, 4 do
       categoryCache->set(cache, -1)
       indexCache->set(cache, -1)
     end
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local weaponCount: int
     container->GetItemCount(weaponCount, WeaponCategory)
     for weaponIndex = 0, weaponCount - 1 do
@@ -71,20 +71,20 @@ module inv_overhaul_inventory_equipment do
     end
   end
 
-  function InventoryEquipmentGetCachedCategory(cache: int) -> int
+  function PlayerEquipmentGetCachedCategory(cache: int) -> int
     local category: int = -1
     categoryCache->get(category, cache)
     return category
   end
 
-  function InventoryEquipmentGetCachedIndex(cache: int) -> int
+  function PlayerEquipmentGetCachedIndex(cache: int) -> int
     local index: int = -1
     indexCache->get(index, cache)
     return index
   end
 
-  function InventoryEquipmentResolveTarget(target: int) -> int
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+  function ResolveTarget(target: int) -> int
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     if target == inv_overhaul_inventory_protocol.TargetWeapon then
       local weaponCount: int
       container->GetItemCount(weaponCount, WeaponCategory)
@@ -99,7 +99,7 @@ module inv_overhaul_inventory_equipment do
           local hasWeapon: bool
           native.HasInvItemProperty(hasWeapon, itemID, "Weapon")
           if hasWeapon then
-            return inv_overhaul_inventory_items.InventoryItemsEncodeReference(WeaponCategory, index)
+            return inv_overhaul_inventory_items.ItemsEncodeReference(WeaponCategory, index)
           end
         end
       end
@@ -125,7 +125,7 @@ module inv_overhaul_inventory_equipment do
           local group: int
           native.GetInvItemProperty(group, itemID, "Group")
           if group == requiredGroup then
-            return inv_overhaul_inventory_items.InventoryItemsEncodeReference(ClothesCategory, index)
+            return inv_overhaul_inventory_items.ItemsEncodeReference(ClothesCategory, index)
           end
         end
       end
@@ -133,9 +133,9 @@ module inv_overhaul_inventory_equipment do
     return -1
   end
 
-  function InventoryEquipmentUnequip(category: int, index: int) -> bool
+  function Unequip(category: int, index: int) -> bool
     if category != WeaponCategory && category != ClothesCategory then return false end
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local selected: bool
     container->IsItemSelected(selected, index, category)
     if !selected then return false end
@@ -144,8 +144,8 @@ module inv_overhaul_inventory_equipment do
     return true
   end
 
-  function InventoryEquipmentEquip(target: int, category: int, index: int) -> bool
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+  function Equip(target: int, category: int, index: int) -> bool
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local item: object
     container->GetItem(item, index, category)
     if !item then return false end
@@ -198,8 +198,8 @@ module inv_overhaul_inventory_equipment do
     return true
   end
 
-  function InventoryEquipmentToggle(category: int, index: int) -> int
-    local container: object = inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+  function PlayerEquipmentToggle(category: int, index: int) -> int
+    local container: object = inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local item: object
     container->GetItem(item, index, category)
     local itemID: int
@@ -275,7 +275,7 @@ module inv_overhaul_inventory_equipment do
     return 2
   end
 
-  function InventoryEquipmentIsTargetCompatible(
+  function PlayerEquipmentIsTargetCompatible(
     target: int,
     category: int,
     isWeapon: bool,

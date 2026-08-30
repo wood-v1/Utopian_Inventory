@@ -86,12 +86,12 @@ maintask InvOverhaulEquipSlot do
     native.SendMessageToParent(-41)
   end
 
-  function IsInsideSlot(x: int, y: int) -> bool
+  function IsInside(x: int, y: int) -> bool
     return x >= 0 && y >= 0 && x < slotWidth && y < slotHeight
   end
 
   function OnLButtonUp(x: int, y: int) -> void
-    if IsInsideSlot(x, y) then
+    if IsInside(x, y) then
       native.SendMessageToParent(-42)
     else
       native.SendMessageToParent(8)
@@ -117,7 +117,7 @@ maintask InvOverhaulEquipSlot do
   end
 
   function OnDragEnd(x: int, y: int, accepted: bool) -> void
-    if IsInsideSlot(x, y) then
+    if IsInside(x, y) then
       native.SendMessageToParent(-42)
     else
       native.SendMessageToParent(8)

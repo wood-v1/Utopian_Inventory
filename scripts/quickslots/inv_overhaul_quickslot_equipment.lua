@@ -6,7 +6,7 @@ module inv_overhaul_quickslot_equipment do
   local const QuickslotEquipmentFullText: int = 1400
   local const QuickslotEquipmentMissingText: int = 1405
 
-  function QuickslotEquipmentToggle(
+  function EquipmentPolicyToggle(
     category: int,
     index: int,
     itemID: int,
@@ -14,7 +14,7 @@ module inv_overhaul_quickslot_equipment do
     selected: bool
   ) -> void
     local player: object =
-      inv_overhaul_quickslot_activation.QuickslotActivationGetPlayer()
+      inv_overhaul_quickslot_activation.ActivationGetPlayer()
     if category == QuickslotEquipmentWeaponCategory then
       native.SetVariable("inv_overhaul_quickslot_weapon_item", itemID)
       native.SetVariable("inv_overhaul_quickslot_weapon_occurrence", occurrence)
@@ -25,19 +25,19 @@ module inv_overhaul_quickslot_equipment do
     end
 
     if selected then
-      if inv_overhaul_quickslot_activation.QuickslotActivationGetBackpackItemCount() >=
+      if inv_overhaul_quickslot_activation.ActivationGetBackpackItemCount() >=
         QuickslotEquipmentCapacity then
-        inv_overhaul_quickslot_activation.QuickslotActivationShowMessage(
+        inv_overhaul_quickslot_activation.ShowMessage(
           QuickslotEquipmentFullText)
         return
       end
       player->SelectItem(index, false, category)
-      inv_overhaul_quickslot_activation.QuickslotActivationMarkInventoryChanged()
-      inv_overhaul_quickslot_activation.QuickslotActivationShowFeedback(itemID)
+      inv_overhaul_quickslot_activation.MarkInventoryChanged()
+      inv_overhaul_quickslot_activation.ShowFeedback(itemID)
       return
     end
 
-    inv_overhaul_quickslot_activation.QuickslotActivationPublishEquipmentRemovalHint(
+    inv_overhaul_quickslot_activation.PublishEquipmentRemovalHint(
       category, index)
     local group: int
     native.GetInvItemProperty(group, itemID, "Group")
@@ -60,16 +60,16 @@ module inv_overhaul_quickslot_equipment do
     end
 
     local refreshedIndex: int =
-      inv_overhaul_quickslot_activation.QuickslotActivationFindBoundItemIndex(
+      inv_overhaul_quickslot_activation.FindBoundItemIndex(
         category, itemID, occurrence)
     if refreshedIndex < 0 then
-      inv_overhaul_quickslot_activation.QuickslotActivationCancelLastEquipmentRemovalHint()
-      inv_overhaul_quickslot_activation.QuickslotActivationShowMessage(
+      inv_overhaul_quickslot_activation.CancelLastEquipmentRemovalHint()
+      inv_overhaul_quickslot_activation.ShowMessage(
         QuickslotEquipmentMissingText)
       return
     end
     player->SelectItem(refreshedIndex, true, category)
-    inv_overhaul_quickslot_activation.QuickslotActivationMarkInventoryChanged()
-    inv_overhaul_quickslot_activation.QuickslotActivationShowFeedback(itemID)
+    inv_overhaul_quickslot_activation.MarkInventoryChanged()
+    inv_overhaul_quickslot_activation.ShowFeedback(itemID)
   end
 end

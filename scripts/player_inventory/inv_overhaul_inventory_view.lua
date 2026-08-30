@@ -23,7 +23,7 @@ module inv_overhaul_inventory_view do
   local nextEquipment: int
   local spriteCooldown: float
 
-  function InventoryViewInitializeState() -> void
+  function PlayerViewInitializeState() -> void
     local diagnostics: int = 0
     native.GetVariable("inv_overhaul_perf_diagnostics", diagnostics)
     diagnosticsEnabled = diagnostics == 1
@@ -47,86 +47,86 @@ module inv_overhaul_inventory_view do
     spriteCooldown = 0
   end
 
-  function InventoryViewDiagnosticsEnabled() -> bool return diagnosticsEnabled end
+  function DiagnosticsEnabled() -> bool return diagnosticsEnabled end
 
-  function InventoryViewClaimChildWindowsReady() -> bool
+  function ClaimChildWindowsReady() -> bool
     if childWindowsReady then return false end
     childWindowsReady = true
     return true
   end
 
-  function InventoryViewChildWindowsReady() -> bool return childWindowsReady end
+  function ChildWindowsReady() -> bool return childWindowsReady end
 
-  function InventoryViewAdvanceMetadataDelay(delta: float) -> bool
+  function AdvanceMetadataDelay(delta: float) -> bool
     if !metadataPending then return false end
     metadataDelay = metadataDelay - delta
     return metadataDelay <= 0
   end
 
-  function InventoryViewGetMetadataStage() -> int return metadataStage end
-  function InventoryViewAdvanceMetadataStage() -> void metadataStage = metadataStage + 1 end
+  function GetMetadataStage() -> int return metadataStage end
+  function AdvanceMetadataStage() -> void metadataStage = metadataStage + 1 end
 
-  function InventoryViewCompleteMetadata() -> void
+  function CompleteMetadata() -> void
     metadataPending = false
   end
 
-  function InventoryViewIsMetadataPending() -> bool return metadataPending end
+  function IsMetadataPending() -> bool return metadataPending end
 
-  function InventoryViewMarkRendererReady() -> void rendererReady = true end
+  function MarkRendererReady() -> void rendererReady = true end
 
-  function InventoryViewBeginWarmStartAttempt() -> bool
+  function BeginWarmStartAttempt() -> bool
     if warmStartAttempted || !rendererReady || !metadataPending then return false end
     warmStartAttempted = true
     return true
   end
 
-  function InventoryViewMarkWarmGridLoaded() -> void
+  function MarkWarmGridLoaded() -> void
     warmGridLoaded = true
     metadataStage = 2
     metadataDelay = 0
   end
 
-  function InventoryViewIsWarmGridLoaded() -> bool return warmGridLoaded end
+  function IsWarmGridLoaded() -> bool return warmGridLoaded end
 
-  function InventoryViewBeginInitialLoad(visibleSlots: int) -> void
+  function BeginInitialLoad(visibleSlots: int) -> void
     if warmGridLoaded then nextSlot = visibleSlots else nextSlot = 0 end
     nextEquipment = 0
     spriteCooldown = 0
     initialLoadActive = true
   end
 
-  function InventoryViewIsInitialLoadActive() -> bool return initialLoadActive end
+  function IsInitialLoadActive() -> bool return initialLoadActive end
 
-  function InventoryViewTakeNextEquipment() -> int
+  function TakeNextEquipment() -> int
     if nextEquipment >= 5 then return -1 end
     local result: int = nextEquipment
     nextEquipment = nextEquipment + 1
     return result
   end
 
-  function InventoryViewTakeNextSlot(visibleSlots: int) -> int
+  function TakeNextSlot(visibleSlots: int) -> int
     if nextSlot >= visibleSlots then return -1 end
     local result: int = nextSlot
     nextSlot = nextSlot + 1
     return result
   end
 
-  function InventoryViewInitialLoadComplete(visibleSlots: int) -> bool
+  function InitialLoadComplete(visibleSlots: int) -> bool
     return nextEquipment >= 5 && nextSlot >= visibleSlots
   end
 
-  function InventoryViewFinishInitialLoad() -> void initialLoadActive = false end
+  function FinishInitialLoad() -> void initialLoadActive = false end
 
-  function InventoryViewAdvanceSpriteCooldown(delta: float) -> bool
+  function AdvanceSpriteCooldown(delta: float) -> bool
     if spriteCooldown > 0 then spriteCooldown = spriteCooldown - delta end
     return spriteCooldown <= 0
   end
 
-  function InventoryViewResetSpriteCooldown() -> void
+  function ResetSpriteCooldown() -> void
     spriteCooldown = InventoryViewInitialItemLoadInterval
   end
 
-  function InventoryViewResetCacheCoverage() -> void
+  function ResetCacheCoverage() -> void
     stackCount = 0
     equipmentCount = 0
     cacheHits = 0
@@ -137,30 +137,30 @@ module inv_overhaul_inventory_view do
     cacheEpoch = currentCacheEpoch
   end
 
-  function InventoryViewGetCacheEpoch() -> int return cacheEpoch end
+  function GetCacheEpoch() -> int return cacheEpoch end
 
-  function InventoryViewRecordStackCacheResult(hit: bool) -> void
+  function RecordStackCacheResult(hit: bool) -> void
     stackCount = stackCount + 1
     if hit then cacheHits = cacheHits + 1 else cacheMisses = cacheMisses + 1 end
   end
 
-  function InventoryViewRecordEquipmentCacheResult(hit: bool) -> void
+  function RecordEquipmentCacheResult(hit: bool) -> void
     equipmentCount = equipmentCount + 1
     if hit then cacheHits = cacheHits + 1 else cacheMisses = cacheMisses + 1 end
   end
 
-  function InventoryViewGetCacheHits() -> int return cacheHits end
-  function InventoryViewGetCacheMisses() -> int return cacheMisses end
+  function GetCacheHits() -> int return cacheHits end
+  function GetCacheMisses() -> int return cacheMisses end
 
-  function InventoryViewReportFirstInitialItem() -> void
+  function PlayerViewReportFirstInitialItem() -> void
     if !diagnosticsEnabled || firstItemReported then return end
     firstItemReported = true
     native.Trace("INV_OVERHAUL_PERF_PHASE first_item")
   end
 
-  function InventoryViewReportInitialLoadComplete() -> void
+  function PlayerViewReportInitialLoadComplete() -> void
     if !diagnosticsEnabled || completeReported then return end
-    if !firstItemReported then InventoryViewReportFirstInitialItem() end
+    if !firstItemReported then PlayerViewReportFirstInitialItem() end
     completeReported = true
     local warmed: int = 0
     local warmStarted: int = 0
@@ -172,43 +172,44 @@ module inv_overhaul_inventory_view do
       " warm_start=" + warmStarted)
   end
 
-  function InventoryViewSendGridRendererState(
+  function PlayerViewSendGridRendererState(
     slot: int,
     operation: int,
     value: int,
     data: object) -> void
-    local message: int = inv_overhaul_inventory_protocol.InventoryProtocolEncodeGridRenderer(
+    local message: int = inv_overhaul_inventory_protocol.EncodeGridRenderer(
       slot, operation, value)
     native.SendMessage(message, "panel_background", data)
   end
 
-  function InventoryViewSetGridRendererHighlight(slot: int, enabled: bool) -> void
+  function PlayerViewSetGridRendererHighlight(slot: int, enabled: bool) -> void
     local value: int = 0
     if enabled then value = 1 end
-    InventoryViewSendGridRendererState(slot, 4, value, null)
+    PlayerViewSendGridRendererState(
+      slot, inv_overhaul_inventory_protocol.GridRendererHighlight, value, null)
   end
 
-  function InventoryViewGetTargetWindowName(target: int, visibleSlots: int) -> string
+  function GetTargetWindowName(target: int, visibleSlots: int) -> string
     if target >= 0 && target < visibleSlots then
-      return inv_overhaul_inventory_protocol.InventoryProtocolGetSlotWindowName(target)
+      return inv_overhaul_inventory_protocol.GetSlotWindowName(target)
     end
-    if target == 100 then return "equip_weapon" end
-    if target == 101 then return "equip_feet" end
-    if target == 102 then return "equip_head" end
-    if target == 103 then return "equip_body" end
-    if target == 104 then return "equip_hands" end
-    if target == 200 then return "drop_slot" end
+    if target == inv_overhaul_inventory_protocol.TargetWeapon then return "equip_weapon" end
+    if target == inv_overhaul_inventory_protocol.TargetFeet then return "equip_feet" end
+    if target == inv_overhaul_inventory_protocol.TargetHead then return "equip_head" end
+    if target == inv_overhaul_inventory_protocol.TargetBody then return "equip_body" end
+    if target == inv_overhaul_inventory_protocol.TargetHands then return "equip_hands" end
+    if target == inv_overhaul_inventory_protocol.TargetDrop then return "drop_slot" end
     return ""
   end
 
-  function InventoryViewGetTargetDebugName(target: int, visibleSlots: int) -> string
+  function GetTargetDebugName(target: int, visibleSlots: int) -> string
     if target >= 0 && target < visibleSlots then return "BACKPACK_" + target end
-    if target == 100 then return "WEAPON" end
-    if target == 101 then return "FEET" end
-    if target == 102 then return "HEAD" end
-    if target == 103 then return "BODY" end
-    if target == 104 then return "HANDS" end
-    if target == 200 then return "DROP" end
+    if target == inv_overhaul_inventory_protocol.TargetWeapon then return "WEAPON" end
+    if target == inv_overhaul_inventory_protocol.TargetFeet then return "FEET" end
+    if target == inv_overhaul_inventory_protocol.TargetHead then return "HEAD" end
+    if target == inv_overhaul_inventory_protocol.TargetBody then return "BODY" end
+    if target == inv_overhaul_inventory_protocol.TargetHands then return "HANDS" end
+    if target == inv_overhaul_inventory_protocol.TargetDrop then return "DROP" end
     return "OUTSIDE"
   end
 end

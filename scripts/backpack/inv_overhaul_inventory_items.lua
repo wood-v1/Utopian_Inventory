@@ -9,7 +9,7 @@ module inv_overhaul_inventory_items do
   local indexCache: object
   local cachedBackpackCount: int
 
-  function InventoryItemsInitializeProjection() -> void
+  function InitializeProjection() -> void
     local newCategoryCache: object
     local newIndexCache: object
     native.CreateIntVector(newCategoryCache)
@@ -23,15 +23,15 @@ module inv_overhaul_inventory_items do
     end
   end
 
-  function InventoryItemsGetPlayerContainer() -> object
+  function ItemsGetPlayerContainer() -> object
     local container: object
     native.GetPlayerContainer(container)
     return container
   end
 
-  function InventoryItemsIsEquipped(category: int, index: int) -> bool
+  function IsEquipped(category: int, index: int) -> bool
     if category != WeaponCategory && category != ClothesCategory then return false end
-    local container: object = InventoryItemsGetPlayerContainer()
+    local container: object = ItemsGetPlayerContainer()
     local selected: bool
     container->IsItemSelected(selected, index, category)
     if !selected then return false end
@@ -50,28 +50,28 @@ module inv_overhaul_inventory_items do
     return hasGroup
   end
 
-  function InventoryItemsGetBackpackCount() -> int
-    local container: object = InventoryItemsGetPlayerContainer()
+  function GetBackpackCount() -> int
+    local container: object = ItemsGetPlayerContainer()
     local total: int = 0
     for category = 0, CategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !InventoryItemsIsEquipped(category, index) then total = total + 1 end
+        if !IsEquipped(category, index) then total = total + 1 end
       end
     end
     return total
   end
 
-  function InventoryItemsCaptureIdentitySnapshot(snapshot: object) -> int
-    local container: object = InventoryItemsGetPlayerContainer()
+  function CaptureIdentitySnapshot(snapshot: object) -> int
+    local container: object = ItemsGetPlayerContainer()
     local ordinal: int = 0
     for cell = 0, InventoryCapacity - 1 do snapshot->set(cell, -1) end
     for category = 0, CategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !InventoryItemsIsEquipped(category, index) then
+        if !IsEquipped(category, index) then
           if ordinal < InventoryCapacity then
             local item: object
             local itemID: int
@@ -88,18 +88,18 @@ module inv_overhaul_inventory_items do
     return ordinal
   end
 
-  function InventoryItemsBuildIndexCache() -> void
+  function ItemsBuildIndexCache() -> void
     for ordinal = 0, InventoryCapacity - 1 do
       categoryCache->set(ordinal, -1)
       indexCache->set(ordinal, -1)
     end
-    local container: object = InventoryItemsGetPlayerContainer()
+    local container: object = ItemsGetPlayerContainer()
     local ordinal: int = 0
     for category = 0, CategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !InventoryItemsIsEquipped(category, index) then
+        if !IsEquipped(category, index) then
           if ordinal < InventoryCapacity then
             categoryCache->set(ordinal, category)
             indexCache->set(ordinal, index)
@@ -111,20 +111,20 @@ module inv_overhaul_inventory_items do
     cachedBackpackCount = ordinal
   end
 
-  function InventoryItemsBuildIndexCacheAndSnapshot(
+  function BuildIndexCacheAndSnapshot(
     snapshot: object) -> int
     for ordinal = 0, InventoryCapacity - 1 do
       categoryCache->set(ordinal, -1)
       indexCache->set(ordinal, -1)
       snapshot->set(ordinal, -1)
     end
-    local container: object = InventoryItemsGetPlayerContainer()
+    local container: object = ItemsGetPlayerContainer()
     local ordinal: int = 0
     for category = 0, CategoryCount - 1 do
       local count: int
       container->GetItemCount(count, category)
       for index = 0, count - 1 do
-        if !InventoryItemsIsEquipped(category, index) then
+        if !IsEquipped(category, index) then
           if ordinal < InventoryCapacity then
             local item: object
             local itemID: int = -1
@@ -142,11 +142,11 @@ module inv_overhaul_inventory_items do
     return ordinal
   end
 
-  function InventoryItemsGetCachedBackpackCount() -> int
+  function GetCachedBackpackCount() -> int
     return cachedBackpackCount
   end
 
-  function InventoryItemsGetAppendedCategoryOrdinal(
+  function GetAppendedCategoryOrdinal(
     category: int,
     beforeCount: int) -> int
     local insertedOrdinal: int = 0
@@ -158,7 +158,7 @@ module inv_overhaul_inventory_items do
     return insertedOrdinal
   end
 
-  function InventoryItemsInsertCachedEntry(
+  function InsertCachedEntry(
     insertedOrdinal: int,
     beforeCount: int,
     category: int,
@@ -178,7 +178,7 @@ module inv_overhaul_inventory_items do
     cachedBackpackCount = beforeCount + 1
   end
 
-  function InventoryItemsRemoveCachedEntry(
+  function RemoveCachedEntry(
     removedOrdinal: int,
     beforeCount: int,
     removedCategory: int,
@@ -201,14 +201,14 @@ module inv_overhaul_inventory_items do
     cachedBackpackCount = beforeCount - 1
   end
 
-  function InventoryItemsGetBackpackOrdinal(category: int, index: int) -> int
-    local container: object = InventoryItemsGetPlayerContainer()
+  function ItemsGetBackpackOrdinal(category: int, index: int) -> int
+    local container: object = ItemsGetPlayerContainer()
     local ordinal: int = 0
     for currentCategory = 0, CategoryCount - 1 do
       local count: int
       container->GetItemCount(count, currentCategory)
       for currentIndex = 0, count - 1 do
-        if !InventoryItemsIsEquipped(currentCategory, currentIndex) then
+        if !IsEquipped(currentCategory, currentIndex) then
           if currentCategory == category && currentIndex == index then return ordinal end
           ordinal = ordinal + 1
         end
@@ -217,8 +217,8 @@ module inv_overhaul_inventory_items do
     return -1
   end
 
-  function InventoryItemsGetOccurrence(category: int, index: int, itemID: int) -> int
-    local container: object = InventoryItemsGetPlayerContainer()
+  function GetOccurrence(category: int, index: int, itemID: int) -> int
+    local container: object = ItemsGetPlayerContainer()
     local occurrence: int = 0
     for candidate = 0, index - 1 do
       local candidateItem: object
@@ -232,39 +232,39 @@ module inv_overhaul_inventory_items do
     return occurrence
   end
 
-  function InventoryItemsEncodeReference(category: int, index: int) -> int
+  function ItemsEncodeReference(category: int, index: int) -> int
     if category < 0 || index < 0 then return -1 end
     return (category + 1) * ItemReferenceStride + index
   end
 
-  function InventoryItemsResolveCachedOrdinal(
+  function ResolveCachedOrdinal(
     ordinal: int) -> int
     if ordinal < 0 || ordinal >= InventoryCapacity then return -1 end
     local category: int = -1
     local index: int = -1
     categoryCache->get(category, ordinal)
     indexCache->get(index, ordinal)
-    return InventoryItemsEncodeReference(category, index)
+    return ItemsEncodeReference(category, index)
   end
 
-  function InventoryItemsGetCachedCategory(ordinal: int) -> int
+  function ItemsGetCachedCategory(ordinal: int) -> int
     local category: int = -1
     if ordinal >= 0 && ordinal < InventoryCapacity then categoryCache->get(category, ordinal) end
     return category
   end
 
-  function InventoryItemsGetCachedIndex(ordinal: int) -> int
+  function ItemsGetCachedIndex(ordinal: int) -> int
     local index: int = -1
     if ordinal >= 0 && ordinal < InventoryCapacity then indexCache->get(index, ordinal) end
     return index
   end
 
-  function InventoryItemsDecodeReferenceCategory(reference: int) -> int
+  function DecodeReferenceCategory(reference: int) -> int
     if reference < 0 then return -1 end
     return reference / ItemReferenceStride - 1
   end
 
-  function InventoryItemsDecodeReferenceIndex(reference: int) -> int
+  function DecodeReferenceIndex(reference: int) -> int
     if reference < 0 then return -1 end
     local categoryToken: int = reference / ItemReferenceStride
     return reference - categoryToken * ItemReferenceStride

@@ -187,7 +187,7 @@ maintask UI_Cursor do
     native.StretchBlit("border", x + 217, y, 1, 218, alpha)
   end
 
-  function DrawInventoryTooltip(cursorX: int, cursorY: int, item: object, extraText: string, alpha: float) -> void
+  function DrawItemTooltip(cursorX: int, cursorY: int, item: object, extraText: string, alpha: float) -> void
     if !item then return end
 
     local itemID: int
@@ -344,7 +344,7 @@ maintask UI_Cursor do
       local cursorY: int = 0
       native.ClientToScreen(cursorX, cursorY)
       if tooltipType == c_iTooltipInvObject then
-        DrawInventoryTooltip(cursorX, cursorY, tooltipObject, tooltipText, alpha)
+        DrawItemTooltip(cursorX, cursorY, tooltipObject, tooltipText, alpha)
       else
         if tooltipType == c_iTooltipMapObject then
           DrawTextTooltip(cursorX, cursorY, tooltipText, alpha)

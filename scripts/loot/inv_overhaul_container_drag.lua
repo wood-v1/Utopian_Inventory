@@ -17,7 +17,7 @@ module inv_overhaul_container_drag do
   local pageHoverElapsed: float
   local pageHoverConsumed: bool
 
-  function ContainerDragInitializeState() -> void
+  function LootDragInitializeState() -> void
     source = -1
     kind = -1
     itemID = -1
@@ -35,7 +35,7 @@ module inv_overhaul_container_drag do
     pageHoverConsumed = false
   end
 
-  function ContainerDragBeginPlayerSource(
+  function BeginPlayerSource(
     newSource: int,
     newItemID: int,
     newCategory: int,
@@ -54,7 +54,7 @@ module inv_overhaul_container_drag do
     invalidTargetFrames = 0
   end
 
-  function ContainerDragBeginExternalSource(
+  function BeginExternalSource(
     newSource: int,
     newKind: int,
     newItemID: int,
@@ -74,7 +74,7 @@ module inv_overhaul_container_drag do
     invalidTargetFrames = 0
   end
 
-  function ContainerDragClearSource() -> void
+  function ClearSource() -> void
     source = -1
     kind = -1
     itemID = -1
@@ -88,20 +88,20 @@ module inv_overhaul_container_drag do
     invalidTargetFrames = 0
   end
 
-  function ContainerDragIsActive() -> bool return source >= 0 end
-  function ContainerDragGetSource() -> int return source end
-  function ContainerDragGetKind() -> int return kind end
-  function ContainerDragGetItemID() -> int return itemID end
-  function ContainerDragGetPlayerCategory() -> int return playerCategory end
-  function ContainerDragGetPlayerIndex() -> int return playerIndex end
-  function ContainerDragGetPlayerCell() -> int return playerCell end
-  function ContainerDragGetContainerIndex() -> int return containerIndex end
-  function ContainerDragGetContainerOrdinal() -> int return containerOrdinal end
-  function ContainerDragGetContainerVisual() -> int return containerVisual end
-  function ContainerDragGetHighlightedTarget() -> int return highlightedTarget end
-  function ContainerDragSetHighlightedTarget(target: int) -> void highlightedTarget = target end
+  function LootDragIsActive() -> bool return source >= 0 end
+  function GetSource() -> int return source end
+  function GetKind() -> int return kind end
+  function LootDragGetItemID() -> int return itemID end
+  function GetPlayerCategory() -> int return playerCategory end
+  function GetPlayerIndex() -> int return playerIndex end
+  function GetPlayerCell() -> int return playerCell end
+  function GetContainerIndex() -> int return containerIndex end
+  function GetContainerOrdinal() -> int return containerOrdinal end
+  function GetContainerVisual() -> int return containerVisual end
+  function LootDragGetHighlightedTarget() -> int return highlightedTarget end
+  function LootDragSetHighlightedTarget(target: int) -> void highlightedTarget = target end
 
-  function ContainerDragRecordPointerTarget(
+  function RecordPointerTarget(
     target: int,
     sameSource: bool,
     compatible: bool) -> int
@@ -118,14 +118,14 @@ module inv_overhaul_container_drag do
     return -1
   end
 
-  function ContainerDragResolveReleaseTarget(target: int) -> int
+  function LootDragResolveReleaseTarget(target: int) -> int
     if target < 0 && lastValidTarget >= 0 && invalidTargetFrames <= 3 then
       return lastValidTarget
     end
     return target
   end
 
-  function ContainerDragBeginPageHover(action: int) -> bool
+  function LootDragBeginPageHover(action: int) -> bool
     if action == 0 || action == pageHoverAction then return false end
     pageHoverAction = action
     pageHoverElapsed = 0
@@ -133,20 +133,20 @@ module inv_overhaul_container_drag do
     return true
   end
 
-  function ContainerDragCanCancelPageHover(action: int) -> bool
+  function LootDragCanCancelPageHover(action: int) -> bool
     return action == 0 || pageHoverAction == action
   end
 
-  function ContainerDragClearPageHover() -> void
+  function LootDragClearPageHover() -> void
     pageHoverAction = 0
     pageHoverElapsed = 0
     pageHoverConsumed = false
   end
 
-  function ContainerDragGetPageHoverAction() -> int return pageHoverAction end
-  function ContainerDragGetPageHoverElapsed() -> float return pageHoverElapsed end
+  function LootDragGetPageHoverAction() -> int return pageHoverAction end
+  function LootDragGetPageHoverElapsed() -> float return pageHoverElapsed end
 
-  function ContainerDragAdvancePageHover(delta: float) -> int
+  function LootDragAdvancePageHover(delta: float) -> int
     if source < 0 || pageHoverAction == 0 || pageHoverConsumed then return 0 end
     pageHoverElapsed = pageHoverElapsed + delta
     if pageHoverElapsed < c_fPageHoverDelay then return 0 end

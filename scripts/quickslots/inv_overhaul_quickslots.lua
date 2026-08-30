@@ -41,52 +41,52 @@ maintask InvOverhaulQuickslotPlayerEffect do
   local m_fTrackedWeaponGrace: float
 
   function GetPlayer() -> object
-    return inv_overhaul_quickslot_activation.QuickslotActivationGetPlayer()
+    return inv_overhaul_quickslot_activation.ActivationGetPlayer()
   end
 
   function GetItemVariable(slot: int) -> string
-    return inv_overhaul_quickslot_activation.QuickslotActivationItemVariable(slot)
+    return inv_overhaul_quickslot_activation.ActivationItemVariable(slot)
   end
 
   function GetCategoryVariable(slot: int) -> string
-    return inv_overhaul_quickslot_activation.QuickslotActivationCategoryVariable(slot)
+    return inv_overhaul_quickslot_activation.ActivationCategoryVariable(slot)
   end
 
   function GetOccurrenceVariable(slot: int) -> string
-    return inv_overhaul_quickslot_activation.QuickslotActivationOccurrenceVariable(slot)
+    return inv_overhaul_quickslot_activation.ActivationOccurrenceVariable(slot)
   end
 
   function GetDepletedVariable(slot: int) -> string
-    return inv_overhaul_quickslot_activation.QuickslotActivationDepletedVariable(slot)
+    return inv_overhaul_quickslot_activation.ActivationDepletedVariable(slot)
   end
 
   function ClearBinding(slot: int) -> void
-    inv_overhaul_quickslot_activation.QuickslotActivationClearBinding(slot)
+    inv_overhaul_quickslot_activation.ClearBinding(slot)
   end
 
   function ShowMessage(textID: int) -> void
-    inv_overhaul_quickslot_activation.QuickslotActivationShowMessage(textID)
+    inv_overhaul_quickslot_activation.ShowMessage(textID)
   end
 
   function ShowFeedback(itemID: int) -> void
-    inv_overhaul_quickslot_activation.QuickslotActivationShowFeedback(itemID)
+    inv_overhaul_quickslot_activation.ShowFeedback(itemID)
   end
 
   function MarkInventoryChanged() -> void
-    inv_overhaul_quickslot_activation.QuickslotActivationMarkInventoryChanged()
+    inv_overhaul_quickslot_activation.MarkInventoryChanged()
   end
 
   function PublishRemovalHint(category: int, index: int) -> void
-    inv_overhaul_quickslot_activation.QuickslotActivationPublishRemovalHint(
+    inv_overhaul_quickslot_activation.PublishRemovalHint(
       category, index)
   end
 
   function GetUseEffect(itemID: int) -> string
-    return inv_overhaul_quickslot_consumables.QuickslotConsumablesGetUseEffect(itemID)
+    return inv_overhaul_quickslot_consumables.GetUseEffect(itemID)
   end
 
   function IsEquippable(category: int, itemID: int) -> bool
-    return inv_overhaul_quickslot_activation.QuickslotActivationIsEquippable(
+    return inv_overhaul_quickslot_activation.IsEquippable(
       category, itemID)
   end
 
@@ -95,7 +95,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
     itemID: int,
     wantedOccurrence: int
   ) -> int
-    return inv_overhaul_quickslot_activation.QuickslotActivationFindBoundItemIndex(
+    return inv_overhaul_quickslot_activation.FindBoundItemIndex(
       category, itemID, wantedOccurrence)
   end
 
@@ -136,7 +136,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
   end
 
   function AdjustBindingsAfterWeaponDrop(itemID: int, occurrence: int) -> void
-    inv_overhaul_quickslot_hands.QuickslotHandsAdjustBindingsAfterDrop(
+    inv_overhaul_quickslot_hands.AdjustBindingsAfterDrop(
       itemID, occurrence)
   end
 
@@ -281,7 +281,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
     occurrence: int,
     selected: bool
   ) -> void
-    inv_overhaul_quickslot_equipment.QuickslotEquipmentToggle(
+    inv_overhaul_quickslot_equipment.EquipmentPolicyToggle(
       category, index, itemID, occurrence, selected)
   end
 
@@ -367,7 +367,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
       " amount=" + amount)
   end
 
-  function ActivateQuickslot(slot: int) -> void
+  function Activate(slot: int) -> void
     local category: int = -1
     local itemID: int = -1
     local occurrence: int = -1
@@ -410,7 +410,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
     m_iTrackedWeaponOccurrence = -1
     m_fTrackedWeaponGrace = 0
     native.GetVariable("inv_overhaul_effect_generation", m_iEffectGeneration)
-    inv_overhaul_quickslot_activation.QuickslotActivationInitializePersistentState()
+    inv_overhaul_quickslot_activation.InitializePersistentState()
     native.SetVariable("inv_overhaul_quickslot_diag_active", 0)
     native.SetVariable("inv_overhaul_handcombat_request", 0)
     UpdateTrackedWeapon(0)
@@ -437,7 +437,7 @@ maintask InvOverhaulQuickslotPlayerEffect do
         native.GetVariable("inv_overhaul_quickslot_request", request)
         if request > 0 then
           native.SetVariable("inv_overhaul_quickslot_request", 0)
-          if request <= c_iQuickslotCount then ActivateQuickslot(request) end
+          if request <= c_iQuickslotCount then Activate(request) end
         end
       end
       UpdateTrackedWeapon(delta)

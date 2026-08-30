@@ -4,36 +4,36 @@ module inv_overhaul_inventory_stack_consolidation do
   local const InventoryStackCategoryCount: int = 5
   local const InventoryStackQuickslotCount: int = 10
 
-  function InventoryStackItemVariable(slot: int) -> string
+  function StackItemVariable(slot: int) -> string
     return "inv_overhaul_quickslot_item_" + slot
   end
 
-  function InventoryStackCategoryVariable(slot: int) -> string
+  function StackCategoryVariable(slot: int) -> string
     return "inv_overhaul_quickslot_category_" + slot
   end
 
-  function InventoryStackOccurrenceVariable(slot: int) -> string
+  function StackOccurrenceVariable(slot: int) -> string
     return "inv_overhaul_quickslot_occurrence_" + slot
   end
 
-  function InventoryStackDepletedVariable(slot: int) -> string
+  function StackDepletedVariable(slot: int) -> string
     return "inv_overhaul_quickslot_depleted_" + slot
   end
 
-  function InventoryStackNormalizeQuickslots(category: int, itemID: int) -> void
+  function NormalizeQuickslots(category: int, itemID: int) -> void
     for slot = 1, InventoryStackQuickslotCount do
       local boundCategory: int = -1
       local boundItemID: int = -1
-      native.GetVariable(InventoryStackCategoryVariable(slot), boundCategory)
-      native.GetVariable(InventoryStackItemVariable(slot), boundItemID)
+      native.GetVariable(StackCategoryVariable(slot), boundCategory)
+      native.GetVariable(StackItemVariable(slot), boundItemID)
       if boundCategory == category && boundItemID == itemID then
-        native.SetVariable(InventoryStackOccurrenceVariable(slot), 0)
-        native.SetVariable(InventoryStackDepletedVariable(slot), 0)
+        native.SetVariable(StackOccurrenceVariable(slot), 0)
+        native.SetVariable(StackDepletedVariable(slot), 0)
       end
     end
   end
 
-  function InventoryStackGetOtherAmount(
+  function GetOtherAmount(
     player: object,
     category: int,
     keepIndex: int,
@@ -60,7 +60,7 @@ module inv_overhaul_inventory_stack_consolidation do
     return total
   end
 
-  function InventoryStackMerge(
+  function Merge(
     player: object,
     category: int,
     keepIndex: int,
@@ -115,18 +115,18 @@ module inv_overhaul_inventory_stack_consolidation do
       removeIndex = removeIndex - 1
     end
 
-    local remainingOtherAmount: int = InventoryStackGetOtherAmount(
+    local remainingOtherAmount: int = GetOtherAmount(
       player, category, keepIndex, itemID)
     if remainingOtherAmount > 0 then
       player->SetItemAmount(totalAmount - remainingOtherAmount, keepIndex, category)
     end
-    InventoryStackNormalizeQuickslots(category, itemID)
+    NormalizeQuickslots(category, itemID)
     return true
   end
 
-  function InventoryStackConsolidate(categoryCounts: object) -> bool
+  function Consolidate(categoryCounts: object) -> bool
     local player: object =
-      inv_overhaul_inventory_overflow.InventoryOverflowGetPlayer()
+      inv_overhaul_inventory_overflow.OverflowGetPlayer()
     local changed: bool = false
     for category = 0, InventoryStackCategoryCount - 1 do
       local count: int
@@ -140,7 +140,7 @@ module inv_overhaul_inventory_stack_consolidation do
           local maxStackSize: int
           item->GetItemID(itemID)
           native.GetInvItemMaxStackSize(maxStackSize, itemID)
-          if maxStackSize > 1 && InventoryStackMerge(
+          if maxStackSize > 1 && Merge(
             player, category, index, itemID, count) then
             changed = true
             player->GetItemCount(count, category)
@@ -152,7 +152,7 @@ module inv_overhaul_inventory_stack_consolidation do
       categoryCounts->set(category, count)
     end
     if changed then
-      inv_overhaul_inventory_overflow.InventoryOverflowAdvanceContentGeneration()
+      inv_overhaul_inventory_overflow.AdvanceContentGeneration()
       local generation: int = 0
       native.GetVariable("inv_overhaul_inventory_reorder_generation", generation)
       native.SetVariable("inv_overhaul_inventory_reorder_generation", generation + 1)

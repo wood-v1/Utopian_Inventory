@@ -7,12 +7,12 @@ module inv_overhaul_container_transfer do
   local const ExternalToPlayerRejected: int = 1
   local const ExternalToPlayerCompleted: int = 2
 
-  function ContainerTransferNormalizeAmount(requestedAmount: int, availableAmount: int) -> int
+  function NormalizeAmount(requestedAmount: int, availableAmount: int) -> int
     if requestedAmount <= 0 || requestedAmount > availableAmount then return availableAmount end
     return requestedAmount
   end
 
-  function ContainerTransferFindPlayerMergeIndex(
+  function FindPlayerMergeIndex(
     player: object,
     category: int,
     itemID: int) -> int
@@ -23,7 +23,7 @@ module inv_overhaul_container_transfer do
     local count: int
     player->GetItemCount(count, category)
     for index = 0, count - 1 do
-      if !inv_overhaul_inventory_items.InventoryItemsIsEquipped(category, index) then
+      if !inv_overhaul_inventory_items.IsEquipped(category, index) then
         local candidate: object
         local candidateID: int
         local candidateAmount: int
@@ -36,7 +36,7 @@ module inv_overhaul_container_transfer do
     return -1
   end
 
-  function ContainerTransferGetPlayerItemTotalAmount(
+  function GetPlayerItemTotalAmount(
     player: object,
     category: int,
     wantedItemID: int) -> int
@@ -60,7 +60,7 @@ module inv_overhaul_container_transfer do
     return total
   end
 
-  function ContainerTransferGetExternalItemTotalAmount(
+  function GetExternalItemTotalAmount(
     external: object,
     wantedItemID: int) -> int
     if !external then return 0 end
@@ -83,7 +83,7 @@ module inv_overhaul_container_transfer do
     return total
   end
 
-  function ContainerTransferCreatePlayerToExternalOutcome(
+  function CreatePlayerToExternalOutcome(
     status: int,
     itemID: int,
     success: bool,
@@ -103,7 +103,7 @@ module inv_overhaul_container_transfer do
     return outcome
   end
 
-  function ContainerTransferMovePlayerAmountToExternal(
+  function MovePlayerAmountToExternal(
     player: object,
     external: object,
     category: int,
@@ -116,20 +116,20 @@ module inv_overhaul_container_transfer do
     local availableAmount: int
     player->GetItemAmount(availableAmount, index, category)
     local transferAmount: int =
-      ContainerTransferNormalizeAmount(requestedAmount, availableAmount)
+      NormalizeAmount(requestedAmount, availableAmount)
     if transferAmount <= 0 then return null end
 
     local itemID: int
     item->GetItemID(itemID)
     local beforeExternalAmount: int =
-      ContainerTransferGetExternalItemTotalAmount(external, itemID)
+      GetExternalItemTotalAmount(external, itemID)
     local success: bool
     external->AddItem(success, item, 0, transferAmount)
     local afterExternalAmount: int =
-      ContainerTransferGetExternalItemTotalAmount(external, itemID)
+      GetExternalItemTotalAmount(external, itemID)
     local addedAmount: int = afterExternalAmount - beforeExternalAmount
     if !success || addedAmount <= 0 then
-      return ContainerTransferCreatePlayerToExternalOutcome(
+      return CreatePlayerToExternalOutcome(
         PlayerToExternalRejected, itemID, success,
         beforeExternalAmount, afterExternalAmount)
     end
@@ -141,43 +141,43 @@ module inv_overhaul_container_transfer do
     end
     if addedAmount > transferAmount then addedAmount = transferAmount end
     player->RemoveItem(index, addedAmount, category)
-    return ContainerTransferCreatePlayerToExternalOutcome(
+    return CreatePlayerToExternalOutcome(
       PlayerToExternalCompleted, itemID, success,
       beforeExternalAmount, afterExternalAmount)
   end
 
-  function ContainerTransferPlayerToExternalWasRejected(outcome: object) -> bool
+  function PlayerToExternalWasRejected(outcome: object) -> bool
     if !outcome then return false end
     local status: int = 0
     outcome->get(status, 0)
     return status == PlayerToExternalRejected
   end
 
-  function ContainerTransferGetPlayerToExternalItemID(outcome: object) -> int
+  function GetPlayerToExternalItemID(outcome: object) -> int
     local itemID: int = -1
     if outcome then outcome->get(itemID, 1) end
     return itemID
   end
 
-  function ContainerTransferGetPlayerToExternalSuccess(outcome: object) -> bool
+  function GetPlayerToExternalSuccess(outcome: object) -> bool
     local success: int = 0
     if outcome then outcome->get(success, 2) end
     return success == 1
   end
 
-  function ContainerTransferGetPlayerToExternalBeforeAmount(outcome: object) -> int
+  function GetPlayerToExternalBeforeAmount(outcome: object) -> int
     local amount: int = 0
     if outcome then outcome->get(amount, 3) end
     return amount
   end
 
-  function ContainerTransferGetPlayerToExternalAfterAmount(outcome: object) -> int
+  function GetPlayerToExternalAfterAmount(outcome: object) -> int
     local amount: int = 0
     if outcome then outcome->get(amount, 4) end
     return amount
   end
 
-  function ContainerTransferCreateExternalToPlayerOutcome(
+  function CreateExternalToPlayerOutcome(
     status: int,
     success: bool,
     beforePlayerAmount: int,
@@ -199,7 +199,7 @@ module inv_overhaul_container_transfer do
     return outcome
   end
 
-  function ContainerTransferMoveExternalItemAmountToPlayer(
+  function MoveExternalItemAmountToPlayer(
     player: object,
     external: object,
     item: object,
@@ -210,7 +210,7 @@ module inv_overhaul_container_transfer do
     category: int,
     itemID: int) -> object
     local beforePlayerAmount: int =
-      ContainerTransferGetPlayerItemTotalAmount(player, category, itemID)
+      GetPlayerItemTotalAmount(player, category, itemID)
     -- Preserve the pre-add category read even though the controller currently
     -- needs only the post-add count for layout insertion.
     local beforeCategoryCount: int
@@ -223,57 +223,57 @@ module inv_overhaul_container_transfer do
     local success: bool
     player->AddItem(success, item, category, transferAmount)
     local afterPlayerAmount: int =
-      ContainerTransferGetPlayerItemTotalAmount(player, category, itemID)
+      GetPlayerItemTotalAmount(player, category, itemID)
     local addedAmount: int = afterPlayerAmount - beforePlayerAmount
     if !success || addedAmount <= 0 then
       if organSource then
         item->RemoveProperty("InvOverhaulOrgan")
         item->SetProperty("Organ", 1)
       end
-      return ContainerTransferCreateExternalToPlayerOutcome(
+      return CreateExternalToPlayerOutcome(
         ExternalToPlayerRejected, success,
         beforePlayerAmount, afterPlayerAmount, false)
     end
 
     if addedAmount > transferAmount then addedAmount = transferAmount end
     external->RemoveItem(sourceIndex, addedAmount)
-    return ContainerTransferCreateExternalToPlayerOutcome(
+    return CreateExternalToPlayerOutcome(
       ExternalToPlayerCompleted, success,
       beforePlayerAmount, afterPlayerAmount, addedAmount >= amount)
   end
 
-  function ContainerTransferExternalToPlayerWasRejected(outcome: object) -> bool
+  function ExternalToPlayerWasRejected(outcome: object) -> bool
     if !outcome then return false end
     local status: int = 0
     outcome->get(status, 0)
     return status == ExternalToPlayerRejected
   end
 
-  function ContainerTransferGetExternalToPlayerSuccess(outcome: object) -> bool
+  function GetExternalToPlayerSuccess(outcome: object) -> bool
     local success: int = 0
     if outcome then outcome->get(success, 1) end
     return success == 1
   end
 
-  function ContainerTransferGetExternalToPlayerBeforeAmount(outcome: object) -> int
+  function GetExternalToPlayerBeforeAmount(outcome: object) -> int
     local amount: int = 0
     if outcome then outcome->get(amount, 2) end
     return amount
   end
 
-  function ContainerTransferGetExternalToPlayerAfterAmount(outcome: object) -> int
+  function GetExternalToPlayerAfterAmount(outcome: object) -> int
     local amount: int = 0
     if outcome then outcome->get(amount, 3) end
     return amount
   end
 
-  function ContainerTransferExternalToPlayerSourceDepleted(outcome: object) -> bool
+  function ExternalToPlayerSourceDepleted(outcome: object) -> bool
     local depleted: int = 0
     if outcome then outcome->get(depleted, 4) end
     return depleted == 1
   end
 
-  function ContainerTransferSwapAppendedEntry(
+  function SwapAppendedEntry(
     external: object,
     exchangedItem: object,
     exchangedAmount: int,

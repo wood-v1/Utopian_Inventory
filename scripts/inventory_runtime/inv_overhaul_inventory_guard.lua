@@ -42,18 +42,18 @@ maintask TEffect do
   end
 
   function GetBackpackItemCount() -> int
-    return inv_overhaul_inventory_overflow.InventoryOverflowGetBackpackItemCount()
+    return inv_overhaul_inventory_overflow.OverflowGetBackpackItemCount()
   end
 
-  function ProcessSpecialInventoryRemap() -> void
-    inv_overhaul_special_inventory_bridge.SpecialInventoryBridgeProcess()
+  function ProcessSpecialRemap() -> void
+    inv_overhaul_special_inventory_bridge.Process()
   end
 
   function InitializePersistentSnapshotIfMissing() -> void
-    inv_overhaul_inventory_snapshot_seed.InventorySnapshotSeedInitializeIfMissing()
+    inv_overhaul_inventory_snapshot_seed.InitializeIfMissing()
   end
 
-  function ShowInventoryFull() -> void
+  function ShowFullMessage() -> void
     if m_fMessageCooldown > 0 then return end
     local text: object
     native.CreateIntVector(text)
@@ -77,7 +77,7 @@ maintask TEffect do
 
   function DropOverflowItem(index: int, itemID: int, category: int) -> bool
     local dropped: bool =
-      inv_overhaul_inventory_overflow.InventoryOverflowDropItem(
+      inv_overhaul_inventory_overflow.DropItem(
         index, itemID, category)
     if dropped then
       local player: object = GetPlayer()
@@ -114,18 +114,18 @@ maintask TEffect do
       end
     end
     m_bResolvingOverflow = false
-    if dropped then ShowInventoryFull() end
+    if dropped then ShowFullMessage() end
   end
 
-  function AdvanceInventoryContentGeneration() -> void
-    inv_overhaul_inventory_overflow.InventoryOverflowAdvanceContentGeneration()
+  function AdvanceContentGeneration() -> void
+    inv_overhaul_inventory_overflow.AdvanceContentGeneration()
   end
 
   function ConsolidatePlayerStacks() -> void
     if !m_bStackMergePending then return end
     m_bStackMergePending = false
     m_bResolvingStackMerge = true
-    inv_overhaul_inventory_stack_consolidation.InventoryStackConsolidate(
+    inv_overhaul_inventory_stack_consolidation.Consolidate(
       m_CategoryCounts)
     m_bResolvingStackMerge = false
   end
@@ -160,7 +160,7 @@ maintask TEffect do
     m_iAllowedSlots = GetBackpackItemCount()
     if m_iAllowedSlots < c_iInventoryCapacity then m_iAllowedSlots = c_iInventoryCapacity end
     InitializePersistentSnapshotIfMissing()
-    inv_overhaul_special_inventory_bridge.SpecialInventoryBridgeReset()
+    inv_overhaul_special_inventory_bridge.Reset()
     native.Trace("INV_OVERHAUL_EFFECT_LIFECYCLE guard start generation=" + m_iEffectGeneration)
     native.Trace("INV_OVERHAUL_INVENTORY_GUARD_VERSION 2026.08.11-effect-generation-3 allowed=" + m_iAllowedSlots)
 
@@ -177,7 +177,7 @@ maintask TEffect do
         m_fMessageCooldown = m_fMessageCooldown - c_fTickDelay
         if m_fMessageCooldown < 0 then m_fMessageCooldown = 0 end
       end
-      ProcessSpecialInventoryRemap()
+      ProcessSpecialRemap()
       ConsolidatePlayerStacks()
       ProcessOverflowQueue()
     end
@@ -192,7 +192,7 @@ maintask TEffect do
     m_CategoryCounts->get(previousCount, category)
     player->GetItemCount(currentCount, category)
     m_CategoryCounts->set(category, currentCount)
-    if currentCount > previousCount then AdvanceInventoryContentGeneration() end
+    if currentCount > previousCount then AdvanceContentGeneration() end
     if item then
       local addedItemID: int
       local maxStackSize: int
@@ -209,7 +209,7 @@ maintask TEffect do
         category + " item=" + addedItemID + " previousCount=" +
         previousCount + " currentCount=" + currentCount)
     end
-    if inv_overhaul_inventory_overflow.InventoryOverflowShouldQueue(
+    if inv_overhaul_inventory_overflow.ShouldQueue(
       m_iAllowedSlots, previousCount, currentCount) then
       local itemID: int
       item->GetItemID(itemID)
@@ -227,7 +227,7 @@ maintask TEffect do
       m_CategoryCounts->get(previousCount, category)
       player->GetItemCount(categoryCount, category)
       m_CategoryCounts->set(category, categoryCount)
-      if categoryCount < previousCount then AdvanceInventoryContentGeneration() end
+      if categoryCount < previousCount then AdvanceContentGeneration() end
       local quickslotDiag: int = 0
       native.GetVariable("inv_overhaul_quickslot_diag_active", quickslotDiag)
       if quickslotDiag == 1 then

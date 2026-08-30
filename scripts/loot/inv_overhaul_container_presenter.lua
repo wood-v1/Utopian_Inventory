@@ -32,7 +32,7 @@ module inv_overhaul_container_presenter do
   local isCorpse: bool
   local showOrgans: bool
 
-  function ContainerPresenterInitializeState() -> void
+  function LootPresenterInitializeState() -> void
     windowWidth = 0
     windowHeight = 0
     visibleSlots = 0
@@ -54,69 +54,69 @@ module inv_overhaul_container_presenter do
     showOrgans = false
   end
 
-  function ContainerPresenterGetWindowWidth() -> int
+  function GetWindowWidth() -> int
     local value: int = windowWidth
     return value
   end
 
-  function ContainerPresenterGetWindowHeight() -> int
+  function GetWindowHeight() -> int
     local value: int = windowHeight
     return value
   end
 
-  function ContainerPresenterGetVisibleSlots() -> int
+  function LootPresenterGetVisibleSlots() -> int
     local value: int = visibleSlots
     return value
   end
 
-  function ContainerPresenterGetPlayerPage() -> int
+  function GetPlayerPage() -> int
     local value: int = playerPage
     return value
   end
 
-  function ContainerPresenterGetContainerPage() -> int
+  function GetContainerPage() -> int
     local value: int = containerPage
     return value
   end
 
-  function ContainerPresenterGetRenderedPlayerPage() -> int
+  function GetRenderedPlayerPage() -> int
     local value: int = renderedPlayerPage
     return value
   end
 
-  function ContainerPresenterGetRenderedContainerPage() -> int
+  function GetRenderedContainerPage() -> int
     local value: int = renderedContainerPage
     return value
   end
 
-  function ContainerPresenterIsCorpse() -> bool
+  function LootPresenterIsCorpse() -> bool
     local value: bool = isCorpse
     return value
   end
 
-  function ContainerPresenterShowsOrgans() -> bool
+  function LootPresenterShowsOrgans() -> bool
     local value: bool = showOrgans
     return value
   end
 
-  function ContainerPresenterSetPlayerPage(page: int) -> void
+  function SetPlayerPage(page: int) -> void
     playerPage = page
-    ContainerPresenterClampPlayerPage()
+    ClampPlayerPage()
   end
 
-  function ContainerPresenterSetContainerPage(page: int) -> void
+  function SetContainerPage(page: int) -> void
     containerPage = page
-    ContainerPresenterClampContainerPage()
+    ClampContainerPage()
   end
 
-  function ContainerPresenterSetCorpseMode(
+  function SetCorpseMode(
     newIsCorpse: bool,
     newShowOrgans: bool) -> void
     isCorpse = newIsCorpse
     showOrgans = newShowOrgans
   end
 
-  function ContainerPresenterUpdateLayout() -> void
+  function LootPresenterUpdateLayout() -> void
     local newWidth: int
     local newHeight: int
     native.GetWindowSize(newWidth, newHeight)
@@ -124,11 +124,11 @@ module inv_overhaul_container_presenter do
       native.GetScreenSize(newWidth, newHeight)
     end
     local newVisibleSlots: int =
-      inv_overhaul_container_geometry.ContainerGeometryGetVisibleSlots(newWidth)
+      inv_overhaul_container_geometry.LootGeometryGetVisibleSlots(newWidth)
     if newWidth != lastLayoutWidth || newHeight != lastLayoutHeight then
       native.SendMessage(newWidth, "panel_background")
       native.SendMessage(5000 + newHeight, "panel_background")
-      inv_overhaul_container_view.ContainerViewConfigureSlotRenderSize(
+      inv_overhaul_container_view.LootViewConfigureSlotRenderSize(
         newWidth, newVisibleSlots)
       lastLayoutWidth = newWidth
       lastLayoutHeight = newHeight
@@ -138,39 +138,39 @@ module inv_overhaul_container_presenter do
     visibleSlots = newVisibleSlots
   end
 
-  function ContainerPresenterGetCellForLinearSlot(linear: int) -> int
+  function LootPresenterGetCellForLinearSlot(linear: int) -> int
     local slots: int = visibleSlots
-    return inv_overhaul_inventory_layout.InventoryLayoutGetCellForLinearSlot(
+    return inv_overhaul_inventory_layout.LayoutGetCellForLinearSlot(
       linear, slots, InventoryCapacity)
   end
 
-  function ContainerPresenterGetVisibleCell(slot: int) -> int
+  function LootPresenterGetVisibleCell(slot: int) -> int
     local page: int = playerPage
     local slots: int = visibleSlots
     local linear: int = page * slots + slot
-    return ContainerPresenterGetCellForLinearSlot(linear)
+    return LootPresenterGetCellForLinearSlot(linear)
   end
 
-  function ContainerPresenterGetMaxPlayerPage() -> int
+  function GetMaxPlayerPage() -> int
     local slots: int = visibleSlots
-    return inv_overhaul_inventory_layout.InventoryLayoutGetMaxPage(
+    return inv_overhaul_inventory_layout.LayoutGetMaxPage(
       InventoryCapacity, slots)
   end
 
-  function ContainerPresenterClampPlayerPage() -> void
-    local maxPage: int = ContainerPresenterGetMaxPlayerPage()
+  function ClampPlayerPage() -> void
+    local maxPage: int = GetMaxPlayerPage()
     if playerPage < 0 then playerPage = 0 end
     if playerPage > maxPage then playerPage = maxPage end
   end
 
-  function ContainerPresenterResolveVisibleSlot(slot: int) -> int
+  function LootPresenterResolveVisibleSlot(slot: int) -> int
     local target: int =
-      inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(
-        ContainerPresenterGetVisibleCell(slot))
-    return inv_overhaul_inventory_items.InventoryItemsResolveCachedOrdinal(target)
+      inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(
+        LootPresenterGetVisibleCell(slot))
+    return inv_overhaul_inventory_items.ResolveCachedOrdinal(target)
   end
 
-  function ContainerPresenterQueueCachedPlayerEntryRefresh(
+  function QueueCachedPlayerEntryRefresh(
     category: int,
     index: int) -> void
     pendingPlayerEntryCategory = category
@@ -178,244 +178,244 @@ module inv_overhaul_container_presenter do
     pendingPlayerEntryScanSlot = 0
   end
 
-  function ContainerPresenterContinueCachedPlayerEntryRefresh() -> void
+  function ContinueCachedPlayerEntryRefresh() -> void
     if pendingPlayerEntryCategory < 0 || pendingPlayerEntryIndex < 0 then return end
     if pendingPlayerEntryScanSlot >= visibleSlots then
       pendingPlayerEntryCategory = -1
       pendingPlayerEntryIndex = -1
       pendingPlayerEntryScanSlot = 0
-      ContainerPresenterUpdatePlayerPageControls()
+      UpdatePlayerPageControls()
       return
     end
     local slot: int = pendingPlayerEntryScanSlot
     pendingPlayerEntryScanSlot = pendingPlayerEntryScanSlot + 1
     local ordinal: int =
-      inv_overhaul_inventory_layout_runtime.InventoryLayoutRuntimeGetOrderValue(
-        ContainerPresenterGetVisibleCell(slot))
+      inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(
+        LootPresenterGetVisibleCell(slot))
     local cachedCount: int =
-      inv_overhaul_inventory_items.InventoryItemsGetCachedBackpackCount()
+      inv_overhaul_inventory_items.GetCachedBackpackCount()
     if ordinal >= 0 && ordinal < cachedCount && ordinal < InventoryCapacity then
       local cachedCategory: int =
-        inv_overhaul_inventory_items.InventoryItemsGetCachedCategory(ordinal)
+        inv_overhaul_inventory_items.ItemsGetCachedCategory(ordinal)
       local cachedIndex: int =
-        inv_overhaul_inventory_items.InventoryItemsGetCachedIndex(ordinal)
+        inv_overhaul_inventory_items.ItemsGetCachedIndex(ordinal)
       if cachedCategory == pendingPlayerEntryCategory &&
         cachedIndex == pendingPlayerEntryIndex then
-        ContainerPresenterUpdatePlayerSlot(slot)
+        UpdatePlayerSlot(slot)
         pendingPlayerEntryCategory = -1
         pendingPlayerEntryIndex = -1
         pendingPlayerEntryScanSlot = 0
-        ContainerPresenterUpdatePlayerPageControls()
+        UpdatePlayerPageControls()
       end
     end
   end
 
-  function ContainerPresenterGetVisibleSlotForCell(cell: int) -> int
+  function GetVisibleSlotForCell(cell: int) -> int
     if cell < 0 then return -1 end
     for slot = 0, visibleSlots - 1 do
-      if ContainerPresenterGetVisibleCell(slot) == cell then return slot end
+      if LootPresenterGetVisibleCell(slot) == cell then return slot end
     end
     return -1
   end
 
-  function ContainerPresenterGetNormalContainerItemCount() -> int
+  function GetNormalContainerItemCount() -> int
     local container: object
     native.GetContainer(container)
-    return inv_overhaul_container_projection.ContainerProjectionGetNormalItemCount(
+    return inv_overhaul_container_projection.GetNormalItemCount(
       container)
   end
 
-  function ContainerPresenterBuildContainerIndexCache() -> void
+  function BuildContainerIndexCache() -> void
     local container: object
     native.GetContainer(container)
-    inv_overhaul_container_projection.ContainerProjectionBuildIndexCache(container)
+    inv_overhaul_container_projection.LootProjectionBuildIndexCache(container)
   end
 
-  function ContainerPresenterResolveContainerVisualSlot(slot: int) -> int
+  function ResolveContainerVisualSlot(slot: int) -> int
     local page: int = containerPage
     local visual: int = page * ContainerSlots + slot
     local ordinal: int =
-      inv_overhaul_container_projection.ContainerProjectionGetContainerOrder(visual)
-    return inv_overhaul_container_projection.ContainerProjectionResolveNormalOrdinal(
+      inv_overhaul_container_projection.GetContainerOrder(visual)
+    return inv_overhaul_container_projection.ResolveNormalOrdinal(
       ordinal)
   end
 
-  function ContainerPresenterResolveOrganVisualSlot(slot: int) -> int
+  function ResolveOrganVisualSlot(slot: int) -> int
     if !showOrgans then return -1 end
     local container: object
     native.GetContainer(container)
-    return inv_overhaul_container_projection.ContainerProjectionResolveOrganVisual(
+    return inv_overhaul_container_projection.ResolveOrganVisual(
       container, slot)
   end
 
-  function ContainerPresenterClampContainerPage() -> void
+  function ClampContainerPage() -> void
     local maxPage: int =
-      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
+      inv_overhaul_container_projection.LootProjectionGetMaxPage()
     if containerPage < 0 then containerPage = 0 end
     if containerPage > maxPage then containerPage = maxPage end
   end
 
-  function ContainerPresenterUpdatePlayerPageControls() -> void
-    local maxPage: int = ContainerPresenterGetMaxPlayerPage()
+  function UpdatePlayerPageControls() -> void
+    local maxPage: int = GetMaxPlayerPage()
     local page: int = playerPage
-    inv_overhaul_container_view.ContainerViewResetPageControls(
+    inv_overhaul_container_view.ResetPageControls(
       "player_", -114, -115)
-    inv_overhaul_container_view.ContainerViewUpdatePageControls(
+    inv_overhaul_container_view.LootViewUpdatePageControls(
       "player_", page, maxPage)
   end
 
-  function ContainerPresenterUpdateContainerPageControls() -> void
+  function UpdateContainerPageControls() -> void
     local maxPage: int =
-      inv_overhaul_container_projection.ContainerProjectionGetMaxPage()
+      inv_overhaul_container_projection.LootProjectionGetMaxPage()
     local page: int = containerPage
     local corpse: bool = isCorpse
-    inv_overhaul_container_view.ContainerViewResetPageControls(
+    inv_overhaul_container_view.ResetPageControls(
       "container_", -116, -117)
     if maxPage != lastContainerMaxPage then
       native.Trace("inv_overhaul_container pages count=" +
-        inv_overhaul_container_projection.ContainerProjectionGetCachedNormalCount() +
+        inv_overhaul_container_projection.GetCachedNormalCount() +
         " max=" + maxPage + " current=" + page + " corpse=" + corpse)
       lastContainerMaxPage = maxPage
     end
-    inv_overhaul_container_view.ContainerViewUpdatePageControls(
+    inv_overhaul_container_view.LootViewUpdatePageControls(
       "container_", page, maxPage)
   end
 
-  function ContainerPresenterUpdateMoney() -> void
+  function LootPresenterUpdateMoney() -> void
     local player: object =
-      inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+      inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local money: int
     player->GetProperty("money", money)
     native.SendMessage(money, "money")
   end
 
-  function ContainerPresenterUpdatePlayerSlot(slot: int) -> void
+  function UpdatePlayerSlot(slot: int) -> void
     local player: object =
-      inv_overhaul_inventory_items.InventoryItemsGetPlayerContainer()
+      inv_overhaul_inventory_items.ItemsGetPlayerContainer()
     local wnd: string =
-      inv_overhaul_container_view.ContainerViewGetPlayerSlotWndName(slot)
-    if ContainerPresenterGetVisibleCell(slot) < 0 then
-      inv_overhaul_container_view.ContainerViewRenderPlayerSlotUnavailable(wnd)
+      inv_overhaul_container_view.GetPlayerSlotWndName(slot)
+    if LootPresenterGetVisibleCell(slot) < 0 then
+      inv_overhaul_container_view.RenderPlayerSlotUnavailable(wnd)
       return
     end
-    inv_overhaul_container_view.ContainerViewBeginPlayerSlot(wnd)
-    local reference: int = ContainerPresenterResolveVisibleSlot(slot)
+    inv_overhaul_container_view.BeginPlayerSlot(wnd)
+    local reference: int = LootPresenterResolveVisibleSlot(slot)
     if reference < 0 then
-      inv_overhaul_container_view.ContainerViewRenderPlayerSlotEmpty(wnd)
+      inv_overhaul_container_view.RenderPlayerSlotEmpty(wnd)
       return
     end
     local category: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceCategory(reference)
+      inv_overhaul_inventory_items.DecodeReferenceCategory(reference)
     local index: int =
-      inv_overhaul_inventory_items.InventoryItemsDecodeReferenceIndex(reference)
+      inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
     local item: object
     local amount: int
     player->GetItem(item, index, category)
     player->GetItemAmount(amount, index, category)
-    inv_overhaul_container_view.ContainerViewRenderPlayerSlotItem(wnd, item, amount)
+    inv_overhaul_container_view.RenderPlayerSlotItem(wnd, item, amount)
     local itemID: int
     item->GetItemID(itemID)
     local quickslot: int =
-      inv_overhaul_inventory_quickslot_bindings.InventoryQuickslotGetDisplayedBinding(
+      inv_overhaul_inventory_quickslot_bindings.GetDisplayedBinding(
         category, index, itemID)
-    inv_overhaul_container_view.ContainerViewRenderPlayerQuickslot(wnd, quickslot)
+    inv_overhaul_container_view.RenderPlayerQuickslot(wnd, quickslot)
   end
 
-  function ContainerPresenterUpdatePlayerSlots() -> void
-    ContainerPresenterClampPlayerPage()
-    inv_overhaul_inventory_items.InventoryItemsBuildIndexCache()
+  function UpdatePlayerSlots() -> void
+    ClampPlayerPage()
+    inv_overhaul_inventory_items.ItemsBuildIndexCache()
     for slot = 0, visibleSlots - 1 do
-      ContainerPresenterUpdatePlayerSlot(slot)
+      UpdatePlayerSlot(slot)
     end
     renderedPlayerPage = playerPage
-    ContainerPresenterUpdatePlayerPageControls()
+    UpdatePlayerPageControls()
   end
 
-  function ContainerPresenterUpdateContainerSlot(slot: int) -> void
+  function UpdateContainerSlot(slot: int) -> void
     local container: object
     native.GetContainer(container)
     local wnd: string =
-      inv_overhaul_container_view.ContainerViewGetContainerSlotWndName(slot)
-    local reference: int = ContainerPresenterResolveContainerVisualSlot(slot)
+      inv_overhaul_container_view.GetContainerSlotWndName(slot)
+    local reference: int = ResolveContainerVisualSlot(slot)
     if reference < 0 then
-      inv_overhaul_container_view.ContainerViewRenderContainerSlotEmpty(wnd)
+      inv_overhaul_container_view.RenderContainerSlotEmpty(wnd)
       return
     end
     local index: int =
-      inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(reference)
+      inv_overhaul_container_projection.GetReferenceIndex(reference)
     local item: object
     local amount: int
     container->GetItem(item, index)
     container->GetItemAmount(amount, index)
-    inv_overhaul_container_view.ContainerViewRenderContainerSlotItem(
+    inv_overhaul_container_view.RenderContainerSlotItem(
       wnd, item, amount)
   end
 
-  function ContainerPresenterUpdateContainerSlots() -> void
-    ContainerPresenterBuildContainerIndexCache()
-    ContainerPresenterClampContainerPage()
+  function UpdateContainerSlots() -> void
+    BuildContainerIndexCache()
+    ClampContainerPage()
     for slot = 0, ContainerSlots - 1 do
-      ContainerPresenterUpdateContainerSlot(slot)
+      UpdateContainerSlot(slot)
     end
     renderedContainerPage = containerPage
-    ContainerPresenterUpdateContainerPageControls()
+    UpdateContainerPageControls()
   end
 
-  function ContainerPresenterUpdateOrganSlots() -> void
+  function UpdateOrganSlots() -> void
     local container: object
     native.GetContainer(container)
     for slot = 0, OrganSlots - 1 do
       local wnd: string =
-        inv_overhaul_container_view.ContainerViewGetOrganSlotWndName(slot)
+        inv_overhaul_container_view.GetOrganSlotWndName(slot)
       if !isCorpse || !showOrgans then
-        inv_overhaul_container_view.ContainerViewRenderOrganSlotHidden(wnd)
+        inv_overhaul_container_view.RenderOrganSlotHidden(wnd)
       else
-        inv_overhaul_container_view.ContainerViewBeginOrganSlot(wnd)
-        local reference: int = ContainerPresenterResolveOrganVisualSlot(slot)
+        inv_overhaul_container_view.BeginOrganSlot(wnd)
+        local reference: int = ResolveOrganVisualSlot(slot)
         if reference < 0 then
-          inv_overhaul_container_view.ContainerViewRenderOrganSlotEmpty(wnd)
+          inv_overhaul_container_view.RenderOrganSlotEmpty(wnd)
         else
           local index: int =
-            inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(
+            inv_overhaul_container_projection.GetReferenceIndex(
               reference)
-          inv_overhaul_container_view.ContainerViewBeginOrganSlotItem(wnd)
+          inv_overhaul_container_view.BeginOrganSlotItem(wnd)
           local item: object
           local amount: int
           container->GetItem(item, index)
           container->GetItemAmount(amount, index)
-          inv_overhaul_container_view.ContainerViewRenderOrganSlotItem(
+          inv_overhaul_container_view.RenderOrganSlotItem(
             wnd, item, amount)
         end
       end
     end
   end
 
-  function ContainerPresenterUpdateAllSlots() -> void
+  function UpdateAllSlots() -> void
     initialSlotLoadActive = false
-    ContainerPresenterUpdateLayout()
-    ContainerPresenterUpdatePlayerSlots()
-    ContainerPresenterUpdateContainerSlots()
-    ContainerPresenterUpdateOrganSlots()
-    ContainerPresenterUpdateMoney()
+    LootPresenterUpdateLayout()
+    UpdatePlayerSlots()
+    UpdateContainerSlots()
+    UpdateOrganSlots()
+    LootPresenterUpdateMoney()
   end
 
-  function ContainerPresenterRefreshVisibleContainerItem(
+  function RefreshVisibleContainerItem(
     itemID: int,
     fallbackSlot: int) -> void
     initialSlotLoadActive = false
     if renderedContainerPage != containerPage then
-      ContainerPresenterUpdateContainerSlots()
+      UpdateContainerSlots()
       return
     end
-    ContainerPresenterBuildContainerIndexCache()
+    BuildContainerIndexCache()
     local fallbackUpdated: bool = false
     for slot = 0, ContainerSlots - 1 do
       local update: bool = false
       if slot == fallbackSlot then update = true end
-      local reference: int = ContainerPresenterResolveContainerVisualSlot(slot)
+      local reference: int = ResolveContainerVisualSlot(slot)
       if reference >= 0 then
         local index: int =
-          inv_overhaul_container_projection.ContainerProjectionGetReferenceIndex(
+          inv_overhaul_container_projection.GetReferenceIndex(
             reference)
         local external: object
         native.GetContainer(external)
@@ -426,26 +426,26 @@ module inv_overhaul_container_presenter do
         if visibleItemID == itemID then update = true end
       end
       if update then
-        ContainerPresenterUpdateContainerSlot(slot)
+        UpdateContainerSlot(slot)
         if slot == fallbackSlot then fallbackUpdated = true end
       end
     end
     if !fallbackUpdated && fallbackSlot >= 0 && fallbackSlot < ContainerSlots then
-      ContainerPresenterUpdateContainerSlot(fallbackSlot)
+      UpdateContainerSlot(fallbackSlot)
     end
-    ContainerPresenterUpdateContainerPageControls()
+    UpdateContainerPageControls()
   end
 
-  function ContainerPresenterBeginInitialSlotLoad() -> void
-    ContainerPresenterUpdateLayout()
-    ContainerPresenterClampPlayerPage()
-    inv_overhaul_inventory_items.InventoryItemsBuildIndexCache()
-    ContainerPresenterBuildContainerIndexCache()
-    ContainerPresenterClampContainerPage()
-    ContainerPresenterUpdatePlayerPageControls()
-    ContainerPresenterUpdateContainerPageControls()
-    ContainerPresenterUpdateOrganSlots()
-    ContainerPresenterUpdateMoney()
+  function LootPresenterBeginInitialSlotLoad() -> void
+    LootPresenterUpdateLayout()
+    ClampPlayerPage()
+    inv_overhaul_inventory_items.ItemsBuildIndexCache()
+    BuildContainerIndexCache()
+    ClampContainerPage()
+    UpdatePlayerPageControls()
+    UpdateContainerPageControls()
+    UpdateOrganSlots()
+    LootPresenterUpdateMoney()
     initialPlayerSlotLoadNext = 0
     initialContainerSlotLoadNext = 0
     initialSlotLoadActive = true
@@ -453,17 +453,17 @@ module inv_overhaul_container_presenter do
       visibleSlots + " container=" + ContainerSlots)
   end
 
-  function ContainerPresenterContinueInitialSlotLoad() -> void
+  function LootPresenterContinueInitialSlotLoad() -> void
     if !initialSlotLoadActive then return end
     for batch = 0, InitialSlotLoadBatch - 1 do
       if initialContainerSlotLoadNext < ContainerSlots then
         local containerSlot: int = initialContainerSlotLoadNext
-        ContainerPresenterUpdateContainerSlot(containerSlot)
+        UpdateContainerSlot(containerSlot)
         initialContainerSlotLoadNext = initialContainerSlotLoadNext + 1
       else
         if initialPlayerSlotLoadNext < visibleSlots then
           local playerSlot: int = initialPlayerSlotLoadNext
-          ContainerPresenterUpdatePlayerSlot(playerSlot)
+          UpdatePlayerSlot(playerSlot)
           initialPlayerSlotLoadNext = initialPlayerSlotLoadNext + 1
         end
       end
@@ -476,23 +476,23 @@ module inv_overhaul_container_presenter do
     end
   end
 
-  function ContainerPresenterAdvanceMoneyPolling(delta: float) -> void
+  function AdvanceMoneyPolling(delta: float) -> void
     moneyPollCooldown = moneyPollCooldown - delta
     if moneyPollCooldown <= 0 then
       moneyPollCooldown = 0.25
-      ContainerPresenterUpdateMoney()
+      LootPresenterUpdateMoney()
     end
   end
 
-  function ContainerPresenterChangePlayerPage(delta: int) -> void
+  function ChangePlayerPage(delta: int) -> void
     playerPage = playerPage + delta
-    ContainerPresenterClampPlayerPage()
-    ContainerPresenterUpdatePlayerSlots()
+    ClampPlayerPage()
+    UpdatePlayerSlots()
   end
 
-  function ContainerPresenterChangeContainerPage(delta: int) -> void
+  function ChangeContainerPage(delta: int) -> void
     containerPage = containerPage + delta
-    ContainerPresenterClampContainerPage()
-    ContainerPresenterUpdateContainerSlots()
+    ClampContainerPage()
+    UpdateContainerSlots()
   end
 end

@@ -4,7 +4,7 @@ module inv_overhaul_quickslot_hands do
   local const QuickslotHandsWeaponCategory: int = 0
   local const QuickslotHandsSlotCount: int = 10
 
-  function QuickslotHandsAdjustBindingsAfterDrop(
+  function AdjustBindingsAfterDrop(
     itemID: int,
     occurrence: int
   ) -> void
@@ -13,21 +13,21 @@ module inv_overhaul_quickslot_hands do
       local assignedItemID: int = -1
       local assignedOccurrence: int = -1
       native.GetVariable(
-        inv_overhaul_quickslot_activation.QuickslotActivationCategoryVariable(slot),
+        inv_overhaul_quickslot_activation.ActivationCategoryVariable(slot),
         assignedCategory)
       native.GetVariable(
-        inv_overhaul_quickslot_activation.QuickslotActivationItemVariable(slot),
+        inv_overhaul_quickslot_activation.ActivationItemVariable(slot),
         assignedItemID)
       native.GetVariable(
-        inv_overhaul_quickslot_activation.QuickslotActivationOccurrenceVariable(slot),
+        inv_overhaul_quickslot_activation.ActivationOccurrenceVariable(slot),
         assignedOccurrence)
       if assignedCategory == QuickslotHandsWeaponCategory && assignedItemID == itemID then
         if assignedOccurrence == occurrence then
-          inv_overhaul_quickslot_activation.QuickslotActivationClearBinding(slot)
+          inv_overhaul_quickslot_activation.ClearBinding(slot)
         else
           if assignedOccurrence > occurrence then
             native.SetVariable(
-              inv_overhaul_quickslot_activation.QuickslotActivationOccurrenceVariable(slot),
+              inv_overhaul_quickslot_activation.ActivationOccurrenceVariable(slot),
               assignedOccurrence - 1)
           end
         end

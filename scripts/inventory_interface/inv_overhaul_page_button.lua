@@ -29,7 +29,7 @@ maintask InvOverhaulPageButton do
   function OnDraw() -> void
     if visible then
       native.Print("default", 15, 7, label)
-      if highlighted && enabled then native.StretchBlit("target", 0, 0, 42, 36) end
+      if highlighted && enabled then native.StretchBlit("target", 0, 0, 40, 36) end
     end
   end
 

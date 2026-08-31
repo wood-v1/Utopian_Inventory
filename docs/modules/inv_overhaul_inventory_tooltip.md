@@ -8,7 +8,7 @@ DSL unit: `module inv_overhaul_inventory_tooltip`
 
 ## Responsibility
 
-Owns shared tooltip text, money pseudo-item metadata, suspension, and show/hide messaging.
+Owns shared tooltip text, per-instance item-property publication, money pseudo-item metadata, suspension, and show/hide messaging.
 
 ## Dependencies
 
@@ -295,7 +295,7 @@ None.
 Side effects:
 
 - Mutates module/task state: `target`.
-- Writes shared engine variable(s): `"inv_overhaul_inventory_tooltip_item"`, `"inv_overhaul_inventory_tooltip_text_id"`, `"inv_overhaul_inventory_tooltip_type"`.
+- Writes shared engine variable(s): `"inv_overhaul_inventory_tooltip_item"`, `"inv_overhaul_inventory_tooltip_durability"`, `"inv_overhaul_inventory_tooltip_uses"`, `"inv_overhaul_inventory_tooltip_text_id"`, `"inv_overhaul_inventory_tooltip_type"`.
 - Invokes engine/native operations: `native.SetVariable`.
 
 Called by:
@@ -330,6 +330,7 @@ None.
 Side effects:
 
 - Mutates module/task state: `target`.
+- Writes shared engine variables `"inv_overhaul_inventory_tooltip_durability"` and `"inv_overhaul_inventory_tooltip_uses"` with absent-value sentinels.
 - Invokes engine/native operations: `native.SendMessage`.
 
 Called by:
@@ -393,6 +394,7 @@ None.
 Side effects:
 
 - Mutates module/task state: `target`.
+- Publishes the item's per-instance `durability` and `uses` values through shared engine variables, using `-1` when absent.
 - Invokes engine/native operations: `native.SendMessage`.
 
 Called by:
@@ -402,6 +404,9 @@ Called by:
 
 Calls:
 
+- `item.HasProperty`
+- `item.GetProperty`
+- `native.SetVariable`
 - `native.SendMessage`
 - `InterfaceTooltipClear`
 
@@ -424,4 +429,4 @@ No module/task-level constants.
 
 ## Architectural notes
 
-- No additional module-specific issue identified beyond repository-wide shared-variable and compiler-visible API constraints.
+- Per-instance properties must be published separately from item identity because cursor and controller are distinct UI maintasks and the direct tooltip-object channel is not reliable in the replacement panel.

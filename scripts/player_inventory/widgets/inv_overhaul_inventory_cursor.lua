@@ -22,6 +22,8 @@ maintask UI_Cursor do
   local trackedTooltipItemID: int
   local trackedTooltipType: int
   local trackedTooltipTextID: int
+  local trackedTooltipDurability: int
+  local trackedTooltipUses: int
   function EnsureInitialized() -> void
     if initialized then return end
     initialized = true
@@ -38,6 +40,8 @@ maintask UI_Cursor do
     trackedTooltipItemID = -1
     trackedTooltipType = c_iTooltipNone
     trackedTooltipTextID = 1401
+    trackedTooltipDurability = -1
+    trackedTooltipUses = -1
     native.CreateInvItem(tooltipObject)
     native.SetOwnerDraw(true)
     native.SetNeedUpdate(true)
@@ -133,13 +137,24 @@ maintask UI_Cursor do
     local publishedItemID: int = -1
     local publishedType: int = c_iTooltipNone
     local publishedTextID: int = 1401
+    local publishedDurability: int = -1
+    local publishedUses: int = -1
     native.GetVariable("inv_overhaul_inventory_tooltip_item", publishedItemID)
     native.GetVariable("inv_overhaul_inventory_tooltip_type", publishedType)
     native.GetVariable("inv_overhaul_inventory_tooltip_text_id", publishedTextID)
-    if publishedItemID != trackedTooltipItemID || publishedType != trackedTooltipType || publishedTextID != trackedTooltipTextID then
+    native.GetVariable(
+      "inv_overhaul_inventory_tooltip_durability", publishedDurability)
+    native.GetVariable("inv_overhaul_inventory_tooltip_uses", publishedUses)
+    if publishedItemID != trackedTooltipItemID ||
+      publishedType != trackedTooltipType ||
+      publishedTextID != trackedTooltipTextID ||
+      publishedDurability != trackedTooltipDurability ||
+      publishedUses != trackedTooltipUses then
       trackedTooltipItemID = publishedItemID
       trackedTooltipType = publishedType
       trackedTooltipTextID = publishedTextID
+      trackedTooltipDurability = publishedDurability
+      trackedTooltipUses = publishedUses
       tooltipType = publishedType
       tooltipText = ""
       tooltipTime = 0
@@ -148,8 +163,17 @@ maintask UI_Cursor do
       if publishedItemID >= 0 && publishedType == c_iTooltipInvObject then
         local itemName: string
         local sprite: string
+        -- Recreate the cursor-owned object so properties from the previously
+        -- hovered instance cannot leak into this tooltip.
+        native.CreateInvItem(tooltipObject)
         native.GetInvItemName(itemName, publishedItemID)
         tooltipObject->SetItemName(itemName)
+        if publishedDurability >= 0 then
+          tooltipObject->SetProperty("durability", publishedDurability)
+        end
+        if publishedUses >= 0 then
+          tooltipObject->SetProperty("uses", publishedUses)
+        end
         native.GetInvItemSprite2(sprite, publishedItemID)
         native.LoadImage(sprite)
       else

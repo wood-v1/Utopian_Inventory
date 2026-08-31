@@ -1359,7 +1359,7 @@ See: [module documentation](modules/inv_overhaul_equip_slot.md)
 
 Source: `scripts/player_inventory/widgets/inv_overhaul_inventory_cursor.lua`
 
-Responsibility: Renders the custom inventory drag cursor from item metadata supplied through UI messages.
+Responsibility: Renders custom inventory tooltips from shared item identity and per-instance property messages.
 
 Functions:
 

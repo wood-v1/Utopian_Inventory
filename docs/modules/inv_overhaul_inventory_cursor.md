@@ -8,7 +8,7 @@ DSL unit: `maintask UI_Cursor`
 
 ## Responsibility
 
-Renders the custom inventory drag cursor from item metadata supplied through UI messages.
+Renders custom inventory tooltips from shared item identity and per-instance property messages.
 
 ## Dependencies
 
@@ -45,6 +45,9 @@ Renders the custom inventory drag cursor from item metadata supplied through UI 
 - `trackedTooltipItemID: int` — mutable runtime state for tracked tooltip item id.
 - `trackedTooltipType: int` — mutable runtime state for tracked tooltip type.
 - `trackedTooltipTextID: int` — mutable runtime state for tracked tooltip text id.
+
+- `trackedTooltipDurability: int` — last published per-instance durability, or `-1` when absent.
+- `trackedTooltipUses: int` — last published per-instance uses value, or `-1` when absent.
 
 ## Public API
 
@@ -430,7 +433,7 @@ Side effects:
 
 - Mutates module/task state: `updateSeen`, `tooltipTime`, `loadedDragItemID`, `trackedTooltipItemID`, `trackedTooltipType`, `trackedTooltipTextID`, `tooltipType`, `tooltipText`, `… and 2 more`.
 - Invokes engine/native operations: `native.LoadImage`.
-- May mutate engine/UI objects through: `tooltipObject.SetItemName`.
+- May mutate the cursor-owned display object through: `tooltipObject.SetItemName`, `tooltipObject.SetProperty`.
 
 Called by:
 
@@ -442,8 +445,10 @@ Calls:
 - `native.GetVariable`
 - `native.GetInvItemSprite2`
 - `native.LoadImage`
+- `native.CreateInvItem`
 - `native.GetInvItemName`
 - `tooltipObject.SetItemName`
+- `tooltipObject.SetProperty`
 - `native.GetStringByID`
 
 Notes / invariants:
@@ -500,4 +505,5 @@ Notes / invariants:
 
 ## Architectural notes
 
-- No additional module-specific issue identified beyond repository-wide shared-variable and compiler-visible API constraints.
+- Item identity, text hints, and per-instance `durability`/`uses` values cross the UI maintask boundary through shared engine variables.
+- The cursor recreates only its own temporary display object and reapplies published instance properties; it never mutates the inventory object.

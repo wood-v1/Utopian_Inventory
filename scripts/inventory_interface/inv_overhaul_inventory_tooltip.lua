@@ -51,6 +51,8 @@ module inv_overhaul_inventory_tooltip do
   function ShowText(newTarget: int, textID: int) -> void
     target = newTarget
     native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
+    native.SetVariable("inv_overhaul_inventory_tooltip_durability", -1)
+    native.SetVariable("inv_overhaul_inventory_tooltip_uses", -1)
     native.SetVariable("inv_overhaul_inventory_tooltip_text_id", textID)
     native.SetVariable("inv_overhaul_inventory_tooltip_type", 5)
   end
@@ -58,6 +60,8 @@ module inv_overhaul_inventory_tooltip do
   function ShowMoneyForTarget(newTarget: int) -> void
     if target == newTarget then return end
     target = newTarget
+    native.SetVariable("inv_overhaul_inventory_tooltip_durability", -1)
+    native.SetVariable("inv_overhaul_inventory_tooltip_uses", -1)
     local item: object = moneyItem
     native.SendMessage(1, "panel_background", item)
   end
@@ -70,6 +74,18 @@ module inv_overhaul_inventory_tooltip do
     if target == newTarget then return end
     if item then
       target = newTarget
+      local durability: int = -1
+      local hasDurability: bool
+      item->HasProperty(hasDurability, "durability")
+      if hasDurability then item->GetProperty(durability, "durability") end
+      native.SetVariable(
+        "inv_overhaul_inventory_tooltip_durability", durability)
+
+      local uses: int = -1
+      local hasUses: bool
+      item->HasProperty(hasUses, "uses")
+      if hasUses then item->GetProperty(uses, "uses") end
+      native.SetVariable("inv_overhaul_inventory_tooltip_uses", uses)
       native.SendMessage(1, "panel_background", item)
     else
       InterfaceTooltipClear()

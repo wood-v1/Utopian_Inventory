@@ -3,7 +3,7 @@ import "inv_overhaul_inventory_protocol"
 module inv_overhaul_inventory_view do
   local const InventoryViewInitialItemLoadInterval: float = 0.00
 
-  local diagnosticsEnabled: bool
+  local debugLoggingEnabled: bool
   local firstItemReported: bool
   local completeReported: bool
   local stackCount: int
@@ -24,9 +24,9 @@ module inv_overhaul_inventory_view do
   local spriteCooldown: float
 
   function PlayerViewInitializeState() -> void
-    local diagnostics: int = 0
-    native.GetVariable("inv_overhaul_perf_diagnostics", diagnostics)
-    diagnosticsEnabled = diagnostics == 1
+    local debugEnabled: int = 0
+    native.GetVariable("inv_overhaul_debug_enabled", debugEnabled)
+    debugLoggingEnabled = debugEnabled == 1
     firstItemReported = false
     completeReported = false
     stackCount = 0
@@ -47,7 +47,7 @@ module inv_overhaul_inventory_view do
     spriteCooldown = 0
   end
 
-  function DiagnosticsEnabled() -> bool return diagnosticsEnabled end
+  function DebugLoggingEnabled() -> bool return debugLoggingEnabled end
 
   function ClaimChildWindowsReady() -> bool
     if childWindowsReady then return false end
@@ -153,13 +153,13 @@ module inv_overhaul_inventory_view do
   function GetCacheMisses() -> int return cacheMisses end
 
   function PlayerViewReportFirstInitialItem() -> void
-    if !diagnosticsEnabled || firstItemReported then return end
+    if !debugLoggingEnabled || firstItemReported then return end
     firstItemReported = true
     native.Trace("INV_OVERHAUL_PERF_PHASE first_item")
   end
 
   function PlayerViewReportInitialLoadComplete() -> void
-    if !diagnosticsEnabled || completeReported then return end
+    if !debugLoggingEnabled || completeReported then return end
     if !firstItemReported then PlayerViewReportFirstInitialItem() end
     completeReported = true
     local warmed: int = 0

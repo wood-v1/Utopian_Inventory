@@ -49,12 +49,21 @@ $DeployScript = Join-Path $RepoRoot "deploy.ps1"
 $LauncherExe = Join-Path $LauncherBuildDir "$Configuration\GameModLauncher.exe"
 $LauncherIni = Join-Path $RepoRoot "release-assets\GameModLauncher.ini"
 $Manifest = Join-Path $RepoRoot "release-assets\InventoryOverhaul.manifest.ini"
+$ModIni = Join-Path $RepoRoot "InventoryOverhaul.ini"
 $Readme = Join-Path $RepoRoot "README.md"
 $InstallInstructions = Join-Path $RepoRoot "release-assets\INSTALL.txt"
 
 function Write-Step([string]$Message) { Write-Host "[release] $Message" }
 function Assert-PathExists([string]$Path, [string]$Description) {
     if (!(Test-Path -LiteralPath $Path)) { throw "$Description not found: $Path" }
+}
+function Assert-DefaultModConfig([string]$Path) {
+    $content = [System.IO.File]::ReadAllText($Path)
+    $debugDisabledPattern =
+        '(?m)^\[Debug\][ \t]*\r?\n(?:^(?!\[).*\r?\n)*?^[ \t]*Enabled[ \t]*=[ \t]*0[ \t]*\r?$'
+    if ($content -notmatch $debugDisabledPattern) {
+        throw "Release mod config must contain [Debug] Enabled=0: $Path"
+    }
 }
 function Assert-ReleaseOutputPath {
     $expectedPrefix = $RepoRoot + [System.IO.Path]::DirectorySeparatorChar
@@ -83,12 +92,30 @@ function Write-Manifest {
     }
     [System.IO.File]::WriteAllLines((Join-Path $OutputDir "SHA256SUMS.txt"), $lines)
 }
+function Assert-ZipEntry([string]$ZipPath, [string]$EntryPath) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+        $normalizedEntryPath = $EntryPath.Replace("\", "/")
+        $entry = $archive.Entries | Where-Object {
+            $_.FullName.Replace("\", "/") -eq $normalizedEntryPath
+        } | Select-Object -First 1
+        if ($null -eq $entry) {
+            throw "Required release entry not found in archive: $EntryPath"
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
 
 Assert-ReleaseOutputPath
 Assert-PathExists -Path $DeployScript -Description "deploy script"
 Assert-PathExists -Path $LauncherExe -Description "UtopianLauncher executable"
 Assert-PathExists -Path $LauncherIni -Description "release launcher config"
 Assert-PathExists -Path $Manifest -Description "mod manifest"
+Assert-PathExists -Path $ModIni -Description "mod config"
+Assert-DefaultModConfig -Path $ModIni
 Assert-PathExists -Path $Readme -Description "README"
 Assert-PathExists -Path $InstallInstructions -Description "install instructions"
 
@@ -127,6 +154,7 @@ $FinalDir = Join-Path $OutputDir "bin\Final"
 Copy-PackageFile -Source $LauncherExe -Destination (Join-Path $FinalDir "GameModLauncher.exe")
 Copy-PackageFile -Source $LauncherIni -Destination (Join-Path $FinalDir "GameModLauncher.ini")
 Copy-PackageFile -Source $Manifest -Destination (Join-Path $FinalDir "mods\InventoryOverhaul.manifest.ini")
+Copy-PackageFile -Source $ModIni -Destination (Join-Path $FinalDir "mods\InventoryOverhaul.ini")
 Copy-PackageFile -Source $Readme -Destination (Join-Path $OutputDir "README.md")
 Copy-PackageFile -Source $InstallInstructions -Destination (Join-Path $OutputDir "INSTALL.txt")
 
@@ -138,5 +166,6 @@ Compress-Archive -LiteralPath @(
     (Join-Path $OutputDir "bin"),
     (Join-Path $OutputDir "data")
 ) -DestinationPath $zipPath -Force
+Assert-ZipEntry -ZipPath $zipPath -EntryPath "bin/Final/mods/InventoryOverhaul.ini"
 Write-Manifest
 Write-Step "ready: $OutputDir"

@@ -37,7 +37,7 @@ Renders the branch-specific character silhouette and publishes doll/equipment ho
 - `characterBranch: int` — mutable runtime state for character branch.
 - `imageLoaded: bool` — lifecycle/behavior flag for image loaded.
 - `firstDrawProfiled: bool` — lifecycle/behavior flag for first draw profiled.
-- `perfDiagnostics: int` — mutable runtime state for perf diagnostics.
+- `debugEnabled: int` — cached global debug-logging flag used by performance traces.
 
 ## Public API
 
@@ -259,7 +259,7 @@ None.
 
 Side effects:
 
-- Mutates module/task state: `perfDiagnostics`, `layoutWidth`, `layoutHeight`, `characterBranch`, `imageLoaded`, `firstDrawProfiled`, `image`.
+- Mutates module/task state: `debugEnabled`, `layoutWidth`, `layoutHeight`, `characterBranch`, `imageLoaded`, `firstDrawProfiled`, `image`.
 - Invokes engine/native operations: `native.Trace`, `native.LoadImage`, `native.SetOwnerDraw`, `native.ProcessEvents`.
 
 Called by:

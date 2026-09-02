@@ -52,7 +52,7 @@ Renders the shared panel background and forwards panel-level pointer events to t
 - `firstDrawProfiled: bool` — lifecycle/behavior flag for first draw profiled.
 - `gridEnabled: bool` — lifecycle/behavior flag for grid enabled.
 - `helpHoverActive: bool` — lifecycle/behavior flag for help hover active.
-- `perfDiagnostics: int` — mutable runtime state for perf diagnostics.
+- `debugEnabled: int` — cached global debug-logging flag used by performance traces.
 
 ## Public API
 
@@ -330,7 +330,7 @@ None.
 
 Side effects:
 
-- Mutates module/task state: `perfDiagnostics`, `characterBranch`, `image`, `emptyImage`, `occupiedImage`, `targetImage`, `quickslotHelpImage`, `resourcesReleased`, `… and 6 more`.
+- Mutates module/task state: `debugEnabled`, `characterBranch`, `image`, `emptyImage`, `occupiedImage`, `targetImage`, `quickslotHelpImage`, `resourcesReleased`, `… and 6 more`.
 - Writes shared engine variable(s): `"inv_overhaul_inventory_tooltip_item"`, `"inv_overhaul_inventory_tooltip_type"`.
 - Invokes engine/native operations: `native.Trace`, `native.CreateIntVector`, `native.CreateStringVector`, `native.SetVariable`, `native.SetOwnerDraw`, `native.ProcessEvents`, `native.SendMessageToParent`.
 - May mutate engine/UI objects through: `itemIDs.add`, `amounts.add`, `quickslots.add`, `hiddenSlots.add`, `highlightedSlots.add`, `sprites.add`.

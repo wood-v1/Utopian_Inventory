@@ -239,7 +239,7 @@ None.
 
 Side effects:
 
-- Invokes engine/native operations: `native.SetCursor`, `native.DestroyWindow`.
+- Invokes the engine/native `native.DestroyWindow` operation.
 
 Called by:
 
@@ -247,12 +247,14 @@ Called by:
 
 Calls:
 
-- `native.SetCursor`
 - `native.DestroyWindow`
 
 Notes / invariants:
 
 - Compiler-visible module function; the DSL has no private-function keyword.
+- The current form owns only the `inv_overhaul_inventory` cursor. Window
+  destruction restores the underlying UI cursor; selecting an undeclared
+  `default` cursor before destruction causes an engine lookup error.
 
 
 ## Internal API

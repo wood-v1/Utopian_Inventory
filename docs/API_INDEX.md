@@ -1259,7 +1259,7 @@ Responsibility: Emits player inventory UI messages for slot contents, metadata, 
 Functions:
 
 - `PlayerViewInitializeState() -> void` — Initializes state for player view in the inventory view subsystem.
-- `DiagnosticsEnabled() -> bool` — Returns whether diagnostics in the inventory view subsystem.
+- `DebugLoggingEnabled() -> bool` — Returns whether global verbose/debug logging is enabled.
 - `ClaimChildWindowsReady() -> bool` — Claims child windows ready in the inventory view subsystem.
 - `ChildWindowsReady() -> bool` — Returns whether child windows in the inventory view subsystem.
 - `AdvanceMetadataDelay(delta: float) -> bool` — Advances metadata delay in the inventory view subsystem.

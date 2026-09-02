@@ -99,7 +99,6 @@ module inv_overhaul_container_session do
   end
 
   function CloseWindow() -> void
-    native.SetCursor("default")
     native.DestroyWindow()
   end
 end

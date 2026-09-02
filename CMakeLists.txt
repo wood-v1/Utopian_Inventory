@@ -15,7 +15,13 @@ endif()
 
 add_library(InventoryOverhaul SHARED
     bootstrap.cpp
+    console_bridge.cpp
+    diagnostics.cpp
     dllmain.cpp
+    input_bridge.cpp
+    runtime_config.cpp
+    ui_bridge.cpp
+    ui_layout.cpp
 )
 
 target_compile_features(InventoryOverhaul PRIVATE cxx_std_17)

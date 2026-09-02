@@ -22,7 +22,7 @@ Emits player inventory UI messages for slot contents, metadata, highlights, equi
 
 ## State
 
-- `diagnosticsEnabled: bool` — lifecycle/behavior flag for diagnostics enabled.
+- `debugLoggingEnabled: bool` — whether global verbose/debug logging is enabled.
 - `firstItemReported: bool` — lifecycle/behavior flag for first item reported.
 - `completeReported: bool` — lifecycle/behavior flag for complete reported.
 - `stackCount: int` — cached or current count for stack count.
@@ -62,7 +62,7 @@ None.
 
 Side effects:
 
-- Mutates module/task state: `diagnosticsEnabled`, `firstItemReported`, `completeReported`, `stackCount`, `equipmentCount`, `cacheHits`, `cacheMisses`, `cacheEpoch`, `… and 11 more`.
+- Mutates module/task state: `debugLoggingEnabled`, `firstItemReported`, `completeReported`, `stackCount`, `equipmentCount`, `cacheHits`, `cacheMisses`, `cacheEpoch`, `… and 11 more`.
 
 Called by:
 
@@ -76,11 +76,11 @@ Notes / invariants:
 
 - Compiler-visible module function; the DSL has no private-function keyword.
 
-### `DiagnosticsEnabled() -> bool`
+### `DebugLoggingEnabled() -> bool`
 
 Source: `scripts/player_inventory/inv_overhaul_inventory_view.lua`
 
-Purpose: Returns whether diagnostics in the inventory view subsystem.
+Purpose: Returns whether global verbose/debug logging is enabled for the inventory view subsystem.
 
 Parameters:
 
@@ -88,7 +88,7 @@ None.
 
 Returns:
 
-- `boolean` — result of: returns whether diagnostics in the inventory view subsystem.
+- `boolean` — whether global verbose/debug logging is enabled.
 
 Side effects:
 

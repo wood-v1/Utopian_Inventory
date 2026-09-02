@@ -105,6 +105,7 @@ native key hook
 
 - Module locals compile to global storage inside each compiled maintask; they are not repository-wide singletons across separate `.bin` scripts.
 - Cross-script persistent coordination uses dynamically named engine variables such as layout cells, snapshots, quickslot bindings, content/reorder generations, page-hover state, special-inventory remap state, and effect generations.
+- The native bootstrap publishes `inv_overhaul_debug_enabled` before constructing the player inventory UI so performance probes follow the global `[Debug] Enabled` setting; other mod traces are centrally filtered after operational console listeners consume them.
 - The player backpack projection excludes selected weapon/clothing entries. Equipment has dedicated targets and does not consume the 56-cell backpack capacity.
 - Layout runtime maps visual cells to projected item ordinals. Snapshot reconciliation preserves cells across category/index changes, equipment selection/replacement, transfers, and scripted mutations.
 - The guard owns enforcement after arbitrary game `AddItem`/`RemoveItem` callbacks. Screen controllers perform preflight checks for user-initiated transfers; the guard is the final persistent safety net.

@@ -14,12 +14,12 @@ maintask InvOverhaulCharacterDoll do
   local characterBranch: int
   local imageLoaded: bool
   local firstDrawProfiled: bool
-  local perfDiagnostics: int
+  local debugEnabled: int
 
   function init() -> void
-    perfDiagnostics = 0
-    native.GetVariable("inv_overhaul_perf_diagnostics", perfDiagnostics)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_init_begin") end
+    debugEnabled = 0
+    native.GetVariable("inv_overhaul_debug_enabled", debugEnabled)
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_init_begin") end
     layoutWidth = 800
     layoutHeight = 600
     local branch: int = c_iBranchDanko
@@ -40,18 +40,18 @@ maintask InvOverhaulCharacterDoll do
 
     native.GetWindowSize(dollWidth, dollHeight)
     native.Trace("inv_overhaul_character_doll branch=" + branch + " image=" + image)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_image_begin") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_image_begin") end
     native.LoadImage(image)
     imageLoaded = true
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_image_end") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_image_end") end
     native.SetOwnerDraw(true)
     native.ProcessEvents()
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_init_end") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_init_end") end
   end
 
   function OnDraw() -> void
     if !imageLoaded then return end
-    if perfDiagnostics == 1 && !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP doll_first_draw_begin") end
+    if debugEnabled == 1 && !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP doll_first_draw_begin") end
     local paddingX: int = 15
     local claraOffsetY: int = 12
     if dollWidth >= 400 then
@@ -80,7 +80,7 @@ maintask InvOverhaulCharacterDoll do
     native.StretchBlit(image, drawX, drawY, drawWidth, drawHeight)
     if !firstDrawProfiled then
       firstDrawProfiled = true
-      if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_first_draw_end") end
+      if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP doll_first_draw_end") end
     end
   end
 

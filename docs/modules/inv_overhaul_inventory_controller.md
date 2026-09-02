@@ -81,7 +81,7 @@ Called by:
 Calls:
 
 - `inv_overhaul_inventory_view.PlayerViewInitializeState`
-- `inv_overhaul_inventory_view.DiagnosticsEnabled`
+- `inv_overhaul_inventory_view.DebugLoggingEnabled`
 - `native.Trace`
 - `inv_overhaul_inventory_paging.PlayerPagingInitialize`
 - `inv_overhaul_inventory_drag.PlayerDragInitializeState`
@@ -2370,7 +2370,7 @@ Calls:
 
 - `inv_overhaul_inventory_view.BeginWarmStartAttempt`
 - `native.GetVariable`
-- `inv_overhaul_inventory_view.DiagnosticsEnabled`
+- `inv_overhaul_inventory_view.DebugLoggingEnabled`
 - `native.Trace`
 - `LoadLayoutVariables`
 - `InitializePersistentBackpackSnapshot`
@@ -2450,7 +2450,7 @@ Called by:
 Calls:
 
 - `inv_overhaul_inventory_view.IsInitialLoadActive`
-- `inv_overhaul_inventory_view.DiagnosticsEnabled`
+- `inv_overhaul_inventory_view.DebugLoggingEnabled`
 - `native.Trace`
 - `inv_overhaul_inventory_view.TakeNextEquipment`
 - `inv_overhaul_inventory_equipment.PlayerEquipmentGetCachedCategory`
@@ -3956,7 +3956,7 @@ Called by:
 Calls:
 
 - `inv_overhaul_inventory_view.ClaimChildWindowsReady`
-- `inv_overhaul_inventory_view.DiagnosticsEnabled`
+- `inv_overhaul_inventory_view.DebugLoggingEnabled`
 - `native.Trace`
 - `PlayerControllerUpdateLayout`
 - `PlayerControllerUpdatePageControls`
@@ -3993,7 +3993,7 @@ Calls:
 
 - `inv_overhaul_inventory_view.AdvanceMetadataDelay`
 - `inv_overhaul_inventory_view.GetMetadataStage`
-- `inv_overhaul_inventory_view.DiagnosticsEnabled`
+- `inv_overhaul_inventory_view.DebugLoggingEnabled`
 - `native.Trace`
 - `ContinueIncrementalLayoutLoad`
 - `inv_overhaul_inventory_view.AdvanceMetadataStage`

@@ -32,7 +32,7 @@ maintask InventoryOverhaulBackground do
   local firstDrawProfiled: bool
   local gridEnabled: bool
   local helpHoverActive: bool
-  local perfDiagnostics: int
+  local debugEnabled: int
 
   function LoadTrackedImage(path: string) -> void
     if path == "" || resourcesReleased then return end
@@ -70,9 +70,9 @@ maintask InventoryOverhaulBackground do
   end
 
   function init() -> void
-    perfDiagnostics = 0
-    native.GetVariable("inv_overhaul_perf_diagnostics", perfDiagnostics)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_begin") end
+    debugEnabled = 0
+    native.GetVariable("inv_overhaul_debug_enabled", debugEnabled)
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_begin") end
     local branch: int = c_iBranchDanko
     native.GetVariable("branch", branch)
     characterBranch = branch
@@ -117,9 +117,9 @@ maintask InventoryOverhaulBackground do
     firstDrawProfiled = false
     native.SetVariable("inv_overhaul_inventory_tooltip_item", -1)
     native.SetVariable("inv_overhaul_inventory_tooltip_type", c_iTooltipNone)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_begin") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_begin") end
     LoadTrackedImage(image)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_end") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_end") end
     LoadTrackedImage(emptyImage)
     LoadTrackedImage(occupiedImage)
     LoadTrackedImage(targetImage)
@@ -130,7 +130,7 @@ maintask InventoryOverhaulBackground do
     native.SetOwnerDraw(true)
     native.ProcessEvents()
     native.SendMessageToParent(inv_overhaul_inventory_protocol.GridRendererReady)
-    if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_end") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_end") end
   end
 
   function GetPanelLeft() -> int
@@ -197,7 +197,7 @@ maintask InventoryOverhaulBackground do
 
   function OnDraw() -> void
     if resourcesReleased then return end
-    if perfDiagnostics == 1 && !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_begin") end
+    if debugEnabled == 1 && !firstDrawProfiled then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_begin") end
     native.StretchBlit(image, 0, 0, panelWidth, panelHeight)
     if gridEnabled && rootWidth > 0 then
       for slot = 0, inv_overhaul_inventory_geometry.InterfaceGeometryGetVisibleSlots(rootWidth) - 1 do
@@ -207,7 +207,7 @@ maintask InventoryOverhaulBackground do
     native.StretchBlit(quickslotHelpImage, panelWidth - 74, 71, 28, 28)
     if !firstDrawProfiled then
       firstDrawProfiled = true
-      if perfDiagnostics == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_end") end
+      if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_first_draw_end") end
     end
   end
 

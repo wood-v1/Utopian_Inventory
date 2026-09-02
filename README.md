@@ -50,15 +50,17 @@ consume backpack capacity. Adding to an existing stack remains possible when all
 Enabled=1
 EmptySlotOpacity=0.78
 
-[Performance]
-Diagnostics=0
+[Debug]
+Enabled=0
 ```
 
 `EmptySlotOpacity` accepts a floating-point value from `0` (fully transparent)
 to `1` (fully opaque). The packaged default is `0.78`.
 
-`Diagnostics=1` enables aggregated inventory-opening performance records in
-`mods\Debug.log`. The packaged default is `0`; enable it only while profiling.
+`[Debug] Enabled=1` enables the mod's verbose runtime traces, including
+aggregated inventory-opening performance records. The packaged default and the
+fallback when the setting is missing are both `0`; warnings and errors remain
+available in `mods\Debug.log` with debug logging disabled.
 Inventory resources are loaded incrementally by the active UI so opening or
 closing the inventory does not leave a persistent background texture loader.
 

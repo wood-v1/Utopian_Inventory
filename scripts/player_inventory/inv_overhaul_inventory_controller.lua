@@ -54,7 +54,7 @@ module inv_overhaul_inventory_controller do
 
   function PlayerControllerInitialize() -> void
     inv_overhaul_inventory_view.PlayerViewInitializeState()
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then
       native.Trace("INV_OVERHAUL_PERF_STEP root_init_begin")
     end
     native.Trace("INV_OVERHAUL_INVENTORY_VERSION " + c_sScriptVersion + " screen=inventory")
@@ -75,7 +75,7 @@ module inv_overhaul_inventory_controller do
     observedContentGeneration = currentContentGeneration
     layoutLoadStartCell = -1
     closingWindow = false
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then
       local warmed: int = 0
       native.GetVariable("inv_overhaul_ui_cache_loaded", warmed)
       native.Trace("INV_OVERHAUL_PERF_PHASE cache_snapshot warmed=" + warmed)
@@ -83,13 +83,13 @@ module inv_overhaul_inventory_controller do
     inv_overhaul_inventory_quickslot_bindings.QuickslotBindingsInitializeState()
     InitializeQuickslotBindings()
     RefreshQuickslotCache()
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_quickslots_ready") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_quickslots_ready") end
     inv_overhaul_inventory_tooltip.InitializeMoneyItem()
     inv_overhaul_inventory_snapshot.SnapshotInitializeState()
     inv_overhaul_inventory_items.InitializeProjection()
     inv_overhaul_inventory_equipment.InitializeCache()
     InitSlotOrder()
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_vectors_ready") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_vectors_ready") end
     PlayerControllerUpdateLayout()
     native.SetVariable("inv_overhaul_inventory_drag_item", -1)
     native.SetVariable("inv_overhaul_inventory_page_hover", 0)
@@ -98,9 +98,9 @@ module inv_overhaul_inventory_controller do
     native.CaptureKeyboard()
     native.SetOwnerDraw(false)
     native.SetNeedUpdate(true)
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_before_process_events") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_before_process_events") end
     native.ProcessEvents()
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_init_end") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_init_end") end
   end
 
   -- The compiler cannot safely lower a module global used directly as an
@@ -583,7 +583,7 @@ module inv_overhaul_inventory_controller do
     native.GetVariable("inv_overhaul_ui_cache_completed_generation", completedGeneration)
     native.GetVariable("inv_overhaul_inventory_content_generation", currentGeneration)
     if characterReady != 1 || fullyWarmed != 1 || completedGeneration != currentGeneration then
-      if inv_overhaul_inventory_view.DiagnosticsEnabled() then
+      if inv_overhaul_inventory_view.DebugLoggingEnabled() then
         native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=0 generation=" +
           completedGeneration + " current=" + currentGeneration)
       end
@@ -598,7 +598,7 @@ module inv_overhaul_inventory_controller do
     local cacheHits: int = inv_overhaul_inventory_view.GetCacheHits()
     local cacheMisses: int = inv_overhaul_inventory_view.GetCacheMisses()
     if cacheMisses > 0 then
-      if inv_overhaul_inventory_view.DiagnosticsEnabled() then
+      if inv_overhaul_inventory_view.DebugLoggingEnabled() then
         native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=0 hits=" +
           cacheHits + " misses=" + cacheMisses)
       end
@@ -608,7 +608,7 @@ module inv_overhaul_inventory_controller do
     ClampPage()
     for slot = 0, visibleSlots - 1 do PlayerControllerUpdateSlot(slot) end
     inv_overhaul_inventory_view.MarkWarmGridLoaded()
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then
       native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=1 hits=" +
         cacheHits + " misses=" + cacheMisses)
     end
@@ -637,7 +637,7 @@ module inv_overhaul_inventory_controller do
 
   function PlayerControllerContinueInitialSlotLoad() -> void
     if !inv_overhaul_inventory_view.IsInitialLoadActive() then return end
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP slot_pass_begin") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP slot_pass_begin") end
     for batch = 0, c_iInitialSlotLoadBatch - 1 do
       local loadedSprite: bool = false
 
@@ -691,7 +691,7 @@ module inv_overhaul_inventory_controller do
       native.Trace("inv_overhaul_inventory sequential initial slots complete batch=" +
         c_iInitialSlotLoadBatch)
     end
-    if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP slot_pass_end") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP slot_pass_end") end
   end
 
   function UpdateSlots() -> void
@@ -1212,15 +1212,15 @@ module inv_overhaul_inventory_controller do
 
   function RunFramePreparationStage(delta: float) -> void
     if inv_overhaul_inventory_view.ClaimChildWindowsReady() then
-      if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP first_update_begin") end
-      if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_PHASE child_ready") end
+      if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP first_update_begin") end
+      if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_PHASE child_ready") end
       lastLayoutWidth = -1
       lastLayoutHeight = -1
       lastLayoutSlots = -1
       PlayerControllerUpdateLayout()
       PlayerControllerUpdatePageControls()
       PlayerControllerUpdateMoney()
-      if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP first_update_children_ready") end
+      if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP first_update_children_ready") end
     end
     inv_overhaul_inventory_tooltip.AdvanceSuspension(delta)
     if inventoryFullMessageCooldown > 0 then
@@ -1233,27 +1233,27 @@ module inv_overhaul_inventory_controller do
   function RunMetadataAndLoadingStage(delta: float) -> void
     if inv_overhaul_inventory_view.AdvanceMetadataDelay(delta) then
         if inv_overhaul_inventory_view.GetMetadataStage() == 0 then
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP layout_batch_begin") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP layout_batch_begin") end
           if ContinueIncrementalLayoutLoad() then
             inv_overhaul_inventory_view.AdvanceMetadataStage()
           end
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP layout_batch_end") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP layout_batch_end") end
         end
         if inv_overhaul_inventory_view.GetMetadataStage() == 1 then
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP snapshot_begin") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP snapshot_begin") end
           InitializePersistentBackpackSnapshot()
           inv_overhaul_inventory_view.AdvanceMetadataStage()
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP snapshot_end") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP snapshot_end") end
         end
         if inv_overhaul_inventory_view.GetMetadataStage() == 2 then
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP free_order_begin") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP free_order_begin") end
           OrderFreeCellsByDisplayForCount(ReadLastBackpackItemCount() + 0)
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP free_order_end") end
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_PHASE layout_ready") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP free_order_end") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_PHASE layout_ready") end
           inv_overhaul_inventory_view.CompleteMetadata()
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP initial_load_begin") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP initial_load_begin") end
           PlayerControllerBeginInitialSlotLoad()
-          if inv_overhaul_inventory_view.DiagnosticsEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP initial_load_end") end
+          if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP initial_load_end") end
         end
     end
     if inv_overhaul_inventory_view.IsInitialLoadActive() then

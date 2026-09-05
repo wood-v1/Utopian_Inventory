@@ -12,6 +12,8 @@ Adapts shared transfer operations for items moving from the external container i
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays item-equipment or money-pickup feedback after successful transfers.
+
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_container_drag` — Owns container-screen drag state, source identity, target highlighting, and drag cancellation/commit bookkeeping.
 - `inv_overhaul_container_feedback` — Owns transient loot-screen message cooldown and localized feedback publication.
@@ -175,7 +177,7 @@ Notes / invariants:
 
 - Compiler-visible module function; the DSL has no private-function keyword.
 
-### `MoveResolvedAmountToPlayer(organSource: bool, sourceIndex: int, sourceOrdinal: int, sourceSlot: int, targetSlot: int, requestedAmount: int, restorePageIfMerged: int) -> void`
+### `MoveResolvedAmountToPlayer(organSource: bool, sourceIndex: int, sourceOrdinal: int, sourceSlot: int, targetSlot: int, requestedAmount: int, restorePageIfMerged: int, playItemSound: bool) -> void`
 
 Source: `scripts/loot/inv_overhaul_container_transfer_external.lua`
 
@@ -190,6 +192,7 @@ Parameters:
 - `targetSlot: int` — slot index or encoded slot target interpreted by this function.
 - `requestedAmount: int` — value interpreted according to the function purpose; no narrower contract is established by current code.
 - `restorePageIfMerged: int` — zero-based page or page-related value.
+- `playItemSound: bool` — whether a successful ordinary-item transfer should play the shared item-equipment sound.
 
 Returns:
 

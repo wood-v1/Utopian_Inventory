@@ -460,6 +460,10 @@
     <font name="default" size="10" face="fritz_quadrata" />
     <font name="big" size="12" face="fritz_quadrata" />
   </cursor>
+  <sound name="inv_overhaul_inv_open" stream="0" loop="0">inv_overhaul_inv_open.ogg</sound>
+  <sound name="inv_overhaul_item_equip" stream="0" loop="0">inv_overhaul_item_equip.ogg</sound>
+  <sound name="inv_overhaul_inv_action" stream="0" loop="0">inv_overhaul_inv_action.ogg</sound>
+  <sound name="inv_overhaul_money_pickup" stream="0" loop="0">inv_overhaul_money_pickup.ogg</sound>
   <sound name="take_organ" loop="0">take_organ.ogg</sound>
   <form name="corpse_marker" x="0" y="0" w="1" h="1" script="inv_overhaul_corpse_marker.bin">
   </form>

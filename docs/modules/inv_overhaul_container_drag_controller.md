@@ -12,6 +12,8 @@ Resolves pointer targets and coordinates completion of container-screen drag act
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays drag-start and successful container-slot placement feedback.
+
 - `inv_overhaul_container_drag` — Owns container-screen drag state, source identity, target highlighting, and drag cancellation/commit bookkeeping.
 - `inv_overhaul_container_player_actions` — Implements player-side equip, unequip, use, and drop actions initiated from the loot screen.
 - `inv_overhaul_container_presenter` — Projects session state into loot UI forms, including incremental item metadata/texture loading, money, organs, and page controls.

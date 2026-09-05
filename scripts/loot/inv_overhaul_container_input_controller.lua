@@ -15,6 +15,7 @@ import "inv_overhaul_container_view"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_items"
 import "inv_overhaul_inventory_quickslot_bindings"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_container_input_controller do
   local const VKShift: int = 16
@@ -47,6 +48,7 @@ module inv_overhaul_container_input_controller do
       inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
     if inv_overhaul_inventory_quickslot_bindings.Assign(
       slot, category, index, false) then
+      inv_overhaul_inventory_sounds.InventorySoundsPlayAction()
       inv_overhaul_container_presenter.UpdatePlayerSlots()
     end
   end

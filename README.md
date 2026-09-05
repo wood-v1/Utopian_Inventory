@@ -36,8 +36,9 @@ consume backpack capacity. Adding to an existing stack remains possible when all
   Immediately before they open, compatible vanilla items are stably moved to
   the front of their real categories through OynonTools, while the custom
   inventory's visual layout is reconciled without shuffling.
-- English and Russian strings, item/drop/page hints, money display, clock, and
-  configurable empty-slot opacity.
+- English and Russian strings, item/drop/page hints, money display, clock,
+  configurable empty-slot opacity, and interaction sounds for opening screens,
+  dragging, placement, equipment, quickslots, paging, and money pickup.
 - TEX-only runtime textures. PNG files are retained only in `resources/image`
   as editable source artwork and are not included in the game package.
 
@@ -80,6 +81,7 @@ bin\Final\mods\InventoryOverhaul.ini
 bin\Final\mods\InventoryOverhaul.manifest.ini
 bin\Final\mods\OynonTools.dll
 data\Scripts\inv_overhaul_*.bin
+data\Sounds\inv_overhaul_*.ogg
 data\UI\inv_overhaul_*.xml
 data\Textures\UI\inv_overhaul_*.tex
 data\Strings\inv_overhaul_inventory*.txt

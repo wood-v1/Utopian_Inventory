@@ -7,7 +7,7 @@ remain compatible with XML, native code, effects, and saved references.
 
 - `backpack/` owns the shared 56-cell backpack projection, layout, persistence,
   and snapshots.
-- `inventory_interface/` owns UI protocols and reusable inventory forms.
+- `inventory_interface/` owns UI protocols, interaction sounds, and reusable inventory forms.
 - `player_inventory/` owns the player screen, with player-only forms in
   `widgets/`.
 - `loot/` owns container and corpse sessions, presentation, interaction, and

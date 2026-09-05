@@ -2,6 +2,8 @@
 
 ## Change routing
 
+- Inventory and loot interaction audio: [inventory sounds](modules/inv_overhaul_inventory_sounds.md)
+
 - Backpack item identity/count/order: [inventory items](modules/inv_overhaul_inventory_items.md), [layout runtime](modules/inv_overhaul_inventory_layout_runtime.md), [snapshots](modules/inv_overhaul_inventory_snapshot.md)
 - Player inventory behavior or input: [player entry](modules/inv_overhaul_inventory.md), [controller](modules/inv_overhaul_inventory_controller.md)
 - Player inventory rendering/widgets: [view](modules/inv_overhaul_inventory_view.md), [presenter](modules/inv_overhaul_inventory_presenter.md), [shared interface](modules/inv_overhaul_inv_slot.md)

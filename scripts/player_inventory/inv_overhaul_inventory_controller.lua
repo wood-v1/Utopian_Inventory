@@ -13,6 +13,7 @@ import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_drop"
 import "inv_overhaul_inventory_presenter"
 import "inv_overhaul_inventory_input_controller"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_inventory_controller do
   local const c_sScriptVersion: string = "2026.08.17-fast-open-generation-poll-1"
@@ -99,6 +100,7 @@ module inv_overhaul_inventory_controller do
     native.SetOwnerDraw(false)
     native.SetNeedUpdate(true)
     if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_before_process_events") end
+    inv_overhaul_inventory_sounds.InventorySoundsPlayOpen()
     native.ProcessEvents()
     if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_init_end") end
   end
@@ -484,6 +486,7 @@ module inv_overhaul_inventory_controller do
   function AssignQuickslot(slot: int, category: int, index: int) -> void
     if inv_overhaul_inventory_quickslot_bindings.Assign(
       slot, category, index, true) then
+      inv_overhaul_inventory_sounds.InventorySoundsPlayAction()
       UpdateSlots()
     end
   end
@@ -768,6 +771,9 @@ module inv_overhaul_inventory_controller do
 
   function ToggleSlot(category: int, index: int) -> void
     local result: int = inv_overhaul_inventory_equipment.PlayerEquipmentToggle(category, index)
+    if result == 1 then
+      inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
+    end
     if result == 2 then deferredInventoryRefresh = 0.25 end
   end
 
@@ -907,6 +913,7 @@ module inv_overhaul_inventory_controller do
         inv_overhaul_inventory_items.DecodeReferenceIndex(reference)
       if UnequipItem(category, index) then
         InsertOrderOrdinal(PlayerControllerGetBackpackOrdinal(category, index), beforeCount)
+        inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
         native.Trace("inv_overhaul_inventory unequipped by " + reason + " target=" + target)
       end
       UpdateSlots()
@@ -915,6 +922,7 @@ module inv_overhaul_inventory_controller do
 
   function SwapSlotOrderCells(sourceCell: int, targetCell: int) -> void
     if !inv_overhaul_inventory_layout_runtime.LayoutRuntimeSwapCells(sourceCell, targetCell) then return end
+    inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
     QueueLayoutSave()
     for visibleSlot = 0, visibleSlots - 1 do
       local visibleCell: int = PlayerControllerGetVisibleCell(visibleSlot)
@@ -1020,6 +1028,7 @@ module inv_overhaul_inventory_controller do
               PlayerControllerGetBackpackOrdinal(ReadDragItemCategory(), ReadDragItemIndex()),
               beforeCount,
               PlayerControllerGetVisibleCell(targetSlot))
+            inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
             native.Trace("inv_overhaul_inventory unequipped by drag source=" + sourceSlot + " target=" + targetSlot)
           end
         else
@@ -1052,6 +1061,7 @@ module inv_overhaul_inventory_controller do
             local usedOrder: int = PlayerControllerGetOrderValue(ReadDragSourceCell() + 0)
             local equipped: bool = EquipDraggedItem(targetSlot, ReadDragItemCategory(), ReadDragItemIndex())
             if equipped then
+              inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
               local afterCount: int = PlayerControllerGetBackpackItemCount()
               if afterCount < beforeCount then
                 if !RestoreOrderAfterEquipmentSelection(usedOrder, beforeCount) then
@@ -1149,6 +1159,7 @@ module inv_overhaul_inventory_controller do
   function ChangePage(delta: int) -> void
     inv_overhaul_inventory_paging.Change(
       delta, c_iInventoryCapacity, ReadVisibleSlots() + 0)
+    inv_overhaul_inventory_sounds.InventorySoundsPlayAction()
     UpdateSlots()
   end
 

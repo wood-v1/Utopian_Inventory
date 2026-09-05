@@ -6,6 +6,7 @@ import "inv_overhaul_container_projection"
 import "inv_overhaul_container_transfer"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_container_transfer_external do
   local const InventoryCapacity: int = 56
@@ -76,7 +77,7 @@ module inv_overhaul_container_transfer_external do
     end
     MoveResolvedAmountToPlayer(
       organSource, sourceIndex, sourceOrdinal, sourceSlot, targetSlot,
-      requestedAmount, restorePageIfMerged)
+      requestedAmount, restorePageIfMerged, true)
   end
 
   function MoveResolvedAmountToPlayer(
@@ -86,7 +87,8 @@ module inv_overhaul_container_transfer_external do
     sourceSlot: int,
     targetSlot: int,
     requestedAmount: int,
-    restorePageIfMerged: int) -> void
+    restorePageIfMerged: int,
+    playItemSound: bool) -> void
     local external: object
     native.GetContainer(external)
     local player: object =
@@ -118,6 +120,7 @@ module inv_overhaul_container_transfer_external do
       player->GetProperty("money", money)
       player->SetProperty("money", money + amount)
       external->RemoveItem(sourceIndex, amount)
+      inv_overhaul_inventory_sounds.InventorySoundsPlayMoneyPickup()
       if !organSource then
         inv_overhaul_container_projection.RemoveContainerOrdinal(
           sourceOrdinal, beforeNormal)
@@ -204,7 +207,13 @@ module inv_overhaul_container_transfer_external do
       end
       mergeIndex = insertedIndex
     end
-    if organSource then native.PlaySound("take_organ") end
+    if organSource then
+      native.PlaySound("take_organ")
+    else
+      if playItemSound then
+        inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
+      end
+    end
     local renderedPage: int =
       inv_overhaul_container_presenter.GetRenderedPlayerPage()
     local currentPage: int =

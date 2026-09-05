@@ -4,6 +4,7 @@ import "inv_overhaul_container_geometry"
 import "inv_overhaul_container_projection"
 import "inv_overhaul_container_view"
 import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_sounds"
 import "inv_overhaul_inventory_quickslot_bindings"
 
 module inv_overhaul_container_presenter do
@@ -487,12 +488,14 @@ module inv_overhaul_container_presenter do
   function ChangePlayerPage(delta: int) -> void
     playerPage = playerPage + delta
     ClampPlayerPage()
+    inv_overhaul_inventory_sounds.InventorySoundsPlayAction()
     UpdatePlayerSlots()
   end
 
   function ChangeContainerPage(delta: int) -> void
     containerPage = containerPage + delta
     ClampContainerPage()
+    inv_overhaul_inventory_sounds.InventorySoundsPlayAction()
     UpdateContainerSlots()
   end
 end

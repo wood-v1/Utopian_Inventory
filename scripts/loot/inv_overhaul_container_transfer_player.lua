@@ -6,6 +6,7 @@ import "inv_overhaul_container_projection"
 import "inv_overhaul_container_transfer"
 import "inv_overhaul_container_transfer_external"
 import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_container_transfer_player do
   local const WeaponCategory: int = 0
@@ -154,6 +155,7 @@ module inv_overhaul_container_transfer_player do
     inv_overhaul_container_presenter.RefreshVisibleContainerItem(
       itemID, targetSlot)
     inv_overhaul_container_presenter.LootPresenterUpdateMoney()
+    inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
   end
 
   function MoveToContainer(
@@ -268,7 +270,7 @@ module inv_overhaul_container_transfer_player do
 
     inv_overhaul_container_transfer_external.MoveResolvedAmountToPlayer(
       false, exchangedMovedToIndex, exchangedMovedToOrdinal,
-      targetSlot, sourceSlot, -1, -1)
+      targetSlot, sourceSlot, -1, -1, false)
     inv_overhaul_container_presenter.UpdateContainerSlots()
     native.Trace("inv_overhaul_container exchanged occupied container slot=" +
       targetSlot)

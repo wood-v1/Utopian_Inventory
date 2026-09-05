@@ -12,6 +12,8 @@ Adapts shared transfer operations for items moving from the player backpack into
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays item-equipment feedback after a successful player-to-container transfer.
+
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_container_drag` — Owns container-screen drag state, source identity, target highlighting, and drag cancellation/commit bookkeeping.
 - `inv_overhaul_container_feedback` — Owns transient loot-screen message cooldown and localized feedback publication.

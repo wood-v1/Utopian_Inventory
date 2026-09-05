@@ -6,6 +6,8 @@ Start with [CONTEXT.md](CONTEXT.md), then use [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## Module documentation
 
+- [Inventory Sounds](modules/inv_overhaul_inventory_sounds.md) — `scripts/inventory_interface/inv_overhaul_inventory_sounds.lua`
+
 - [Character Doll](modules/inv_overhaul_character_doll.md) — `scripts/player_inventory/widgets/inv_overhaul_character_doll.lua`
 - [Container](modules/inv_overhaul_container.md) — `scripts/loot/inv_overhaul_container.lua`
 - [Container Bootstrap](modules/inv_overhaul_container_bootstrap.md) — `scripts/loot/inv_overhaul_container_bootstrap.lua`

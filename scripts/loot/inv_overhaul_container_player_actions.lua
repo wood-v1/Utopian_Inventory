@@ -3,6 +3,7 @@ import "inv_overhaul_container_feedback"
 import "inv_overhaul_container_presenter"
 import "inv_overhaul_container_transfer"
 import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_container_player_actions do
   local const WeaponCategory: int = 0
@@ -12,6 +13,7 @@ module inv_overhaul_container_player_actions do
     targetCell: int) -> void
     if !inv_overhaul_inventory_layout_runtime.LayoutRuntimeSwapCells(
       sourceCell, targetCell) then return end
+    inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
     inv_overhaul_inventory_layout_runtime.QueueSave()
     local visibleSlots: int =
       inv_overhaul_container_presenter.LootPresenterGetVisibleSlots()

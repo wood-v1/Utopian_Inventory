@@ -9,7 +9,7 @@ The mod combines a native Win32 DLL (`bootstrap.cpp`), OynonTools hooks, typed L
 | Domain | Owns | Does not own |
 | --- | --- | --- |
 | `backpack/` | Unequipped-item projection, 56 visual cells, layout persistence, identity snapshots | Engine container mutation policy or UI widgets |
-| `inventory_interface/` | Shared numeric protocols, geometry, tooltips, slot/background/money/page forms | Player/container domain decisions |
+| `inventory_interface/` | Shared numeric protocols, geometry, tooltips, interaction sounds, slot/background/money/page forms | Player/container domain decisions |
 | `player_inventory/` | Player screen lifecycle, input, equipment, drag/drop, paging, rendering orchestration | Persistent capacity enforcement |
 | `loot/` | Container/corpse session, external projection, transfer directions, organs, loot UI | Quickslot activation policy |
 | `quickslots/` | Saved bindings, activation policy/effects, native key-request transport | Inventory rendering |

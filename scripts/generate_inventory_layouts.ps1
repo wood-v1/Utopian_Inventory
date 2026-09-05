@@ -72,6 +72,13 @@ function Add-Line([System.Text.StringBuilder]$Builder, [string]$Line) {
     [void]$Builder.AppendLine($Line)
 }
 
+function Add-InventorySounds([System.Text.StringBuilder]$Builder) {
+    Add-Line $Builder '  <sound name="inv_overhaul_inv_open" stream="0" loop="0">inv_overhaul_inv_open.ogg</sound>'
+    Add-Line $Builder '  <sound name="inv_overhaul_item_equip" stream="0" loop="0">inv_overhaul_item_equip.ogg</sound>'
+    Add-Line $Builder '  <sound name="inv_overhaul_inv_action" stream="0" loop="0">inv_overhaul_inv_action.ogg</sound>'
+    Add-Line $Builder '  <sound name="inv_overhaul_money_pickup" stream="0" loop="0">inv_overhaul_money_pickup.ogg</sound>'
+}
+
 function Assert-ValidXml([string]$Text, [string]$Target) {
     try {
         [void][xml]$Text
@@ -229,6 +236,7 @@ foreach ($layout in $layouts) {
         Add-Pagination $builder "" $inventoryPagerX $playerPagerY
     }
     Add-Cursors $builder
+    Add-InventorySounds $builder
     Add-Line $builder "</form>"
 
     $target = Join-Path (Join-Path $PSScriptRoot "..\resources\ui") $layout.File
@@ -320,6 +328,7 @@ foreach ($layout in $layouts) {
     }
 
     Add-Cursors $lootBuilder
+    Add-InventorySounds $lootBuilder
     Add-Line $lootBuilder '  <sound name="take_organ" loop="0">take_organ.ogg</sound>'
     Add-Line $lootBuilder "</form>"
 

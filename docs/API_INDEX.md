@@ -311,6 +311,21 @@ Functions:
 
 See: [module documentation](modules/inv_overhaul_inventory_tooltip.md)
 
+## Inventory Sounds
+
+Source: `scripts/inventory_interface/inv_overhaul_inventory_sounds.lua`
+
+Responsibility: Centralizes the sound identifiers used by player-inventory and loot-screen interactions.
+
+Functions:
+
+- `InventorySoundsPlayOpen() -> void` — Plays once when an inventory or loot screen opens.
+- `InventorySoundsPlayItemEquip() -> void` — Plays successful equipment, placement, page-move, or inter-inventory transfer feedback.
+- `InventorySoundsPlayAction() -> void` — Plays the page-change or quickslot-assignment sound.
+- `InventorySoundsPlayMoneyPickup() -> void` — Plays the successful money-transfer sound.
+
+See: [module documentation](modules/inv_overhaul_inventory_sounds.md)
+
 ## Money Slot
 
 Source: `scripts/inventory_interface/inv_overhaul_money_slot.lua`
@@ -864,7 +879,7 @@ Functions:
 - `GetAppendedBackpackOrdinal(category: int, beforeCount: int) -> int` — Returns appended backpack ordinal in the container transfer external subsystem.
 - `InsertPlayerCache(insertedOrdinal: int, beforeCount: int, category: int, index: int) -> bool` — Inserts player cache in the container transfer external subsystem.
 - `MoveAmountToPlayer(organSource: bool, sourceSlot: int, targetSlot: int, requestedAmount: int, restorePageIfMerged: int) -> void` — Moves amount to player in the container transfer external subsystem.
-- `MoveResolvedAmountToPlayer(organSource: bool, sourceIndex: int, sourceOrdinal: int, sourceSlot: int, targetSlot: int, requestedAmount: int, restorePageIfMerged: int) -> void` — Moves resolved amount to player in the container transfer external subsystem.
+- `MoveResolvedAmountToPlayer(organSource: bool, sourceIndex: int, sourceOrdinal: int, sourceSlot: int, targetSlot: int, requestedAmount: int, restorePageIfMerged: int, playItemSound: bool) -> void` — Moves resolved amount to player in the container transfer external subsystem.
 - `MoveToPlayer(organSource: bool, sourceSlot: int, targetSlot: int, restorePageIfMerged: int) -> void` — Moves to player in the container transfer external subsystem.
 
 See: [module documentation](modules/inv_overhaul_container_transfer_external.md)

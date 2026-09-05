@@ -12,6 +12,8 @@ Drops a player inventory entry into the world through the engine container API.
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays feedback after a successful world drop.
+
 - `inv_overhaul_inventory_items` — Builds the canonical projection of unequipped player items into backpack ordinals and cached category/index references.
 - Pathologic native API — engine state, object access, persistence variables, UI messaging, timing, or rendering as listed per function.
 

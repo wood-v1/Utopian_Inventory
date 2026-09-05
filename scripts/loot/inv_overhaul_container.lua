@@ -14,6 +14,7 @@ import "inv_overhaul_container_view"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_items"
 import "inv_overhaul_inventory_quickslot_bindings"
+import "inv_overhaul_inventory_sounds"
 
 maintask InvOverhaulContainerUI do
   local const ScriptVersion: string = "2026.08.17-native-occupied-slot-exchange-1"
@@ -61,6 +62,7 @@ maintask InvOverhaulContainerUI do
     inv_overhaul_container_session.DetectContainerKind()
     inv_overhaul_container_presenter.UpdatePlayerPageControls()
     inv_overhaul_container_presenter.UpdateContainerPageControls()
+    inv_overhaul_inventory_sounds.InventorySoundsPlayOpen()
     native.ProcessEvents()
   end
 

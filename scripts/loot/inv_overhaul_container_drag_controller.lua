@@ -9,6 +9,7 @@ import "inv_overhaul_container_transfer_player"
 import "inv_overhaul_container_view"
 import "inv_overhaul_inventory_tooltip"
 import "inv_overhaul_inventory_items"
+import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_container_drag_controller do
   local const ContainerSlots: int = 12
@@ -278,6 +279,7 @@ module inv_overhaul_container_drag_controller do
                 target)
             if inv_overhaul_container_projection.SwapVisuals(
               containerVisual, targetVisual) then
+              inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip()
               inv_overhaul_container_presenter.UpdateContainerSlots()
             end
           end

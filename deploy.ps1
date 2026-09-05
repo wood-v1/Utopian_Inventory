@@ -40,6 +40,7 @@ $LuaOutDir = Join-Path $RepoRoot "scripts\out"
 $LuaBuildScript = Join-Path $RepoRoot "scripts\build_lua.ps1"
 $GameModsDir = Join-Path $GameRoot "bin\Final\mods"
 $GameScriptsDir = Join-Path $GameRoot "data\Scripts"
+$GameSoundsDir = Join-Path $GameRoot "data\Sounds"
 $GameUiDir = Join-Path $GameRoot "data\UI"
 $GameUiTexturesDir = Join-Path $GameRoot "data\Textures\UI"
 $GameStringsDir = Join-Path $GameRoot "data\Strings"
@@ -200,6 +201,23 @@ foreach ($bin in Get-ChildItem -LiteralPath $LuaOutDir -Filter "inv_overhaul_*.b
         continue
     }
     Copy-DeployedFile -Source $bin.FullName -Destination (Join-Path $GameScriptsDir $bin.Name)
+}
+
+Remove-DeployedFile -Path (Join-Path $GameSoundsDir "inv_overhaul_item_drop.ogg")
+Remove-DeployedFile -Path (Join-Path $GameSoundsDir "inv_overhaul_item_drop.mp3")
+Remove-DeployedFile -Path (Join-Path $GameSoundsDir "inv_overhaul_item_pickup.ogg")
+Remove-DeployedFile -Path (Join-Path $GameSoundsDir "inv_overhaul_item_pickup.mp3")
+foreach ($soundName in @(
+    "inv-action",
+    "inv-open",
+    "item-equip",
+    "money-pickup"
+)) {
+    $deployedSoundBaseName = "inv_overhaul_$($soundName.Replace('-', '_'))"
+    Remove-DeployedFile -Path (Join-Path $GameSoundsDir "${deployedSoundBaseName}.mp3")
+    $sourceSound = Join-Path $RepoRoot "sounds\${soundName}.ogg"
+    $deployedSoundName = "${deployedSoundBaseName}.ogg"
+    Copy-DeployedFile -Source $sourceSound -Destination (Join-Path $GameSoundsDir $deployedSoundName)
 }
 
 foreach ($xml in Get-ChildItem -LiteralPath (Join-Path $RepoRoot "resources\ui") -Filter "inv_overhaul_*.xml" -File) {

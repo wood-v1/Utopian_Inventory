@@ -12,6 +12,8 @@ Is the container/corpse UI maintask and delegates initialization, callbacks, and
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays the loot-screen-open sound immediately before the blocking UI event loop.
+
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_inventory_snapshot` — Captures item-identity snapshots and reconciles saved layout cells after game inventory order changes or equipment mutations.
 - `inv_overhaul_container_bootstrap` — Stages the container screen's initial loading and readiness handshake.

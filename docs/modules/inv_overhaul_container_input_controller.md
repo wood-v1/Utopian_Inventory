@@ -12,6 +12,8 @@ Routes loot-screen UI messages, keyboard input, and contextual actions to the ap
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays feedback after a successful quickslot assignment.
+
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_inventory_snapshot` — Captures item-identity snapshots and reconciles saved layout cells after game inventory order changes or equipment mutations.
 - `inv_overhaul_container_drag` — Owns container-screen drag state, source identity, target highlighting, and drag cancellation/commit bookkeeping.

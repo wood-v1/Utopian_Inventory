@@ -12,6 +12,8 @@ Projects session state into loot UI forms, including incremental item metadata/t
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays feedback when the visible player or container page changes.
+
 - `inv_overhaul_inventory_layout` — Defines the pure default mapping between backpack cells, linear slots, and pages.
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_container_geometry` — Maps supported layouts to player, container, organ, money, paging, and pointer hit-test geometry.

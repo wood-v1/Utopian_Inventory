@@ -12,6 +12,8 @@ Orchestrates the player inventory screen: initialization, projection, incrementa
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays drag, placement, equipment, quickslot, and paging feedback.
+
 - `inv_overhaul_inventory_layout` — Defines the pure default mapping between backpack cells, linear slots, and pages.
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_inventory_geometry` — Maps supported window sizes and character branches to player-grid, equipment, money, paging, and doll hit-test geometry.

@@ -12,6 +12,8 @@ Is the player inventory UI maintask and forwards engine/UI callbacks into the pl
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays the inventory-open sound immediately before the blocking UI event loop.
+
 - `inv_overhaul_inventory_controller` — Orchestrates the player inventory screen: initialization, projection, incremental rendering, equipment, drag/drop, paging, quickslots, tooltips, persistence, and callback routing.
 
 ## Used by

@@ -12,6 +12,8 @@ Implements player-side equip, unequip, use, and drop actions initiated from the 
 
 ## Dependencies
 
+- `inv_overhaul_inventory_sounds` — Plays feedback after successful player-slot placement or Ctrl page movement.
+
 - `inv_overhaul_inventory_layout_runtime` — Owns the mutable saved cell-to-item order, normalization, exact insertion/removal, swapping, and incremental persistence.
 - `inv_overhaul_container_feedback` — Owns transient loot-screen message cooldown and localized feedback publication.
 - `inv_overhaul_container_presenter` — Projects session state into loot UI forms, including incremental item metadata/texture loading, money, organs, and page controls.
@@ -59,6 +61,7 @@ Called by:
 Calls:
 
 - `inv_overhaul_inventory_layout_runtime.LayoutRuntimeSwapCells`
+- `inv_overhaul_inventory_sounds.InventorySoundsPlayItemEquip`
 - `inv_overhaul_inventory_layout_runtime.QueueSave`
 - `inv_overhaul_container_presenter.LootPresenterGetVisibleSlots`
 - `inv_overhaul_container_presenter.LootPresenterGetVisibleCell`

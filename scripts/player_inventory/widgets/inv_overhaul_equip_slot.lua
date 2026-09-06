@@ -1,4 +1,5 @@
 maintask InvOverhaulEquipSlot do
+  local const c_iReleaseResources: int = -200
   local const c_iTooltipNone: int = -1
   local const c_iTooltipInvObject: int = 1
   local const c_iSlotEmpty: int = 32768
@@ -12,6 +13,13 @@ maintask InvOverhaulEquipSlot do
   local highResolutionSprite: bool
   local tooltipSuppressed: bool
   local quickslot: int
+
+  function ReleaseLoadedImage() -> void
+    if loadedItemID < 0 || image == "" then return end
+    native.ReleaseImage(image)
+    image = ""
+    loadedItemID = -1
+  end
 
   function init() -> void
     item = null
@@ -125,6 +133,12 @@ maintask InvOverhaulEquipSlot do
   end
 
   function OnUIMessage(message: int, sender: string, data: object) -> void
+    if message == c_iReleaseResources then
+      native.SetOwnerDraw(false)
+      ReleaseLoadedImage()
+      item = null
+      return
+    end
     if message == -140 then
       quickslot = 0
       return
@@ -136,6 +150,7 @@ maintask InvOverhaulEquipSlot do
     end
 
     if message == -26 then
+      ReleaseLoadedImage()
       slotWidth = 82
       slotHeight = 82
       highResolutionSprite = true
@@ -144,6 +159,7 @@ maintask InvOverhaulEquipSlot do
     end
 
     if message == -28 then
+      ReleaseLoadedImage()
       slotWidth = 48
       slotHeight = 48
       highResolutionSprite = true
@@ -152,6 +168,7 @@ maintask InvOverhaulEquipSlot do
     end
 
     if message == -27 then
+      ReleaseLoadedImage()
       slotWidth = 52
       slotHeight = 52
       highResolutionSprite = true
@@ -196,6 +213,7 @@ maintask InvOverhaulEquipSlot do
       return
     end
     if message >= c_iSlotEmpty then
+      ReleaseLoadedImage()
       item = null
       quickslot = 0
       loadedItemID = -1
@@ -210,6 +228,7 @@ maintask InvOverhaulEquipSlot do
       local itemID: int
       item->GetItemID(itemID)
       if itemID != loadedItemID then
+        ReleaseLoadedImage()
         loadedItemID = itemID
         if highResolutionSprite then
           native.GetInvItemSprite2(image, itemID)

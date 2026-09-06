@@ -153,22 +153,8 @@ bool Diagnostics::HandlePerformanceConsoleMessage(const char* message, int playe
     constexpr const char* performanceStepPrefix = "INV_OVERHAUL_PERF_STEP ";
     const char* performanceStepMessage = std::strstr(message, performanceStepPrefix);
     if (performanceStepMessage) {
-        if (debugEnabled_ && inventoryPerformance_.active) {
-            const DWORD elapsed = InventoryPerformanceElapsed();
-            const DWORD delta = elapsed >= inventoryPerformance_.lastStepMicroseconds
-                ? elapsed - inventoryPerformance_.lastStepMicroseconds
-                : 0;
-            char line[384] = {};
-            std::snprintf(
-                line,
-                sizeof(line),
-                "inventory perf step elapsed_us=%lu delta_us=%lu %s",
-                static_cast<unsigned long>(elapsed),
-                static_cast<unsigned long>(delta),
-                performanceStepMessage + std::strlen(performanceStepPrefix));
-            Log(line);
-            inventoryPerformance_.lastStepMicroseconds = elapsed;
-        }
+        RecordInventoryPerformanceStep(
+            performanceStepMessage + std::strlen(performanceStepPrefix));
         return true;
     }
 
@@ -211,38 +197,30 @@ bool Diagnostics::HandlePerformanceConsoleMessage(const char* message, int playe
     else if (std::strncmp(phase, "complete", 8) == 0) {
         int stacks = 0;
         int equipment = 0;
-        int hits = 0;
-        int misses = 0;
-        int warmed = 0;
-        int warmStart = 0;
         std::sscanf(
             phase,
-            "complete stacks=%d equipment=%d hits=%d misses=%d warmed=%d warm_start=%d",
+            "complete stacks=%d equipment=%d",
             &stacks,
-            &equipment,
-            &hits,
-            &misses,
-            &warmed,
-            &warmStart);
+            &equipment);
         char line[512] = {};
         std::snprintf(
             line,
             sizeof(line),
-            "inventory perf branch=%d original=%s resolved=%s stacks=%d equipment=%d cache_hits=%d cache_misses=%d warmed=%d warm_start=%d create_us=%lu child_us=%lu layout_us=%lu first_item_us=%lu complete_us=%lu",
+            "inventory perf open=%lu mode=%s branch=%d original=%s resolved=%s stacks=%d equipment=%d prepare_us=%lu create_us=%lu child_us=%lu layout_us=%lu first_item_us=%lu complete_us=%lu",
+            inventoryPerformance_.sequence,
+            inventoryPerformance_.sequence == 1 ? "cold" : "warm",
             playerBranch,
             inventoryPerformance_.originalXml.c_str(),
             inventoryPerformance_.resolvedXml.c_str(),
             stacks,
             equipment,
-            hits,
-            misses,
-            warmed,
-            warmStart,
+            static_cast<unsigned long>(inventoryPerformance_.prepareMicroseconds),
             static_cast<unsigned long>(inventoryPerformance_.createWndMicroseconds),
             static_cast<unsigned long>(inventoryPerformance_.childReadyMicroseconds),
             static_cast<unsigned long>(inventoryPerformance_.layoutReadyMicroseconds),
             static_cast<unsigned long>(inventoryPerformance_.firstItemMicroseconds),
             static_cast<unsigned long>(elapsed));
+        FlushInventoryPerformanceSteps();
         Log(line);
         inventoryPerformance_.active = false;
     }
@@ -256,8 +234,67 @@ void Diagnostics::BeginInventoryOpen(const char* originalXml)
     }
     inventoryPerformance_ = {};
     inventoryPerformance_.active = true;
+    inventoryOpenSequence_ += 1;
+    inventoryPerformance_.sequence = inventoryOpenSequence_;
     inventoryPerformance_.startedMicroseconds = PerformanceNowMicroseconds();
     inventoryPerformance_.originalXml = originalXml ? originalXml : "";
+}
+
+void Diagnostics::RecordInventoryPerformanceStep(const char* step)
+{
+    if (!debugEnabled_ || !inventoryPerformance_.active || !step) {
+        return;
+    }
+    const DWORD elapsed = InventoryPerformanceElapsed();
+    const DWORD delta = elapsed >= inventoryPerformance_.lastStepMicroseconds
+        ? elapsed - inventoryPerformance_.lastStepMicroseconds
+        : 0;
+    char sample[256] = {};
+    std::snprintf(
+        sample,
+        sizeof(sample),
+        "%s@%lu(+%lu)",
+        step,
+        static_cast<unsigned long>(elapsed),
+        static_cast<unsigned long>(delta));
+    if (!inventoryPerformance_.steps.empty()) {
+        inventoryPerformance_.steps += " | ";
+    }
+    inventoryPerformance_.steps += sample;
+    inventoryPerformance_.lastStepMicroseconds = elapsed;
+}
+
+void Diagnostics::FlushInventoryPerformanceSteps() const
+{
+    if (inventoryPerformance_.steps.empty()) {
+        return;
+    }
+    char prefix[64] = {};
+    std::snprintf(
+        prefix,
+        sizeof(prefix),
+        "inventory perf steps open=%lu ",
+        inventoryPerformance_.sequence);
+    // OynonDebugLog has a 4096-byte buffer (including its own prefix). Keep
+    // complete samples below that limit so late slot timings are not lost.
+    constexpr std::size_t maxChunkSize = 3000;
+    const std::string& steps = inventoryPerformance_.steps;
+    std::size_t begin = 0;
+    while (begin < steps.size()) {
+        std::size_t end = (std::min)(begin + maxChunkSize, steps.size());
+        if (end < steps.size()) {
+            const std::size_t separator = steps.rfind(" | ", end);
+            if (separator != std::string::npos && separator > begin) {
+                end = separator;
+            }
+        }
+        const std::string line = std::string(prefix) + steps.substr(begin, end - begin);
+        Log(line.c_str());
+        begin = end;
+        if (steps.compare(begin, 3, " | ") == 0) {
+            begin += 3;
+        }
+    }
 }
 
 void Diagnostics::RecordInventoryWindowCreated(
@@ -271,8 +308,14 @@ void Diagnostics::RecordInventoryWindowCreated(
     }
 
     inventoryPerformance_.createWndMicroseconds = elapsedMicroseconds;
+    const DWORD totalElapsed = InventoryPerformanceElapsed();
+    inventoryPerformance_.prepareMicroseconds =
+        totalElapsed >= elapsedMicroseconds
+        ? totalElapsed - elapsedMicroseconds
+        : 0;
     inventoryPerformance_.originalXml = originalXml ? originalXml : "";
     inventoryPerformance_.resolvedXml = resolvedXml ? resolvedXml : "";
+    RecordInventoryPerformanceStep("create_window_end");
     if (!succeeded) {
         char line[256] = {};
         std::snprintf(
@@ -282,6 +325,7 @@ void Diagnostics::RecordInventoryWindowCreated(
             inventoryPerformance_.originalXml.c_str(),
             inventoryPerformance_.resolvedXml.c_str(),
             static_cast<unsigned long>(elapsedMicroseconds));
+        FlushInventoryPerformanceSteps();
         Log(line);
         inventoryPerformance_.active = false;
     }

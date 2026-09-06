@@ -8,12 +8,6 @@ module inv_overhaul_inventory_view do
   local completeReported: bool
   local stackCount: int
   local equipmentCount: int
-  local cacheHits: int
-  local cacheMisses: int
-  local cacheEpoch: int
-  local rendererReady: bool
-  local warmGridLoaded: bool
-  local warmStartAttempted: bool
   local childWindowsReady: bool
   local metadataPending: bool
   local metadataDelay: float
@@ -31,12 +25,6 @@ module inv_overhaul_inventory_view do
     completeReported = false
     stackCount = 0
     equipmentCount = 0
-    cacheHits = 0
-    cacheMisses = 0
-    cacheEpoch = 0
-    rendererReady = false
-    warmGridLoaded = false
-    warmStartAttempted = false
     childWindowsReady = false
     metadataPending = true
     metadataDelay = 0
@@ -72,24 +60,8 @@ module inv_overhaul_inventory_view do
 
   function IsMetadataPending() -> bool return metadataPending end
 
-  function MarkRendererReady() -> void rendererReady = true end
-
-  function BeginWarmStartAttempt() -> bool
-    if warmStartAttempted || !rendererReady || !metadataPending then return false end
-    warmStartAttempted = true
-    return true
-  end
-
-  function MarkWarmGridLoaded() -> void
-    warmGridLoaded = true
-    metadataStage = 2
-    metadataDelay = 0
-  end
-
-  function IsWarmGridLoaded() -> bool return warmGridLoaded end
-
   function BeginInitialLoad(visibleSlots: int) -> void
-    if warmGridLoaded then nextSlot = visibleSlots else nextSlot = 0 end
+    nextSlot = 0
     nextEquipment = 0
     spriteCooldown = 0
     initialLoadActive = true
@@ -126,31 +98,13 @@ module inv_overhaul_inventory_view do
     spriteCooldown = InventoryViewInitialItemLoadInterval
   end
 
-  function ResetCacheCoverage() -> void
-    stackCount = 0
-    equipmentCount = 0
-    cacheHits = 0
-    cacheMisses = 0
-    cacheEpoch = 0
-    local currentCacheEpoch: int = cacheEpoch
-    native.GetVariable("inv_overhaul_ui_cache_epoch", currentCacheEpoch)
-    cacheEpoch = currentCacheEpoch
-  end
-
-  function GetCacheEpoch() -> int return cacheEpoch end
-
-  function RecordStackCacheResult(hit: bool) -> void
+  function RecordInitialStack() -> void
     stackCount = stackCount + 1
-    if hit then cacheHits = cacheHits + 1 else cacheMisses = cacheMisses + 1 end
   end
 
-  function RecordEquipmentCacheResult(hit: bool) -> void
+  function RecordInitialEquipment() -> void
     equipmentCount = equipmentCount + 1
-    if hit then cacheHits = cacheHits + 1 else cacheMisses = cacheMisses + 1 end
   end
-
-  function GetCacheHits() -> int return cacheHits end
-  function GetCacheMisses() -> int return cacheMisses end
 
   function PlayerViewReportFirstInitialItem() -> void
     if !debugLoggingEnabled || firstItemReported then return end
@@ -162,14 +116,8 @@ module inv_overhaul_inventory_view do
     if !debugLoggingEnabled || completeReported then return end
     if !firstItemReported then PlayerViewReportFirstInitialItem() end
     completeReported = true
-    local warmed: int = 0
-    local warmStarted: int = 0
-    if warmGridLoaded then warmStarted = 1 end
-    native.GetVariable("inv_overhaul_ui_cache_loaded", warmed)
     native.Trace("INV_OVERHAUL_PERF_PHASE complete stacks=" + stackCount +
-      " equipment=" + equipmentCount + " hits=" + cacheHits +
-      " misses=" + cacheMisses + " warmed=" + warmed +
-      " warm_start=" + warmStarted)
+      " equipment=" + equipmentCount)
   end
 
   function PlayerViewSendGridRendererState(

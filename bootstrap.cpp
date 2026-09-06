@@ -17,7 +17,7 @@ namespace inventory_overhaul
 namespace
 {
 constexpr const char* NATIVE_VERSION =
-    "INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.08.16-quickslot-weapon-select-1";
+    "INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.09.06-inventory-open-sound-preload-3";
 
 bool InitializeEngineHooks(Diagnostics& diagnostics)
 {
@@ -163,8 +163,12 @@ DWORD WINAPI MainThread(LPVOID parameter)
     RegisterCallbacks(console, diagnostics, input);
 
     const UiRedirects redirects = ui.ConfigureRedirects();
-    if (!ui.InitializeRuntimeTextureEpoch()) {
-        diagnostics.Log("InventoryOverhaul failed to publish runtime texture epoch");
+    // Hold the decoded open-sound buffer for the HUD station lifetime. This
+    // starts loading before an inventory opens, without playing a silent cue
+    // or allocating a streaming playback instance on every open.
+    if (!OynonUIAddPersistentCompanionWindow(
+            "playerstat.xml", "inv_overhaul_sound_cache.xml")) {
+        diagnostics.Log("InventoryOverhaul failed to register open sound preload");
     }
     diagnostics.Log("InventoryOverhaul persistent UI texture cache disabled");
     RegisterUiAndInputCallbacks(diagnostics, input, ui);

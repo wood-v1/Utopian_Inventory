@@ -59,11 +59,14 @@ Enabled=0
 to `1` (fully opaque). The packaged default is `0.78`.
 
 `[Debug] Enabled=1` enables the mod's verbose runtime traces, including
-aggregated inventory-opening performance records. The packaged default and the
-fallback when the setting is missing are both `0`; warnings and errors remain
-available in `mods\Debug.log` with debug logging disabled.
-Inventory resources are loaded incrementally by the active UI so opening or
-closing the inventory does not leave a persistent background texture loader.
+aggregated inventory-opening performance records. These records separate
+prepare/create, child initialization, packed-layout restoration, first-item,
+and complete-load time for cold and repeated opens. The packaged default and
+the fallback when the setting is missing are both `0`; warnings and errors
+remain available in `mods\Debug.log` with debug logging disabled. Item sprites
+are published incrementally by the active UI, while fixed chrome is loaded
+during window creation and released when the inventory closes; no persistent
+background texture loader remains active during gameplay.
 
 ## Installation with Utopian Launcher
 

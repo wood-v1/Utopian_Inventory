@@ -1,0 +1,6 @@
+<!-- Resource-only HUD companion: preload without playing or polling.
+     The engine shares decoded sound buffers by filename across UI windows.
+     Keep playback instances owned by each inventory window as before. -->
+<form name="inv_overhaul_sound_cache" x="-1" y="-1" w="1" h="1">
+  <sound name="inv_overhaul_inv_open_preload" stream="0" loop="0">inv_overhaul_inv_open.ogg</sound>
+</form>

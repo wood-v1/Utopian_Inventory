@@ -2,17 +2,25 @@ import "inv_overhaul_inventory_layout"
 
 module inv_overhaul_inventory_layout_runtime do
   local const InventoryCapacity: int = 56
-  local const LayoutVersion: int = 4
+  local const LayoutVersion: int = 5
+  local const PackedCellCount: int = 5
+  local const PackedGroupCount: int = 12
+  local const PackedRadix: int = 64
   local slotOrder: object
+  local normalizationUsedOrders: object
   local savePending: bool
   local saveNextCell: int
 
   function LayoutRuntimeInitialize() -> void
     local newOrder: object
+    local newNormalizationUsedOrders: object
     native.CreateIntVector(newOrder)
+    native.CreateIntVector(newNormalizationUsedOrders)
     slotOrder = newOrder
+    normalizationUsedOrders = newNormalizationUsedOrders
     for cell = 0, InventoryCapacity - 1 do
       slotOrder->add(inv_overhaul_inventory_layout.GetDefaultOrderForCell(cell))
+      normalizationUsedOrders->add(0)
     end
     savePending = false
     saveNextCell = -1
@@ -30,6 +38,37 @@ module inv_overhaul_inventory_layout_runtime do
 
   function GetCellVariableName(cell: int) -> string
     return "inv_overhaul_inventory_cell_" + cell
+  end
+
+  function GetPackedVariableName(group: int) -> string
+    return "inv_overhaul_inventory_cells_" + group
+  end
+
+  function EncodePackedGroup(group: int) -> int
+    local packed: int = 0
+    local multiplier: int = 1
+    local firstCell: int = group * PackedCellCount
+    for offset = 0, PackedCellCount - 1 do
+      local cell: int = firstCell + offset
+      if cell < InventoryCapacity then
+        packed = packed + LayoutRuntimeGetOrderValue(cell) * multiplier
+      end
+      multiplier = multiplier * PackedRadix
+    end
+    return packed
+  end
+
+  function DecodePackedGroup(group: int, packed: int) -> void
+    local firstCell: int = group * PackedCellCount
+    for offset = 0, PackedCellCount - 1 do
+      local cell: int = firstCell + offset
+      if cell < InventoryCapacity then
+        local reduced: int = packed / PackedRadix
+        local order: int = packed - reduced * PackedRadix
+        SetOrderValue(cell, order)
+        packed = reduced
+      end
+    end
   end
 
   function IsOrderUsedBefore(cell: int, order: int) -> bool
@@ -54,20 +93,34 @@ module inv_overhaul_inventory_layout_runtime do
   end
 
   function Normalize() -> void
+    for order = 0, InventoryCapacity - 1 do
+      normalizationUsedOrders->set(order, 0)
+    end
     for cell = 0, InventoryCapacity - 1 do
       local order: int = LayoutRuntimeGetOrderValue(cell)
-      if order < 0 || order >= InventoryCapacity ||
-        IsOrderUsedBefore(cell, order) then
-        SetOrderValue(cell, FindFirstUnusedOrder(cell))
+      local used: int = 1
+      if order >= 0 && order < InventoryCapacity then
+        normalizationUsedOrders->get(used, order)
       end
+      if order < 0 || order >= InventoryCapacity || used == 1 then
+        local replacement: int = 0
+        local replacementUsed: int = 1
+        while replacement < InventoryCapacity && replacementUsed == 1 do
+          normalizationUsedOrders->get(replacementUsed, replacement)
+          if replacementUsed == 1 then replacement = replacement + 1 end
+        end
+        SetOrderValue(cell, replacement)
+        order = replacement
+      end
+      normalizationUsedOrders->set(order, 1)
     end
   end
 
   function SaveAll() -> void
-    for cell = 0, InventoryCapacity - 1 do
+    for group = 0, PackedGroupCount - 1 do
       native.SetVariable(
-        GetCellVariableName(cell),
-        LayoutRuntimeGetOrderValue(cell))
+        GetPackedVariableName(group),
+        EncodePackedGroup(group))
     end
     native.SetVariable("inv_overhaul_inventory_layout_initialized", 1)
     native.SetVariable("inv_overhaul_inventory_layout_version", LayoutVersion)
@@ -85,13 +138,13 @@ module inv_overhaul_inventory_layout_runtime do
   function ContinueQueuedSave() -> void
     if !savePending then return end
     for batch = 0, 1 do
-      if saveNextCell < InventoryCapacity then
-        local cell: int = saveNextCell
+      if saveNextCell < PackedGroupCount then
+        local cell: int = saveNextCell * PackedCellCount
         SaveCell(cell)
         saveNextCell = saveNextCell + 1
       end
     end
-    if saveNextCell >= InventoryCapacity then
+    if saveNextCell >= PackedGroupCount then
       FinishIncrementalSave()
       savePending = false
       saveNextCell = 0
@@ -110,11 +163,18 @@ module inv_overhaul_inventory_layout_runtime do
 
     local storedSlots: int = InventoryCapacity
     if layoutVersion == 3 then storedSlots = 40 end
-    if layoutVersion != 3 && layoutVersion != LayoutVersion then
+    if layoutVersion != 3 && layoutVersion != 4 && layoutVersion != LayoutVersion then
       SaveAll()
       return
     end
 
+    if layoutVersion == LayoutVersion then
+      for group = 0, PackedGroupCount - 1 do
+        local packed: int = EncodePackedGroup(group)
+        native.GetVariable(GetPackedVariableName(group), packed)
+        DecodePackedGroup(group, packed)
+      end
+    else
     if layoutVersion == 3 then
       for cell = 0, 15 do SetOrderValue(cell, cell + 40) end
       for legacyCell = 0, 39 do
@@ -133,8 +193,9 @@ module inv_overhaul_inventory_layout_runtime do
         SetOrderValue(cell, order)
       end
     end
+    end
     Normalize()
-    if layoutVersion == 3 then SaveAll() end
+    if layoutVersion == 3 || layoutVersion == 4 then SaveAll() end
     native.Trace("inv_overhaul_inventory layout loaded from variables")
   end
 
@@ -151,18 +212,15 @@ module inv_overhaul_inventory_layout_runtime do
       end
       nextCell = 0
     end
-    for batch = 0, InventoryCapacity - 1 do
-      if nextCell < InventoryCapacity then
-        local order: int = inv_overhaul_inventory_layout.GetDefaultOrderForCell(nextCell)
-        native.GetVariable(GetCellVariableName(nextCell), order)
-        if order < 0 || order >= InventoryCapacity then
-          order = inv_overhaul_inventory_layout.GetDefaultOrderForCell(nextCell)
-        end
-        SetOrderValue(nextCell, order)
+    for group = 0, PackedGroupCount - 1 do
+      if nextCell < PackedGroupCount then
+        local packed: int = EncodePackedGroup(nextCell)
+        native.GetVariable(GetPackedVariableName(nextCell), packed)
+        DecodePackedGroup(nextCell, packed)
         nextCell = nextCell + 1
       end
     end
-    if nextCell >= InventoryCapacity then
+    if nextCell >= PackedGroupCount then
       Normalize()
       return true
     end
@@ -171,9 +229,10 @@ module inv_overhaul_inventory_layout_runtime do
 
   function SaveCell(cell: int) -> void
     if cell < 0 || cell >= InventoryCapacity then return end
+    local group: int = cell / PackedCellCount
     native.SetVariable(
-      GetCellVariableName(cell),
-      LayoutRuntimeGetOrderValue(cell))
+      GetPackedVariableName(group),
+      EncodePackedGroup(group))
   end
 
   function FinishIncrementalSave() -> void

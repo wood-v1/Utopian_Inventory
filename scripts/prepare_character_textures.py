@@ -1,3 +1,4 @@
+from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps
@@ -23,10 +24,28 @@ LOOT_DOLLS = {
 }
 
 
-def save_tex(image: Image.Image, target: Path, pixel_format: str) -> None:
-    """Save a Pathologic .tex file (a DDS container with DXT compression)."""
+def save_tex(
+    image: Image.Image,
+    target: Path,
+    pixel_format: str,
+    *,
+    runtime_uncompressed: bool = False,
+) -> None:
+    """Save DDS; predecode large opening-time assets without changing pixels."""
     prepared = image.convert("RGBA" if pixel_format == "DXT5" else "RGB")
-    prepared.save(target, format="DDS", pixel_format=pixel_format)
+    if runtime_uncompressed:
+        # Retain the exact decoded pixels of the previous DXT asset, including
+        # its quantization and alpha. Uncompressed NPOT DDS avoids asking the
+        # legacy D3DX loader to resize/recompress a DXT texture on every open.
+        # Only fixed background/doll assets use this; item textures stay as-is.
+        with BytesIO() as compressed:
+            prepared.save(compressed, format="DDS", pixel_format=pixel_format)
+            compressed.seek(0)
+            with Image.open(compressed) as encoded:
+                encoded.convert("RGBA").save(target, format="DDS")
+        pixel_format = "RGBA8 (predecoded " + pixel_format + ")"
+    else:
+        prepared.save(target, format="DDS", pixel_format=pixel_format)
     print(
         f"prepared {target.name}: {prepared.width}x{prepared.height} "
         f"{pixel_format} TEX"
@@ -80,7 +99,7 @@ for character in CHARACTERS:
             raise RuntimeError(f"{source.name}: expected {ATLAS_SIZE}, got {rgba.size}")
         visible = rgba.crop((0, 0, DOLL_VISIBLE_SIZE[0], DOLL_VISIBLE_SIZE[1]))
         doll = visible.resize(DOLL_GAME_SIZE, Image.Resampling.LANCZOS)
-        save_tex(doll, target, "DXT5")
+        save_tex(doll, target, "DXT5", runtime_uncompressed=True)
 
 
 for character in CHARACTERS:
@@ -94,7 +113,7 @@ for character in CHARACTERS:
             BACKGROUND_GAME_SIZE_OVERRIDES.get(character, BACKGROUND_GAME_SIZE),
             Image.Resampling.LANCZOS,
         )
-        save_tex(background, target, "DXT1")
+        save_tex(background, target, "DXT1", runtime_uncompressed=True)
 
 
 for kind, source_name in LOOT_DOLLS.items():

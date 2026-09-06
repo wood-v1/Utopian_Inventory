@@ -91,6 +91,7 @@ maintask InventoryOverhaulBackground do
     occupiedImage = "ui/inv_overhaul_slot_occupied.tex"
     targetImage = "ui/inv_overhaul_slot_target.tex"
     quickslotHelpImage = "ui/inv_overhaul_quickslot_help.tex"
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_vectors_begin") end
     native.CreateIntVector(itemIDs)
     native.CreateIntVector(amounts)
     native.CreateIntVector(quickslots)
@@ -109,6 +110,7 @@ maintask InventoryOverhaulBackground do
       highlightedSlots->add(0)
       sprites->add("")
     end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_vectors_end") end
 
     native.GetWindowSize(panelWidth, panelHeight)
     rootWidth = 0
@@ -120,16 +122,17 @@ maintask InventoryOverhaulBackground do
     if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_begin") end
     LoadTrackedImage(image)
     if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_image_end") end
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_chrome_begin") end
     LoadTrackedImage(emptyImage)
     LoadTrackedImage(occupiedImage)
     LoadTrackedImage(targetImage)
     LoadTrackedImage(quickslotHelpImage)
+    if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_chrome_end") end
     if characterBranch == c_iBranchKlara then
       native.Trace("INV_OVERHAUL_CLARA_RENDER_PROFILE sprite=large doll=enabled background=enabled empty_slots=enabled profiler=steps")
     end
     native.SetOwnerDraw(true)
     native.ProcessEvents()
-    native.SendMessageToParent(inv_overhaul_inventory_protocol.GridRendererReady)
     if debugEnabled == 1 then native.Trace("INV_OVERHAUL_PERF_STEP background_init_end") end
   end
 

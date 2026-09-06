@@ -16,12 +16,11 @@ import "inv_overhaul_inventory_input_controller"
 import "inv_overhaul_inventory_sounds"
 
 module inv_overhaul_inventory_controller do
-  local const c_sScriptVersion: string = "2026.08.17-fast-open-generation-poll-1"
+  local const c_sScriptVersion: string = "2026.09.05-fast-open-packed-layout-1"
   local const c_iCWeapon: int = 0
   local const c_iCClothes: int = 1
   local const c_iCategoryCount: int = 5
   local const c_iInventoryCapacity: int = 56
-  local const c_iLayoutVersion: int = 4
   local const c_iVKShift: int = 16
   local const c_iVKControl: int = 17
   local const c_iQuickslotCount: int = 10
@@ -76,11 +75,6 @@ module inv_overhaul_inventory_controller do
     observedContentGeneration = currentContentGeneration
     layoutLoadStartCell = -1
     closingWindow = false
-    if inv_overhaul_inventory_view.DebugLoggingEnabled() then
-      local warmed: int = 0
-      native.GetVariable("inv_overhaul_ui_cache_loaded", warmed)
-      native.Trace("INV_OVERHAUL_PERF_PHASE cache_snapshot warmed=" + warmed)
-    end
     inv_overhaul_inventory_quickslot_bindings.QuickslotBindingsInitializeState()
     InitializeQuickslotBindings()
     RefreshQuickslotCache()
@@ -100,7 +94,9 @@ module inv_overhaul_inventory_controller do
     native.SetOwnerDraw(false)
     native.SetNeedUpdate(true)
     if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_before_process_events") end
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP open_sound_begin") end
     inv_overhaul_inventory_sounds.InventorySoundsPlayOpen()
+    if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP open_sound_end") end
     native.ProcessEvents()
     if inv_overhaul_inventory_view.DebugLoggingEnabled() then native.Trace("INV_OVERHAUL_PERF_STEP root_init_end") end
   end
@@ -138,10 +134,6 @@ module inv_overhaul_inventory_controller do
     return inv_overhaul_inventory_snapshot.GetLastBackpackItemCount()
   end
   function ReadLayoutLoadStartCell() -> int return layoutLoadStartCell end
-  function ReadPerfCacheEpoch() -> int
-    return inv_overhaul_inventory_view.GetCacheEpoch()
-  end
-
   function InitSlotOrder() -> void
     inv_overhaul_inventory_layout_runtime.LayoutRuntimeInitialize()
   end
@@ -154,10 +146,6 @@ module inv_overhaul_inventory_controller do
 
   function PlayerControllerGetOrderValue(slot: int) -> int
     return inv_overhaul_inventory_layout_runtime.LayoutRuntimeGetOrderValue(slot)
-  end
-
-  function LoadLayoutVariables() -> void
-    inv_overhaul_inventory_layout_runtime.Load()
   end
 
   function ContinueIncrementalLayoutLoad() -> bool
@@ -519,53 +507,6 @@ module inv_overhaul_inventory_controller do
       slot, c_iInventoryCapacity, visibleCell, reference, container)
   end
 
-  function PlayerControllerIsItemTexturePreloaded(itemID: int, cacheEpoch: int) -> bool
-    return inv_overhaul_inventory_presenter.PlayerPresenterIsItemTexturePreloaded(
-      itemID, cacheEpoch)
-  end
-
-  function PlayerControllerMarkItemTextureLoaded(category: int, index: int) -> void
-    inv_overhaul_inventory_presenter.PlayerPresenterMarkItemTextureLoaded(
-      PlayerControllerGetPlayerContainer(), category, index)
-  end
-
-  function MeasureInitialTextureCacheCoverage() -> void
-    inv_overhaul_inventory_view.ResetCacheCoverage()
-    local container: object = PlayerControllerGetPlayerContainer()
-
-    for ordinal = 0, c_iInventoryCapacity - 1 do
-      local category: int
-      local index: int
-      category = inv_overhaul_inventory_items.ItemsGetCachedCategory(ordinal)
-      index = inv_overhaul_inventory_items.ItemsGetCachedIndex(ordinal)
-      if category >= 0 && index >= 0 then
-        local item: object
-        local itemID: int = -1
-        container->GetItem(item, index, category)
-        if item then item->GetItemID(itemID) end
-        local hit: bool = PlayerControllerIsItemTexturePreloaded(
-          itemID, ReadPerfCacheEpoch() + 0)
-        inv_overhaul_inventory_view.RecordStackCacheResult(hit)
-      end
-    end
-
-    for equipment = 0, 4 do
-      local category: int
-      local index: int
-      category = inv_overhaul_inventory_equipment.PlayerEquipmentGetCachedCategory(equipment)
-      index = inv_overhaul_inventory_equipment.PlayerEquipmentGetCachedIndex(equipment)
-      if category >= 0 && index >= 0 then
-        local item: object
-        local itemID: int = -1
-        container->GetItem(item, index, category)
-        if item then item->GetItemID(itemID) end
-        local hit: bool = PlayerControllerIsItemTexturePreloaded(
-          itemID, ReadPerfCacheEpoch() + 0)
-        inv_overhaul_inventory_view.RecordEquipmentCacheResult(hit)
-      end
-    end
-  end
-
   function PlayerControllerReportFirstInitialItem() -> void
     inv_overhaul_inventory_view.PlayerViewReportFirstInitialItem()
   end
@@ -574,54 +515,10 @@ module inv_overhaul_inventory_controller do
     inv_overhaul_inventory_view.PlayerViewReportInitialLoadComplete()
   end
 
-  function TryWarmStartGrid() -> void
-    if !inv_overhaul_inventory_view.BeginWarmStartAttempt() then return end
-
-    local characterReady: int = 0
-    local fullyWarmed: int = 0
-    local completedGeneration: int = -1
-    local currentGeneration: int = 0
-    native.GetVariable("inv_overhaul_ui_cache_character_ready", characterReady)
-    native.GetVariable("inv_overhaul_ui_cache_fully_warmed", fullyWarmed)
-    native.GetVariable("inv_overhaul_ui_cache_completed_generation", completedGeneration)
-    native.GetVariable("inv_overhaul_inventory_content_generation", currentGeneration)
-    if characterReady != 1 || fullyWarmed != 1 || completedGeneration != currentGeneration then
-      if inv_overhaul_inventory_view.DebugLoggingEnabled() then
-        native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=0 generation=" +
-          completedGeneration + " current=" + currentGeneration)
-      end
-      return
-    end
-
-    LoadLayoutVariables()
-    InitializePersistentBackpackSnapshot()
-    OrderFreeCellsByDisplayForCount(ReadLastBackpackItemCount() + 0)
-    BuildEquipmentIndexCache()
-    MeasureInitialTextureCacheCoverage()
-    local cacheHits: int = inv_overhaul_inventory_view.GetCacheHits()
-    local cacheMisses: int = inv_overhaul_inventory_view.GetCacheMisses()
-    if cacheMisses > 0 then
-      if inv_overhaul_inventory_view.DebugLoggingEnabled() then
-        native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=0 hits=" +
-          cacheHits + " misses=" + cacheMisses)
-      end
-      return
-    end
-
-    ClampPage()
-    for slot = 0, visibleSlots - 1 do PlayerControllerUpdateSlot(slot) end
-    inv_overhaul_inventory_view.MarkWarmGridLoaded()
-    if inv_overhaul_inventory_view.DebugLoggingEnabled() then
-      native.Trace("INV_OVERHAUL_PERF_PHASE warm_start ready=1 hits=" +
-        cacheHits + " misses=" + cacheMisses)
-    end
-  end
-
   function PlayerControllerBeginInitialSlotLoad() -> void
     PlayerControllerUpdateLayout()
     ClampPage()
     BuildEquipmentIndexCache()
-    MeasureInitialTextureCacheCoverage()
     PlayerControllerUpdatePageControls()
     inv_overhaul_inventory_view.BeginInitialLoad(
       ReadVisibleSlots())
@@ -657,7 +554,7 @@ module inv_overhaul_inventory_controller do
         index = inv_overhaul_inventory_equipment.PlayerEquipmentGetCachedIndex(equipmentSlot)
         if category >= 0 && index >= 0 then
           UpdateCachedEquipmentSlot(equipmentSlot)
-          PlayerControllerMarkItemTextureLoaded(category, index)
+          inv_overhaul_inventory_view.RecordInitialEquipment()
           PlayerControllerReportFirstInitialItem()
           loadedSprite = true
         end
@@ -677,9 +574,7 @@ module inv_overhaul_inventory_controller do
           local reference: int = PlayerControllerResolveVisibleSlot(slot)
           if reference >= 0 then
             PlayerControllerUpdateSlot(slot)
-            PlayerControllerMarkItemTextureLoaded(
-              inv_overhaul_inventory_items.DecodeReferenceCategory(reference),
-              inv_overhaul_inventory_items.DecodeReferenceIndex(reference))
+            inv_overhaul_inventory_view.RecordInitialStack()
             PlayerControllerReportFirstInitialItem()
             loadedSprite = true
           end
@@ -1484,11 +1379,6 @@ module inv_overhaul_inventory_controller do
         inv_overhaul_inventory_protocol.TargetQuickslotHelp, 1407)
       return true
     end
-    if message == inv_overhaul_inventory_protocol.GridRendererReady then
-      inv_overhaul_inventory_view.MarkRendererReady()
-      TryWarmStartGrid()
-      return true
-    end
     if message == inv_overhaul_inventory_protocol.PageHoverEnter then
       BeginDragPageHover(sender)
       return true
@@ -1724,6 +1614,12 @@ module inv_overhaul_inventory_controller do
     native.SetVariable("inv_overhaul_inventory_page_hover", 0)
     native.SendMessage(-200, "panel_background")
     native.SendMessage(-200, "character_doll")
+    native.SendMessage(-200, "equip_head")
+    native.SendMessage(-200, "equip_body")
+    native.SendMessage(-200, "equip_hands")
+    native.SendMessage(-200, "equip_feet")
+    native.SendMessage(-200, "equip_weapon")
+    native.SendMessage(-200, "money")
     native.DestroyWindow()
   end
 

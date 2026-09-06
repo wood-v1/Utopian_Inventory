@@ -47,12 +47,20 @@ Player inventory screen:
 
 ```text
 Native inventory redirect selects inv_overhaul_inventory*.xml
+-> native open profiler starts before the prepare callback
 -> XML instantiates InventoryOverhaulUI
 -> InventoryOverhaulUI.init
 -> inv_overhaul_inventory_controller.PlayerControllerInitialize
 -> initialize view/presenter/drag/paging/tooltip/quickslot/layout/snapshot state
--> frame stages reconcile projection, load textures/metadata, persist layout, refresh UI
+-> child forms synchronously initialize fixed chrome, equipment, money, and doll resources
+-> frame stages load packed layout, reconcile projection, load item textures/metadata, persist layout, refresh UI
 ```
+
+The player screen deliberately stages item/equipment sprite publication after window creation,
+one occupied entry per update. Fixed chrome still loads during child-form creation. With debug
+logging enabled, native and script probes report prepare/create, child readiness, layout,
+first-item, fixed-image, open-sound, and completion timings without adding probes to release
+build behavior.
 
 Container/corpse screen:
 
@@ -105,6 +113,7 @@ native key hook
 
 - Module locals compile to global storage inside each compiled maintask; they are not repository-wide singletons across separate `.bin` scripts.
 - Cross-script persistent coordination uses dynamically named engine variables such as layout cells, snapshots, quickslot bindings, content/reorder generations, page-hover state, special-inventory remap state, and effect generations.
+- Player layout persistence version 5 packs five 6-bit cell ordinals into each of 12 signed-safe engine integers. Versions 3 and 4 are read once and migrated; this keeps the hot reopen path from issuing one engine-variable read per cell.
 - The native bootstrap publishes `inv_overhaul_debug_enabled` before constructing the player inventory UI so performance probes follow the global `[Debug] Enabled` setting; other mod traces are centrally filtered after operational console listeners consume them.
 - The player backpack projection excludes selected weapon/clothing entries. Equipment has dedicated targets and does not consume the 56-cell backpack capacity.
 - Layout runtime maps visual cells to projected item ordinals. Snapshot reconciliation preserves cells across category/index changes, equipment selection/replacement, transfers, and scripted mutations.
@@ -126,5 +135,6 @@ View/widget maintasks publish or consume numeric messages and render state; doma
 
 - `inv_overhaul_inventory_controller` remains a broad compiler-visible orchestration module despite the extracted player submodules.
 - Shared engine-variable names and numeric UI protocols create implicit cross-script/native/XML coupling that imports alone do not reveal.
+- Script initialization runs after the native XML creation timer ends: resource work is not included in `create_us`. A resource-only HUD companion preloads and holds the non-streaming inventory-open OGG buffer. The three player backgrounds/dolls are predecoded RGBA8 DDS assets to avoid compressed NPOT texture conversion on opening. Dimensions and decoded asset pixels are unchanged. See `INVENTORY_OPEN_PERFORMANCE.md` for measurements and remaining runtime checks.
 - Hard-coded geometry exists in Lua, generated XML, and selected native hit tests and must remain synchronized.
 - Compatibility quickslot/UI runtimes duplicate active behavior and can become stale, but removal requires proof that no external/save caller remains.

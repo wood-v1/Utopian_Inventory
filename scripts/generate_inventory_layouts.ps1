@@ -72,11 +72,17 @@ function Add-Line([System.Text.StringBuilder]$Builder, [string]$Line) {
     [void]$Builder.AppendLine($Line)
 }
 
-function Add-InventorySounds([System.Text.StringBuilder]$Builder) {
+function Add-InventorySounds(
+    [System.Text.StringBuilder]$Builder,
+    [bool]$IncludeMoneyPickup = $true
+) {
+    # The HUD companion preloads/holds this buffer. Streaming delays short UI cues.
     Add-Line $Builder '  <sound name="inv_overhaul_inv_open" stream="0" loop="0">inv_overhaul_inv_open.ogg</sound>'
     Add-Line $Builder '  <sound name="inv_overhaul_item_equip" stream="0" loop="0">inv_overhaul_item_equip.ogg</sound>'
     Add-Line $Builder '  <sound name="inv_overhaul_inv_action" stream="0" loop="0">inv_overhaul_inv_action.ogg</sound>'
-    Add-Line $Builder '  <sound name="inv_overhaul_money_pickup" stream="0" loop="0">inv_overhaul_money_pickup.ogg</sound>'
+    if ($IncludeMoneyPickup) {
+        Add-Line $Builder '  <sound name="inv_overhaul_money_pickup" stream="0" loop="0">inv_overhaul_money_pickup.ogg</sound>'
+    }
 }
 
 function Assert-ValidXml([string]$Text, [string]$Target) {
@@ -236,7 +242,7 @@ foreach ($layout in $layouts) {
         Add-Pagination $builder "" $inventoryPagerX $playerPagerY
     }
     Add-Cursors $builder
-    Add-InventorySounds $builder
+    Add-InventorySounds $builder $false
     Add-Line $builder "</form>"
 
     $target = Join-Path (Join-Path $PSScriptRoot "..\resources\ui") $layout.File

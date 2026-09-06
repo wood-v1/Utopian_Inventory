@@ -2,8 +2,6 @@
 
 #include "framework.h"
 
-#include <atomic>
-
 namespace inventory_overhaul
 {
 class Diagnostics;
@@ -22,7 +20,6 @@ public:
     UiBridge(RuntimeState& state, Diagnostics& diagnostics);
 
     UiRedirects ConfigureRedirects();
-    bool InitializeRuntimeTextureEpoch();
     void RegisterInventoryStateCallback();
     bool RegisterWindowPrepareCallback();
     bool RegisterWindowCreatedCallback();
@@ -48,12 +45,11 @@ private:
     bool PrepareLootWindow(const char* xml);
     void PreparePlayerWindow(const char* xml);
     void PrepareSpecialInventory(const char* xml);
-    bool PublishRuntimeTextureEpoch() const;
+    bool EnsureDebugStatePublished();
     int ResolvePageHoverTarget() const;
 
     RuntimeState& state_;
     Diagnostics& diagnostics_;
-    std::atomic<DWORD> runtimeTextureEpoch_{ 1 };
     int publishedPageHover_ = -1;
 };
 }

@@ -71,14 +71,6 @@ UiRedirects UiBridge::ConfigureRedirects()
     return redirects;
 }
 
-bool UiBridge::InitializeRuntimeTextureEpoch()
-{
-    runtimeTextureEpoch_.store(
-        (::GetTickCount() & 0x3fffffffu) + 1u,
-        std::memory_order_release);
-    return PublishRuntimeTextureEpoch();
-}
-
 void UiBridge::RegisterInventoryStateCallback()
 {
     OynonRegisterInventoryStateCallback(&InventoryStateChanged, this);
@@ -137,6 +129,11 @@ void UiBridge::OnInventoryStateChanged(BOOL opened)
 
 void UiBridge::OnUIWindowPrepare(const char* xml)
 {
+    const bool playerInventoryWindow = IsPlayerInventoryWindowName(xml);
+    if (playerInventoryWindow) {
+        diagnostics_.BeginInventoryOpen(xml);
+        diagnostics_.RecordInventoryPerformanceStep("prepare_begin");
+    }
     if (PrepareLootWindow(xml)) {
         return;
     }
@@ -157,26 +154,18 @@ void UiBridge::OnUIWindowPrepare(const char* xml)
         if (OynonConfirmPlayerBootstrapReady()) {
             diagnostics_.Log("player bootstrap gameplay readiness confirmed by inventory window");
         }
-        // World loading resets console variables. Republish the process-local
-        // epoch immediately before the root inventory script is created so
-        // per-item warm markers survive window close/open but never leak into
-        // a later game process through a save.
-        if (!PublishRuntimeTextureEpoch()) {
-            diagnostics_.Log("InventoryOverhaul failed to republish runtime texture epoch");
-        }
-        char debugCommand[64] = {};
-        std::snprintf(
-            debugCommand,
-            sizeof(debugCommand),
-            "setvar inv_overhaul_debug_enabled %d",
-            diagnostics_.DebugEnabled() ? 1 : 0);
-        if (!OynonExecCommand(debugCommand)) {
+        // Reassert at every open: loading a save can restore engine variables
+        // after playerstat preparation. A native cached-success flag cannot
+        // prove that the script-visible value survived that transition.
+        if (!EnsureDebugStatePublished()) {
             diagnostics_.Log("InventoryOverhaul failed to publish debug logging state");
         }
-        diagnostics_.BeginInventoryOpen(xml);
     }
 
     PrepareSpecialInventory(xml);
+    if (playerInventoryWindow) {
+        diagnostics_.RecordInventoryPerformanceStep("prepare_end");
+    }
 }
 
 bool UiBridge::PrepareLootWindow(const char* xml)
@@ -244,6 +233,9 @@ void UiBridge::PreparePlayerWindow(const char* xml)
         if (OynonConfirmPlayerBootstrapReady()) {
             diagnostics_.Log("player bootstrap gameplay readiness confirmed by playerstat window");
         }
+        if (!EnsureDebugStatePublished()) {
+            diagnostics_.Log("InventoryOverhaul failed to publish debug logging state");
+        }
     }
 
     if (xml && std::strcmp(xml, "daychange.xml") == 0) {
@@ -254,6 +246,17 @@ void UiBridge::PreparePlayerWindow(const char* xml)
             diagnostics_.Log("player bootstrap daychange confirmation arrived before player observation");
         }
     }
+}
+
+bool UiBridge::EnsureDebugStatePublished()
+{
+    char debugCommand[64] = {};
+    std::snprintf(
+        debugCommand,
+        sizeof(debugCommand),
+        "setvar inv_overhaul_debug_enabled %d",
+        diagnostics_.DebugEnabled() ? 1 : 0);
+    return OynonExecCommandInUIWindowPrepare(debugCommand) != FALSE;
 }
 
 void UiBridge::PrepareSpecialInventory(const char* xml)
@@ -385,18 +388,6 @@ void UiBridge::OnUIWindowCreated(
         resolvedXml,
         succeeded,
         elapsedMicroseconds);
-}
-
-bool UiBridge::PublishRuntimeTextureEpoch() const
-{
-    char command[96] = {};
-    std::snprintf(
-        command,
-        sizeof(command),
-        "setvar inv_overhaul_runtime_texture_epoch %lu",
-        static_cast<unsigned long>(
-            runtimeTextureEpoch_.load(std::memory_order_acquire)));
-    return OynonExecCommand(command) != FALSE;
 }
 
 int UiBridge::ResolvePageHoverTarget() const

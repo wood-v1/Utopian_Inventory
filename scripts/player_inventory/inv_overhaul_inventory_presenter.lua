@@ -135,39 +135,4 @@ module inv_overhaul_inventory_presenter do
     native.SendMessage(-30 - cache, wndName)
   end
 
-  function PlayerPresenterIsItemTexturePreloaded(
-    itemID: int,
-    cacheEpoch: int
-  ) -> bool
-    if itemID < 0 then return false end
-    if cacheEpoch > 0 then
-      local itemEpoch: int = 0
-      native.GetVariable("inv_overhaul_ui_cache_item_" + itemID, itemEpoch)
-      if itemEpoch == cacheEpoch then return true end
-    end
-    local runtimeEpoch: int = 0
-    local loadedEpoch: int = -1
-    native.GetVariable("inv_overhaul_runtime_texture_epoch", runtimeEpoch)
-    if runtimeEpoch <= 0 then return false end
-    native.GetVariable("inv_overhaul_runtime_texture_item_" + itemID, loadedEpoch)
-    return loadedEpoch == runtimeEpoch
-  end
-
-  function PlayerPresenterMarkItemTextureLoaded(
-    container: object,
-    category: int,
-    index: int
-  ) -> void
-    if category < 0 || index < 0 then return end
-    local runtimeEpoch: int = 0
-    native.GetVariable("inv_overhaul_runtime_texture_epoch", runtimeEpoch)
-    if runtimeEpoch <= 0 then return end
-    local item: object
-    local itemID: int = -1
-    container->GetItem(item, index, category)
-    if item then item->GetItemID(itemID) end
-    if itemID >= 0 then
-      native.SetVariable("inv_overhaul_runtime_texture_item_" + itemID, runtimeEpoch)
-    end
-  end
 end

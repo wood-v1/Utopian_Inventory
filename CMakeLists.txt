@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.0)
-project(InventoryOverhaul VERSION 1.0.0 LANGUAGES C CXX)
+project(InventoryOverhaul VERSION 1.0.1 LANGUAGES C CXX)
 
 if(CMAKE_SIZEOF_VOID_P AND NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "InventoryOverhaul must be built as Win32/x86 to hook Pathologic Game.exe.")

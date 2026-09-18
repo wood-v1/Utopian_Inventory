@@ -1,4 +1,4 @@
-# Inventory Overhaul
+# Inventory Overhaul 1.0.1
 
 A complete inventory and loot-interface overhaul for Pathologic Classic HD.
 
@@ -9,6 +9,13 @@ category is lifted through OynonTools and replaced by one backpack limit of 56
 occupied cells. Equipment lives in five dedicated character slots and does not
 consume backpack capacity. Adding to an existing stack remains possible when all
 56 cells are occupied.
+
+## Version 1.0.1
+
+Item hotkeys are suppressed during dialogue and inline Character Info, including
+numpad and the configurable handcombat binding. Stale queued requests are cancelled;
+the closing press is guarded until release. Install the bundled updated OynonTools
+with this DLL. [Compatibility details](docs/DIALOG_INPUT_COMPATIBILITY.md).
 
 ## Features
 

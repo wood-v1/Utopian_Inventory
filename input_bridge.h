@@ -32,6 +32,7 @@ private:
     void OnKeyboardInput(DWORD virtualKey, BOOL pressed);
     BOOL OnConsoleCommand(const char* command);
     bool PublishQuickslotRequest(int quickslot, const char* source);
+    bool ItemHotkeysBlocked();
 
     RuntimeState& state_;
     Diagnostics& diagnostics_;
@@ -39,5 +40,6 @@ private:
     std::atomic<DWORD> lastQuickslotRequestTick_{ 0 };
     std::atomic<DWORD> handCombatKey_{ 'X' };
     DWORD lastBindingRefresh_ = 0;
+    std::atomic<DWORD> dialogInputGeneration_{ 0 };
 };
 }

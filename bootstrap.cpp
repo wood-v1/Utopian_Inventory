@@ -17,7 +17,7 @@ namespace inventory_overhaul
 namespace
 {
 constexpr const char* NATIVE_VERSION =
-    "INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.09.06-inventory-open-sound-preload-3";
+    "INV_OVERHAUL_INVENTORY_NATIVE_VERSION 2026.09.09-dialog-input-1.0.1";
 
 bool InitializeEngineHooks(Diagnostics& diagnostics)
 {

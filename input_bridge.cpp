@@ -78,8 +78,21 @@ void InputBridge::RefreshBindingIfDue(DWORD now)
     }
 }
 
+bool InputBridge::ItemHotkeysBlocked()
+{
+    const DWORD generation = OynonUIDialogInputGeneration();
+    const bool changed = dialogInputGeneration_.exchange(generation) != generation;
+    const bool blocked = OynonUIDialogBlocksItemHotkeys() != FALSE;
+    if (changed || blocked) state_.pendingQuickslot.store(0, std::memory_order_release);
+    return blocked;
+}
+
 void InputBridge::RetryPendingQuickslot()
 {
+    if (ItemHotkeysBlocked()) {
+        state_.pendingQuickslot.store(0, std::memory_order_release);
+        return;
+    }
     const int pendingQuickslot =
         state_.pendingQuickslot.load(std::memory_order_acquire);
     if (pendingQuickslot <= 0 ||
@@ -115,6 +128,12 @@ void InputBridge::OnKeyboardInput(DWORD virtualKey, BOOL pressed)
         return;
     }
 
+    // Shared UI state: suppress all item bindings (also numpad/handcombat),
+    // without consuming Escape, dialogue input or changing user bindings.
+    if (ItemHotkeysBlocked()) {
+        state_.pendingQuickslot.store(0, std::memory_order_release);
+        return;
+    }
     const int quickslot = GetQuickslotNumber(virtualKey);
     const bool inventoryOpen = state_.inventoryOpen.load();
     const DWORD overlayKind = OynonUIInventoryGetOverlayKind();
@@ -161,6 +180,10 @@ void InputBridge::OnKeyboardInput(DWORD virtualKey, BOOL pressed)
 
 BOOL InputBridge::OnConsoleCommand(const char* command)
 {
+    if (ItemHotkeysBlocked()) {
+        state_.pendingQuickslot.store(0, std::memory_order_release);
+        return FALSE;
+    }
     if (!command || state_.inventoryOpen.load(std::memory_order_acquire) ||
         OynonUIInventoryGetOverlayKind() != OYNON_INVENTORY_OVERLAY_NONE ||
         state_.playerBranch.load(std::memory_order_acquire) < 0) {

@@ -111,7 +111,6 @@ function Assert-ZipEntry([string]$ZipPath, [string]$EntryPath) {
 
 Assert-ReleaseOutputPath
 Assert-PathExists -Path $DeployScript -Description "deploy script"
-Assert-PathExists -Path $LauncherExe -Description "UtopianLauncher executable"
 Assert-PathExists -Path $LauncherIni -Description "release launcher config"
 Assert-PathExists -Path $Manifest -Description "mod manifest"
 Assert-PathExists -Path $ModIni -Description "mod config"
@@ -151,14 +150,14 @@ if (!$?) { throw "deploy.ps1 failed" }
 Remove-Item -LiteralPath $stagingConfig -Force
 
 $FinalDir = Join-Path $OutputDir "bin\Final"
-Copy-PackageFile -Source $LauncherExe -Destination (Join-Path $FinalDir "GameModLauncher.exe")
+# Ship installation hints, not the launcher executable itself.
 Copy-PackageFile -Source $LauncherIni -Destination (Join-Path $FinalDir "GameModLauncher.ini")
 Copy-PackageFile -Source $Manifest -Destination (Join-Path $FinalDir "mods\InventoryOverhaul.manifest.ini")
 Copy-PackageFile -Source $ModIni -Destination (Join-Path $FinalDir "mods\InventoryOverhaul.ini")
 Copy-PackageFile -Source $Readme -Destination (Join-Path $OutputDir "README.md")
 Copy-PackageFile -Source $InstallInstructions -Destination (Join-Path $OutputDir "INSTALL.txt")
 
-$zipPath = Join-Path $OutputDir "Pathologic_Inventory_Overhaul_0_1.zip"
+$zipPath = Join-Path $OutputDir "Pathologic_Inventory_Overhaul_1_0_1.zip"
 if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force
 }
